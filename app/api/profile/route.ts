@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
-import { generateProfile } from "@/lib/profile-generator";
+import { analyzeProfile, getAIStatus } from "@/lib/ai";
 import type { ProfileInput } from "@/lib/types";
+
+export async function GET() {
+  return NextResponse.json(getAIStatus());
+}
 
 export async function POST(request: Request) {
   const input = (await request.json()) as Partial<ProfileInput>;
@@ -10,14 +14,16 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json(
-    generateProfile({
+    await analyzeProfile({
       name: input.name ?? "新同学",
       major: input.major,
       grade: input.grade ?? "",
       bio: input.bio ?? "",
       experiences: input.experiences,
       interests: input.interests ?? "",
+      awards: input.awards ?? "",
+      achievements: input.achievements ?? "",
+      githubRepos: input.githubRepos ?? "",
     }),
   );
 }
-

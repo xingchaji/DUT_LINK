@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Compass, Home, Sparkles, UserRound, UsersRound } from "lucide-react";
+import { Compass, Home, Sparkles, Trophy, UserRound, UsersRound } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { AuthMenu } from "@/components/auth-menu";
 
 const nav = [
   { href: "/", label: "首页", icon: Home },
   { href: "/profile", label: "能力画像", icon: UserRound },
+  { href: "/opportunities", label: "机会中心", icon: Trophy },
   { href: "/teams", label: "智能组队", icon: UsersRound },
   { href: "/explore", label: "探索盲盒", icon: Compass },
 ];
@@ -31,11 +33,14 @@ export function Navigation() {
             );
           })}
         </nav>
-        <div className="mt-auto rounded-3xl bg-[var(--lime)] p-5">
+        <div className="mt-auto space-y-3">
+          <div className="rounded-3xl bg-[var(--lime)] p-5">
           <Sparkles className="size-5" />
           <p className="mt-4 font-[family-name:var(--font-display)] text-lg font-bold leading-tight">让 AI 重新认识你</p>
           <p className="mt-2 text-xs leading-5 text-black/55">补充经历，获得更准确的能力画像与连接建议。</p>
           <Link href="/onboarding" className="mt-4 block rounded-xl bg-white px-3 py-2.5 text-center text-xs font-bold shadow-sm">更新资料</Link>
+          </div>
+          <AuthMenu />
         </div>
       </aside>
 
@@ -44,7 +49,7 @@ export function Navigation() {
         <Link href="/onboarding" className="rounded-full bg-[var(--ink)] px-4 py-2 text-xs font-semibold text-white">完善画像</Link>
       </header>
 
-      <nav className="fixed inset-x-3 bottom-3 z-40 grid grid-cols-4 rounded-[22px] border border-white/70 bg-white/90 p-1.5 shadow-[0_16px_50px_rgba(28,33,43,0.18)] backdrop-blur-xl lg:hidden">
+      <nav className="fixed inset-x-3 bottom-3 z-40 grid grid-cols-5 rounded-[22px] border border-white/70 bg-white/90 p-1.5 shadow-[0_16px_50px_rgba(28,33,43,0.18)] backdrop-blur-xl lg:hidden">
         {nav.map((item) => {
           const Icon = item.icon;
           const active = pathname === item.href;
@@ -59,4 +64,3 @@ export function Navigation() {
     </>
   );
 }
-

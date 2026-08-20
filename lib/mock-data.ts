@@ -1,15 +1,17 @@
-import type { GeneratedProfile, PersonMatch } from "@/lib/types";
+import type { Discovery, GeneratedProfile, Opportunity, PersonMatch } from "@/lib/types";
 
 export const demoProfile: GeneratedProfile = {
   summary: "兼具工程实现与创意表达潜力的软件工程学习者，适合从 AI 应用和交互体验切入跨学科项目。",
   skills: [
-    { name: "软件开发", score: 82, category: "技术" },
-    { name: "游戏开发", score: 74, category: "创意" },
-    { name: "数据分析", score: 66, category: "技术" },
-    { name: "团队协作", score: 71, category: "协作" },
+    { name: "软件开发", score: 82, category: "技术", confidence: 86, evidence: ["C++ 课程项目", "Python 数据分析"] },
+    { name: "游戏开发", score: 74, category: "创意", confidence: 79, evidence: ["EasyX 小游戏", "Unity 学习经历"] },
+    { name: "数据分析", score: 66, category: "技术", confidence: 68, evidence: ["Python 数据分析"] },
+    { name: "团队协作", score: 71, category: "协作", confidence: 55, evidence: ["项目协作描述较少，建议补充"] },
   ],
   interests: ["独立游戏", "人工智能", "开源社区", "视觉叙事"],
   potentialDirections: ["AI 应用开发", "游戏工具开发", "人机交互"],
+  analysisMode: "rules",
+  evidenceCount: 4,
 };
 
 export const matches: PersonMatch[] = [
@@ -22,6 +24,7 @@ export const matches: PersonMatch[] = [
     tags: ["UI 设计", "品牌视觉"],
     reason: "你的工程能力与她的视觉设计经验高度互补",
     status: "正在寻找校园产品项目",
+    scoreBreakdown: { complementarity: 97, sharedInterests: 82, crossDiscipline: 96 },
   },
   {
     id: "zhou-yu",
@@ -32,6 +35,7 @@ export const matches: PersonMatch[] = [
     tags: ["数字建筑", "3D 建模"],
     reason: "游戏世界构建与空间设计存在有趣交叉",
     status: "想尝试虚拟校园项目",
+    scoreBreakdown: { complementarity: 88, sharedInterests: 76, crossDiscipline: 100 },
   },
   {
     id: "chen-xi",
@@ -42,50 +46,97 @@ export const matches: PersonMatch[] = [
     tags: ["Unity", "交互装置"],
     reason: "你们都对游戏与智能交互感兴趣",
     status: "本周可参与新项目",
+    scoreBreakdown: { complementarity: 90, sharedInterests: 90, crossDiscipline: 78 },
   },
 ];
 
-export const opportunities = [
+export const opportunities: Opportunity[] = [
   {
-    title: "校园 AI 创新挑战赛",
+    id: "ccdc-2026",
+    title: "2026 中国大学生计算机设计大赛",
+    organizer: "中国大学生计算机设计大赛组织委员会",
     type: "竞赛",
-    deadline: "14 天后截止",
-    fit: 91,
-    tags: ["AI 应用", "产品创新", "3–5 人"],
+    status: "官方 2026 参赛要求已发布",
+    deadline: "关注校赛与省赛通知",
+    fit: 94,
+    description: "设有软件应用与开发、人工智能应用、数媒游戏与交互设计等 11 个大类。",
+    tags: ["软件开发", "人工智能", "交互设计"],
+    sourceName: "中国大学生计算机设计大赛官网",
+    sourceUrl: "https://jsjds.blcu.edu.cn/gyds1/csyq.htm",
+    verifiedAt: "2026-08-20",
+    bonusPolicy: "待导入所在学院 2026 年综测细则",
     accent: "violet",
   },
   {
-    title: "数字孪生校园共创计划",
-    type: "项目",
-    deadline: "长期招募",
-    fit: 87,
-    tags: ["Unity", "3D 建模", "校园服务"],
+    id: "innovation-2026",
+    title: "中国国际大学生创新大赛（2026）",
+    organizer: "教育部等部门与地方政府",
+    type: "竞赛",
+    status: "官方 2026 服务入口已上线",
+    deadline: "以学校报名通知为准",
+    fit: 89,
+    description: "面向高等教育不同赛道的创新创业赛事，需通过学校组织报名。",
+    tags: ["创新创业", "产品实践", "跨专业"],
+    sourceName: "全国大学生创业服务网",
+    sourceUrl: "https://cy.ncss.cn/provincecontact",
+    verifiedAt: "2026-08-20",
+    bonusPolicy: "待导入学校及学院当年认定规则",
     accent: "cyan",
   },
   {
-    title: "开源社区新星计划",
-    type: "社区",
-    deadline: "7 天后截止",
-    fit: 83,
-    tags: ["开源", "协作", "工程实践"],
+    id: "challenge-cup",
+    title: "“挑战杯”全国大学生系列科技学术竞赛",
+    organizer: "共青团中央、中国科协、教育部等",
+    type: "竞赛",
+    status: "官方长期赛事入口",
+    deadline: "关注当届校赛通知",
+    fit: 84,
+    description: "包含课外学术科技作品竞赛和创业计划竞赛，两项赛事交叉轮流开展。",
+    tags: ["科技创新", "社会调研", "创业计划"],
+    sourceName: "挑战杯官方网站",
+    sourceUrl: "https://tiaozhanbei.net/",
+    verifiedAt: "2026-08-20",
+    bonusPolicy: "待导入所在学院当年综测与保研认定文件",
     accent: "amber",
   },
 ];
 
-export const discoveries = [
+export const discoveries: Discovery[] = [
   {
+    id: "architecture-software",
     eyebrow: "今日知识盲盒",
     title: "为什么程序员应该了解建筑学？",
     description: "从模块、动线与尺度出发，看看软件架构和真实空间如何用相似的方法组织复杂性。",
     bridge: "软件架构 × 空间设计",
     readTime: "6 分钟",
+    why: "你有软件开发经历，而建筑学同样关心模块、边界、动线和人的行为。",
+    sources: [
+      { title: "A Pattern Language — Christopher Alexander", url: "https://www.patternlanguage.com/", type: "文章" },
+      { title: "Notes on the Synthesis of Form", url: "https://monoskop.org/images/f/ff/Alexander_Christopher_Notes_on_the_Synthesis_of_Form.pdf", type: "论文" },
+    ],
   },
   {
+    id: "game-campus-guide",
     eyebrow: "跨领域灵感",
     title: "用游戏设计重新想象校园导览",
     description: "任务、反馈与叙事不仅属于游戏，也能让新生探索校园的过程更自然。",
     bridge: "游戏机制 × 校园服务",
     readTime: "4 分钟",
+    why: "游戏设计中的目标、反馈和探索机制，可以降低新生了解校园的认知成本。",
+    sources: [
+      { title: "MDA: A Formal Approach to Game Design", url: "https://users.cs.northwestern.edu/~hunicke/MDA.pdf", type: "论文" },
+    ],
+  },
+  {
+    id: "music-debugging",
+    eyebrow: "随机跨域",
+    title: "调试代码和排练音乐有什么共同点？",
+    description: "两者都需要把整体表现拆成可验证的小段，通过反馈循环定位偏差。",
+    bridge: "软件调试 × 音乐排练",
+    readTime: "5 分钟",
+    why: "你关注工程实践，而音乐排练提供了另一套处理复杂系统与即时反馈的方法。",
+    sources: [
+      { title: "The Cambridge Handbook of Expertise and Expert Performance", url: "https://doi.org/10.1017/CBO9780511816796", type: "论文" },
+    ],
   },
 ];
-

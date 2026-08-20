@@ -2,9 +2,11 @@ import Link from "next/link";
 import { ArrowRight, BookOpen, ChevronRight, CircleUserRound, Orbit, Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { SkillBars } from "@/components/skill-bars";
-import { demoProfile, matches, opportunities } from "@/lib/mock-data";
+import { demoProfile, matches } from "@/lib/mock-data";
+import { rankOpportunities } from "@/lib/opportunity-ranking";
 
 export default function DashboardPage() {
+  const opportunities = rankOpportunities(demoProfile);
   return (
     <div className="mx-auto max-w-[1500px] px-5 py-8 sm:px-8 lg:px-10 lg:py-10 xl:px-14">
       <PageHeader eyebrow="Thursday · 20 August" title="下午好，陆同学" />
@@ -17,6 +19,25 @@ export default function DashboardPage() {
           <h2 className="mt-5 font-[family-name:var(--font-display)] text-3xl font-bold leading-[1.12] tracking-[-0.04em] sm:text-5xl">你的技术能力，正在靠近一个<br className="hidden sm:block" />有趣的新方向。</h2>
           <p className="mt-4 max-w-xl text-sm leading-7 text-white/65">基于近期新增的 Unity 项目经历，我们发现「空间设计 × 游戏开发」可能成为你的独特优势。</p>
           <Link href="/explore" className="mt-7 inline-flex items-center gap-2 rounded-full bg-[var(--lime)] px-5 py-3 text-sm font-bold text-[var(--ink)] transition hover:gap-3">拆开今日盲盒 <ArrowRight className="size-4" /></Link>
+        </div>
+      </section>
+
+      <section className="mt-8">
+        <div className="flex items-end justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--coral)]">Primary workspace</p><h2 className="mt-2 font-[family-name:var(--font-display)] text-3xl font-bold">适合你的机会</h2><p className="mt-2 text-sm text-[var(--muted)]">先发现可信机会，再完成组队与报名。</p></div><Link href="/opportunities" className="inline-flex items-center gap-2 rounded-full bg-[var(--ink)] px-5 py-3 text-xs font-bold text-white">进入机会中心 <ArrowRight className="size-4" /></Link></div>
+        <div className="mt-5 grid gap-4 md:grid-cols-3">
+          {opportunities.map((item, index) => {
+            const icons = [Orbit, CircleUserRound, BookOpen];
+            const Icon = icons[index];
+            return (
+              <article key={item.title} className="card group p-5 transition duration-300 hover:-translate-y-1 hover:shadow-xl">
+                <div className="flex items-center justify-between"><div className={`grid size-10 place-items-center rounded-2xl ${index === 0 ? "bg-[#ebe8ff] text-[var(--violet)]" : index === 1 ? "bg-[#dcf2ee] text-[#238983]" : "bg-[#fff0df] text-[#bd792a]"}`}><Icon className="size-5" /></div><span className="font-[family-name:var(--font-mono)] text-xs font-bold text-[var(--violet)]">{item.fit}% FIT</span></div>
+                <p className="mt-6 text-xs font-semibold text-[var(--muted)]">{item.type} · {item.deadline}</p>
+                <h3 className="mt-2 font-[family-name:var(--font-display)] text-lg font-bold">{item.title}</h3>
+                <p className="mt-2 text-[10px] font-semibold text-[var(--coral)]">{item.status}</p>
+                <div className="mt-4 flex flex-wrap gap-2">{item.tags.map((tag) => <span key={tag} className="rounded-full bg-black/[0.035] px-2.5 py-1 text-[10px] font-medium text-[var(--muted)]">{tag}</span>)}</div>
+              </article>
+            );
+          })}
         </div>
       </section>
 
@@ -55,23 +76,6 @@ export default function DashboardPage() {
         </section>
       </div>
 
-      <section className="mt-7">
-        <div className="flex items-end justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--coral)]">Recommended for you</p><h2 className="mt-2 font-[family-name:var(--font-display)] text-2xl font-bold">也许适合你的机会</h2></div><span className="hidden text-xs text-[var(--muted)] sm:block">由能力、兴趣与成长空间共同计算</span></div>
-        <div className="mt-5 grid gap-4 md:grid-cols-3">
-          {opportunities.map((item, index) => {
-            const icons = [Orbit, CircleUserRound, BookOpen];
-            const Icon = icons[index];
-            return (
-              <article key={item.title} className="card group p-5 transition duration-300 hover:-translate-y-1 hover:shadow-xl">
-                <div className="flex items-center justify-between"><div className={`grid size-10 place-items-center rounded-2xl ${index === 0 ? "bg-[#ebe8ff] text-[var(--violet)]" : index === 1 ? "bg-[#dcf2ee] text-[#238983]" : "bg-[#fff0df] text-[#bd792a]"}`}><Icon className="size-5" /></div><span className="font-[family-name:var(--font-mono)] text-xs font-bold text-[var(--violet)]">{item.fit}% FIT</span></div>
-                <p className="mt-6 text-xs font-semibold text-[var(--muted)]">{item.type} · {item.deadline}</p>
-                <h3 className="mt-2 font-[family-name:var(--font-display)] text-lg font-bold">{item.title}</h3>
-                <div className="mt-4 flex flex-wrap gap-2">{item.tags.map((tag) => <span key={tag} className="rounded-full bg-black/[0.035] px-2.5 py-1 text-[10px] font-medium text-[var(--muted)]">{tag}</span>)}</div>
-              </article>
-            );
-          })}
-        </div>
-      </section>
     </div>
   );
 }

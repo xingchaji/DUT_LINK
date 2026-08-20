@@ -7,7 +7,7 @@
 - API：Next.js Route Handlers，后续可拆分为独立服务
 - 数据库：PostgreSQL
 - ORM：Prisma（数据模型草案见 `prisma/schema.prisma`）
-- AI：服务端 Adapter 模式；Demo 由 `lib/profile-generator.ts` 本地规则模拟
+- AI：服务端 Adapter 模式；配置兼容 Chat Completions 的模型后启用真实分析，失败时降级到 `lib/profile-generator.ts`
 - 向量检索：Phase 2 建议启用 PostgreSQL `pgvector`，避免过早引入独立向量数据库
 - 身份认证：建议采用 Auth.js，并对接学校邮箱验证
 - 测试：TypeScript 静态检查 + ESLint；接入业务后补充 Vitest 与 Playwright
@@ -24,14 +24,21 @@ components/           可复用界面组件
 lib/types.ts          领域类型
 lib/profile-generator AI 画像服务（当前为 Mock）
 lib/mock-data.ts      Demo 数据
+lib/matching.ts       可解释人员匹配
+lib/opportunity-ranking.ts 机会排序
+lib/auth.ts           签名会话与认证 DAL
+lib/store.ts          开发期进程内数据仓库
 prisma/schema.prisma  数据模型草案
 ```
 
 ## 建议的后续顺序
 
-1. Auth.js + 学校邮箱登录，明确隐私授权与资料可见范围。
-2. PostgreSQL/Prisma 落库，用真实资料替换 Mock 数据。
-3. 将画像生成器替换为结构化输出的模型调用，并记录画像版本。
-4. 建立可解释的匹配分数：技能互补、兴趣桥接、时间可用性、协作偏好。
+1. PostgreSQL/Prisma 落库，把进程内招募、报名和文章迁移为持久数据。
+2. 将 Demo 登录替换为 Auth.js + 学校邮箱注册验证。
+3. 增加 GitHub OAuth 或后台同步服务，提取仓库语言、提交与协作证据。
+4. 接入赛事采集任务；只有可追溯官方来源的数据才能进入公开目录。
 5. 添加举报、拉黑、内容审核与 AI 推荐反馈闭环。
 
+## 当前数据边界
+
+真实 AI 只负责从证据中提取画像、排序和解释，不负责凭空生成赛事事实、截止日期或综测加分。机会事实来自人工核验的官方来源；院系综测政策在未录入正式文件时显示“待导入”。
