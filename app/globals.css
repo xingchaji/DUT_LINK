@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+:root {
+  --font-sans: Inter, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-display: Manrope, Inter, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --paper: #f5f3ee;
+  --card: #ffffff;
+  --ink: #18202e;
+  --muted: #6f7785;
+  --violet: #7c6df2;
+  --coral: #f4775c;
+  --cyan: #47b8bd;
+  --amber: #eeb14f;
+  --lime: #dff46b;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at 75% 5%, rgba(124, 109, 242, 0.08), transparent 24rem),
+    var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans), "Microsoft YaHei", sans-serif;
+}
+button, a { -webkit-tap-highlight-color: transparent; }
+button { cursor: pointer; }
+::selection { background: var(--lime); color: var(--ink); }
+
+.card {
+  border: 1px solid rgba(24, 32, 46, 0.055);
+  border-radius: 1.75rem;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 18px 50px rgba(24, 32, 46, 0.055);
+}
+
+.dot-grid {
+  background-image: radial-gradient(rgba(255,255,255,.24) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
