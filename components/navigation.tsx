@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Compass, Home, Sparkles, Trophy, UserRound, UsersRound } from "lucide-react";
+import { Compass, Home, Inbox, Sparkles, Trophy, UserRound } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { AuthMenu } from "@/components/auth-menu";
 
@@ -10,7 +10,7 @@ const nav = [
   { href: "/", label: "首页", icon: Home },
   { href: "/profile", label: "能力画像", icon: UserRound },
   { href: "/opportunities", label: "机会中心", icon: Trophy },
-  { href: "/teams", label: "智能组队", icon: UsersRound },
+  { href: "/applications", label: "申请管理", icon: Inbox },
   { href: "/explore", label: "探索盲盒", icon: Compass },
 ];
 

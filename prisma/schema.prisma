@@ -26,6 +26,7 @@ model User {
   recruitmentPosts RecruitmentPost[]
   applications RecruitmentApplication[]
   articles    Article[]
+  publishedOpportunities Opportunity[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 }
@@ -142,9 +143,16 @@ model Opportunity {
   sourceHash  String?
   status      String
   deadline    DateTime?
+  registrationStart DateTime?
+  registrationEnd DateTime?
+  eventDate   DateTime?
+  scope       String   @default("全国")
+  verification String  @default("pending")
   tags        String[]
   bonusPolicy Json?
   verifiedAt  DateTime?
+  publisherId String?
+  publisher   User?    @relation(fields: [publisherId], references: [id], onDelete: SetNull)
   recruitments RecruitmentPost[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

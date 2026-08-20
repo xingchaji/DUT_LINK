@@ -62,7 +62,7 @@ export default function DashboardPage() {
         <section className="card p-6 sm:p-7">
           <div className="flex items-start justify-between">
             <div><p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--muted)]">People to meet</p><h2 className="mt-2 font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight">值得认识的人</h2></div>
-            <Link href="/teams" className="flex items-center gap-1 text-xs font-semibold text-[var(--violet)]">查看全部 <ChevronRight className="size-4" /></Link>
+            <Link href="/opportunities" className="flex items-center gap-1 text-xs font-semibold text-[var(--violet)]">按比赛找队友 <ChevronRight className="size-4" /></Link>
           </div>
           <div className="mt-5 divide-y divide-black/[0.055]">
             {matches.slice(0, 3).map((person, index) => (

@@ -21,6 +21,7 @@ export async function POST(request: Request) {
     opportunityTitle: body.opportunityTitle,
     teamName: body.teamName.trim(),
     ownerName: user.name,
+    ownerId: user.id,
     description: body.description.trim(),
     neededSkills: (body.neededSkills ?? []).map((item) => item.trim()).filter(Boolean).slice(0, 8),
     currentSize: 1,

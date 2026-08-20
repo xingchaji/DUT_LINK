@@ -1,5 +1,5 @@
 import { demoProfile, matches } from "@/lib/mock-data";
-import type { GeneratedProfile, PersonMatch } from "@/lib/types";
+import type { GeneratedProfile, Opportunity, PersonMatch } from "@/lib/types";
 
 const candidateSignals: Record<string, { skills: string[]; interests: string[]; majorFamily: string }> = {
   "lin-yi": { skills: ["UI 设计", "视觉表达", "用户研究"], interests: ["校园创新", "人工智能", "视觉叙事"], majorFamily: "设计" },
@@ -28,6 +28,25 @@ export function rankPeople(profile: GeneratedProfile = demoProfile): PersonMatch
         match,
         reason: `技能互补 ${complementarity}% · 兴趣桥接 ${sharedInterests}% · 跨专业价值 ${crossDiscipline}%`,
         scoreBreakdown: { complementarity, sharedInterests, crossDiscipline },
+      };
+    })
+    .sort((a, b) => b.match - a.match);
+}
+
+export function rankPeopleForOpportunity(opportunity: Opportunity): PersonMatch[] {
+  return matches
+    .map((person) => {
+      const signals = candidateSignals[person.id];
+      const relevant = [...signals.skills, ...signals.interests].filter((signal) => opportunity.tags.some((tag) => signal.includes(tag) || tag.includes(signal)));
+      const skillFit = Math.min(100, 66 + relevant.length * 12);
+      const teamValue = Math.min(100, 78 + signals.skills.length * 5);
+      const crossDiscipline = signals.majorFamily === "软件" ? 62 : 94;
+      const match = Math.round(skillFit * 0.5 + teamValue * 0.3 + crossDiscipline * 0.2);
+      return {
+        ...person,
+        match,
+        reason: relevant.length ? `与本场比赛相关：${relevant.slice(0, 3).join("、")}` : `能为「${opportunity.title}」提供跨专业视角`,
+        scoreBreakdown: { complementarity: teamValue, sharedInterests: skillFit, crossDiscipline },
       };
     })
     .sort((a, b) => b.match - a.match);

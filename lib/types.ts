@@ -47,7 +47,7 @@ export type Opportunity = {
   id: string;
   title: string;
   organizer: string;
-  type: "竞赛" | "项目" | "社区";
+  type: "学术竞赛" | "体育比赛" | "文艺比赛" | "创新创业" | "项目" | "社区";
   status: string;
   deadline: string;
   fit: number;
@@ -59,6 +59,13 @@ export type Opportunity = {
   bonusPolicy: string;
   accent: string;
   matchReasons?: string[];
+  registrationStart?: string | null;
+  registrationEnd?: string | null;
+  eventDate?: string | null;
+  scope?: "全国" | "校内" | "社区";
+  verification?: "official" | "campus-verified" | "pending";
+  publisherId?: string | null;
+  publisherName?: string;
 };
 
 export type RecruitmentPost = {
@@ -67,6 +74,7 @@ export type RecruitmentPost = {
   opportunityTitle: string;
   teamName: string;
   ownerName: string;
+  ownerId: string;
   description: string;
   neededSkills: string[];
   currentSize: number;
@@ -74,6 +82,17 @@ export type RecruitmentPost = {
   contact: string;
   createdAt: string;
   applicants: number;
+};
+
+export type RecruitmentApplication = {
+  id: string;
+  recruitmentId: string;
+  applicantId: string;
+  applicantName: string;
+  applicantMajor: string;
+  message: string;
+  status: "pending" | "accepted" | "rejected";
+  createdAt: string;
 };
 
 export type Discovery = {

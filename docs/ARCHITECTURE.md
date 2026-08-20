@@ -31,6 +31,17 @@ lib/store.ts          开发期进程内数据仓库
 prisma/schema.prisma  数据模型草案
 ```
 
+机会领域的核心关系：
+
+```text
+Opportunity（比赛/活动）
+  ├─ RecruitmentPost（本场比赛的招募队伍）
+  │    └─ RecruitmentApplication（组队申请及处理状态）
+  └─ RecommendedPeople（按本场比赛标签实时计算）
+```
+
+比赛事实、组队信息与推荐结果分层保存。平台管理的是组队意向，不把组队申请解释成主办方的官方参赛名单。
+
 ## 建议的后续顺序
 
 1. PostgreSQL/Prisma 落库，把进程内招募、报名和文章迁移为持久数据。

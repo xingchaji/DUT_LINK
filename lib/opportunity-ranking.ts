@@ -7,9 +7,9 @@ function related(signal: string, target: string) {
   return a.includes(b) || b.includes(a) || (a.includes("软件") && b.includes("开发")) || (a.includes("游戏") && b.includes("交互")) || (a.includes("ai") && b.includes("人工智能"));
 }
 
-export function rankOpportunities(profile: GeneratedProfile = demoProfile): Opportunity[] {
+export function rankOpportunities(profile: GeneratedProfile = demoProfile, catalog: Opportunity[] = opportunities): Opportunity[] {
   const signals = [...profile.skills.map((item) => item.name), ...profile.interests, ...profile.potentialDirections];
-  return opportunities
+  return catalog
     .map((opportunity) => {
       const matches = opportunity.tags.filter((tag) => signals.some((signal) => related(signal, tag)));
       const evidenceQuality = profile.skills.reduce((total, skill) => total + (skill.confidence ?? 50), 0) / Math.max(profile.skills.length, 1);
@@ -21,4 +21,13 @@ export function rankOpportunities(profile: GeneratedProfile = demoProfile): Oppo
       };
     })
     .sort((a, b) => b.fit - a.fit);
+}
+
+export function sortOpportunitiesByRegistration(catalog: Opportunity[]) {
+  return [...catalog].sort((a, b) => {
+    if (!a.registrationStart && !b.registrationStart) return a.title.localeCompare(b.title, "zh-CN");
+    if (!a.registrationStart) return 1;
+    if (!b.registrationStart) return -1;
+    return new Date(a.registrationStart).getTime() - new Date(b.registrationStart).getTime();
+  });
 }
