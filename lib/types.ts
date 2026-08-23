@@ -18,12 +18,23 @@ export type ProfileInput = {
   githubRepos: string;
 };
 
+export type QuestionnaireDimension = "问题解决" | "调研表达" | "竞赛经验" | "项目交付";
+
+export type QuestionnaireInput = {
+  name: string;
+  major: string;
+  grade: string;
+  answers: Record<string, number>;
+  interests: string[];
+  evidence?: string;
+};
+
 export type GeneratedProfile = {
   summary: string;
   skills: Skill[];
   interests: string[];
   potentialDirections: string[];
-  analysisMode?: "ai" | "rules";
+  analysisMode?: "ai" | "rules" | "questionnaire" | "questionnaire-ai";
   evidenceCount?: number;
 };
 
@@ -31,16 +42,33 @@ export type PersonMatch = {
   id: string;
   name: string;
   major: string;
+  grade: string;
   avatar: string;
   match: number;
   tags: string[];
   reason: string;
   status: string;
+  interestedOpportunityIds?: string[];
   scoreBreakdown?: {
     complementarity: number;
     sharedInterests: number;
     crossDiscipline: number;
   };
+};
+
+export type PersonProfile = PersonMatch & {
+  bio: string;
+  contact: string;
+  availability: string;
+  portfolio?: string;
+};
+
+export type TeamMemberSummary = {
+  userId: string;
+  name: string;
+  major: string;
+  grade: string;
+  skills: string[];
 };
 
 export type Opportunity = {
@@ -76,12 +104,47 @@ export type RecruitmentPost = {
   ownerName: string;
   ownerId: string;
   description: string;
+  projectDirection?: string;
+  requirements: string;
   neededSkills: string[];
   currentSize: number;
   capacity: number;
   contact: string;
+  members: TeamMemberSummary[];
+  recruitmentDeadline: string;
   createdAt: string;
   applicants: number;
+};
+
+export type UserAccountProfile = {
+  userId: string;
+  nickname: string;
+  email: string;
+  major: string;
+  grade: string;
+  contact: string;
+  bio: string;
+  skills: string[];
+  updatedAt: string;
+};
+
+export type OpportunityInterest = {
+  userId: string;
+  opportunityId: string;
+  createdAt: string;
+};
+
+export type TeamInvitation = {
+  id: string;
+  recruitmentId: string;
+  opportunityId: string;
+  senderId: string;
+  senderName: string;
+  recipientId: string;
+  recipientName: string;
+  message: string;
+  status: "pending" | "accepted" | "rejected";
+  createdAt: string;
 };
 
 export type RecruitmentApplication = {
@@ -103,6 +166,7 @@ export type Discovery = {
   bridge: string;
   readTime: string;
   why: string;
+  generationMode?: "ai" | "curated";
   sources: Array<{ title: string; url: string; type: "论文" | "文章" | "视频" }>;
 };
 

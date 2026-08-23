@@ -2,31 +2,45 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { store } from "@/lib/store";
 import type { RecruitmentPost } from "@/lib/types";
+import { isRecruitmentActive } from "@/lib/matching";
+import { findCompetitionMembership } from "@/lib/team-membership";
+import { getTeamMemberSummary } from "@/lib/people";
 
 export async function GET() {
-  return NextResponse.json({ recruitments: store.recruitments });
+  return NextResponse.json({ recruitments: store.recruitments.filter((post) => isRecruitmentActive(post)) });
 }
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ message: "请登录后发布招募" }, { status: 401 });
   const body = (await request.json()) as Partial<RecruitmentPost> & { neededSkills?: string[] };
-  if (!body.opportunityId || !body.opportunityTitle || !body.teamName || !body.description) {
-    return NextResponse.json({ message: "比赛、队伍名称和招募说明不能为空" }, { status: 400 });
+  if (!body.opportunityId || !body.opportunityTitle || !body.teamName || !body.contact || !body.requirements || !body.recruitmentDeadline) {
+    return NextResponse.json({ message: "比赛、队伍名称、队长联系方式、招募要求和截止日期不能为空" }, { status: 400 });
   }
+  if (!body.neededSkills?.map((item) => item.trim()).filter(Boolean).length) return NextResponse.json({ message: "请至少添加一个招募技能标签" }, { status: 400 });
+  if (body.requirements.trim().length < 8) return NextResponse.json({ message: "请更具体地描述招募能力、职责或投入要求（至少 8 个字）" }, { status: 400 });
+  const membership = findCompetitionMembership(user.id, body.opportunityId);
+  if (membership) return NextResponse.json({ message: membership.role === "captain" ? "同一场比赛只能发布一个招募队伍" : "你已加入本场比赛的其他队伍，不能再创建队伍" }, { status: 409 });
   const capacity = Math.max(2, Math.min(12, Number(body.capacity) || 4));
+  if (new Date(`${body.recruitmentDeadline}T23:59:59`) < new Date()) {
+    return NextResponse.json({ message: "招募截止日期不能早于今天" }, { status: 400 });
+  }
   const post: RecruitmentPost = {
     id: crypto.randomUUID(),
     opportunityId: body.opportunityId,
     opportunityTitle: body.opportunityTitle,
     teamName: body.teamName.trim(),
-    ownerName: user.name,
+    ownerName: store.accountProfiles.find((item) => item.userId === user.id)?.nickname ?? user.name,
     ownerId: user.id,
-    description: body.description.trim(),
+    description: body.description?.trim() ?? "",
+    projectDirection: body.projectDirection?.trim() ?? "",
+    requirements: body.requirements.trim(),
     neededSkills: (body.neededSkills ?? []).map((item) => item.trim()).filter(Boolean).slice(0, 8),
     currentSize: 1,
     capacity,
-    contact: "站内联系",
+    contact: body.contact.trim(),
+    members: [getTeamMemberSummary(user.id, { name: user.name, major: user.major })],
+    recruitmentDeadline: body.recruitmentDeadline,
     createdAt: new Date().toISOString(),
     applicants: 0,
   };

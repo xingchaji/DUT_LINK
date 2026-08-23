@@ -45,7 +45,7 @@ export default function DashboardPage() {
         <section className="card p-6 sm:p-7">
           <div className="flex items-start justify-between">
             <div><p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--muted)]">Your profile</p><h2 className="mt-2 font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight">能力雷达</h2></div>
-            <Link href="/profile" className="flex items-center gap-1 text-xs font-semibold text-[var(--violet)]">完整画像 <ChevronRight className="size-4" /></Link>
+            <Link href="/account" className="flex items-center gap-1 text-xs font-semibold text-[var(--violet)]">完整画像 <ChevronRight className="size-4" /></Link>
           </div>
           <div className="mt-7 grid gap-7 sm:grid-cols-[1fr_0.78fr] sm:items-center">
             <SkillBars skills={demoProfile.skills} />

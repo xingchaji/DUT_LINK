@@ -1,4 +1,4 @@
-import type { Discovery, GeneratedProfile, Opportunity, PersonMatch } from "@/lib/types";
+import type { Discovery, GeneratedProfile, Opportunity, PersonProfile } from "@/lib/types";
 
 export const demoProfile: GeneratedProfile = {
   summary: "兼具工程实现与创意表达潜力的软件工程学习者，适合从 AI 应用和交互体验切入跨学科项目。",
@@ -14,38 +14,55 @@ export const demoProfile: GeneratedProfile = {
   evidenceCount: 4,
 };
 
-export const matches: PersonMatch[] = [
+export const matches: PersonProfile[] = [
   {
     id: "lin-yi",
     name: "林一",
-    major: "视觉传达 · 大二",
+    major: "视觉传达",
+    grade: "大二",
     avatar: "林",
     match: 94,
     tags: ["UI 设计", "品牌视觉"],
     reason: "你的工程能力与她的视觉设计经验高度互补",
     status: "正在寻找校园产品项目",
+    interestedOpportunityIds: ["ccdc-2026", "innovation-2026"],
+    bio: "关注校园产品、品牌视觉和用户体验，希望与技术方向的同学共同完成可落地作品。",
+    contact: "linyi_design（微信）",
+    availability: "工作日晚间、周末",
+    portfolio: "https://example.com/linyi",
     scoreBreakdown: { complementarity: 97, sharedInterests: 82, crossDiscipline: 96 },
   },
   {
     id: "zhou-yu",
     name: "周宇",
-    major: "建筑学 · 大三",
+    major: "建筑学",
+    grade: "大三",
     avatar: "周",
     match: 89,
     tags: ["数字建筑", "3D 建模"],
     reason: "游戏世界构建与空间设计存在有趣交叉",
     status: "想尝试虚拟校园项目",
+    interestedOpportunityIds: ["innovation-2026", "challenge-cup"],
+    bio: "对数字建筑、空间叙事和虚拟校园感兴趣，擅长调研、建模与方案表达。",
+    contact: "zhouyu_space（微信）",
+    availability: "周三、周五晚及周末",
     scoreBreakdown: { complementarity: 88, sharedInterests: 76, crossDiscipline: 100 },
   },
   {
     id: "chen-xi",
     name: "陈曦",
-    major: "数字媒体 · 大二",
+    major: "数字媒体",
+    grade: "大二",
     avatar: "陈",
     match: 86,
     tags: ["Unity", "交互装置"],
     reason: "你们都对游戏与智能交互感兴趣",
     status: "本周可参与新项目",
+    interestedOpportunityIds: ["ccdc-2026"],
+    bio: "数字媒体方向，持续学习 Unity 与交互装置，希望参与游戏或智能交互类竞赛。",
+    contact: "chenxi_media（微信）",
+    availability: "本周起可稳定投入",
+    portfolio: "https://example.com/chenxi",
     scoreBreakdown: { complementarity: 90, sharedInterests: 90, crossDiscipline: 78 },
   },
 ];
@@ -131,6 +148,7 @@ export const discoveries: Discovery[] = [
     bridge: "软件架构 × 空间设计",
     readTime: "6 分钟",
     why: "你有软件开发经历，而建筑学同样关心模块、边界、动线和人的行为。",
+    generationMode: "curated",
     sources: [
       { title: "A Pattern Language — Christopher Alexander", url: "https://www.patternlanguage.com/", type: "文章" },
       { title: "Notes on the Synthesis of Form", url: "https://monoskop.org/images/f/ff/Alexander_Christopher_Notes_on_the_Synthesis_of_Form.pdf", type: "论文" },
@@ -144,6 +162,7 @@ export const discoveries: Discovery[] = [
     bridge: "游戏机制 × 校园服务",
     readTime: "4 分钟",
     why: "游戏设计中的目标、反馈和探索机制，可以降低新生了解校园的认知成本。",
+    generationMode: "curated",
     sources: [
       { title: "MDA: A Formal Approach to Game Design", url: "https://users.cs.northwestern.edu/~hunicke/MDA.pdf", type: "论文" },
     ],
@@ -156,6 +175,7 @@ export const discoveries: Discovery[] = [
     bridge: "软件调试 × 音乐排练",
     readTime: "5 分钟",
     why: "你关注工程实践，而音乐排练提供了另一套处理复杂系统与即时反馈的方法。",
+    generationMode: "curated",
     sources: [
       { title: "The Cambridge Handbook of Expertise and Expert Performance", url: "https://doi.org/10.1017/CBO9780511816796", type: "论文" },
     ],

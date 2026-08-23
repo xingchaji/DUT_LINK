@@ -2,15 +2,19 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { rankOpportunities, sortOpportunitiesByRegistration } from "@/lib/opportunity-ranking";
 import { store } from "@/lib/store";
+import { isRecruitmentActive } from "@/lib/matching";
 import type { Opportunity } from "@/lib/types";
 
 export async function GET() {
-  const counts = Object.fromEntries(store.opportunities.map((item) => [item.id, store.recruitments.filter((post) => post.opportunityId === item.id).length]));
+  const user = await getCurrentUser();
+  const activeRecruitments = store.recruitments.filter((post) => isRecruitmentActive(post));
+  const counts = Object.fromEntries(store.opportunities.map((item) => [item.id, activeRecruitments.filter((post) => post.opportunityId === item.id).length]));
   return NextResponse.json({
     overview: sortOpportunitiesByRegistration(store.opportunities),
     recommended: rankOpportunities(undefined, store.opportunities),
     recruitmentCounts: counts,
     rankedBy: "evidence-based-profile",
+    intendedOpportunityIds: user ? store.opportunityInterests.filter((item) => item.userId === user.id).map((item) => item.opportunityId) : [],
   });
 }
 

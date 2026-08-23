@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
-import { discoveries } from "@/lib/mock-data";
+import { generateDiscoveryBox } from "@/lib/ai";
+import { getCurrentUser } from "@/lib/auth";
+import { store } from "@/lib/store";
 
 export async function GET(request: Request) {
   const previous = new URL(request.url).searchParams.get("exclude");
-  const candidates = discoveries.filter((item) => item.id !== previous);
-  const discovery = candidates[Math.floor(Math.random() * candidates.length)] ?? discoveries[0];
-  return NextResponse.json({ discovery });
+  const user = await getCurrentUser();
+  const profile = user ? store.accountProfiles.find((item) => item.userId === user.id) : undefined;
+  return NextResponse.json(await generateDiscoveryBox(previous, profile));
 }

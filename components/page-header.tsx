@@ -11,9 +11,8 @@ export function PageHeader({ eyebrow, title }: { eyebrow: string; title: string 
       <div className="flex items-center gap-2">
         <button aria-label="搜索" className="grid size-10 place-items-center rounded-full border border-black/5 bg-white text-[var(--muted)] shadow-sm"><Search className="size-4" /></button>
         <button aria-label="通知" className="relative grid size-10 place-items-center rounded-full border border-black/5 bg-white text-[var(--muted)] shadow-sm"><Bell className="size-4" /><span className="absolute right-2.5 top-2.5 size-1.5 rounded-full bg-[var(--coral)]" /></button>
-        <Link href="/profile" className="ml-1 grid size-10 place-items-center rounded-full bg-gradient-to-br from-[#ff8a67] to-[#ffc15b] text-sm font-bold text-white shadow-sm">陆</Link>
+        <Link href="/account" aria-label="打开个人主页" className="ml-1 grid size-10 place-items-center rounded-full bg-gradient-to-br from-[#ff8a67] to-[#ffc15b] text-sm font-bold text-white shadow-sm">陆</Link>
       </div>
     </header>
   );
 }
-

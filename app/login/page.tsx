@@ -25,7 +25,7 @@ export default function LoginPage() {
       <section className="card p-7 sm:p-9">
         <div className="grid size-12 place-items-center rounded-2xl bg-[var(--ink)] text-[var(--lime)]"><LogIn className="size-5" /></div>
         <h1 className="mt-6 font-[family-name:var(--font-display)] text-3xl font-bold">登录 DUT Link</h1>
-        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">当前为功能验证账户。接入数据库后将替换为校园邮箱注册与验证。</p>
+        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">登录后可在个人主页维护昵称、专业、公开联系方式和个人介绍。当前账户仍用于功能验证，正式版将接入校园邮箱注册与验证。</p>
         <form onSubmit={submit} className="mt-7 space-y-4">
           <label className="block"><span className="mb-2 block text-xs font-bold">校园邮箱</span><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="w-full rounded-2xl border border-black/10 bg-[var(--paper)] px-4 py-3 text-sm outline-none focus:border-[var(--violet)]" /></label>
           <label className="block"><span className="mb-2 block text-xs font-bold">密码</span><input type="password" value={password} onChange={(event) => setPassword(event.target.value)} className="w-full rounded-2xl border border-black/10 bg-[var(--paper)] px-4 py-3 text-sm outline-none focus:border-[var(--violet)]" /></label>

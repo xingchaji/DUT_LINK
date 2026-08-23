@@ -19,7 +19,9 @@ export default function ExplorePage() {
   async function randomize() {
     setLoading(true);
     const response = await fetch(`/api/discoveries/random?exclude=${discovery.id}`, { cache: "no-store" });
-    const data = await response.json(); setDiscovery(data.discovery); setLoading(false);
+    const data = await response.json();
+    if (response.ok && data.discovery) setDiscovery(data.discovery); else setNotice(data.message ?? "暂时无法生成新的探索盲盒");
+    setLoading(false);
   }
 
   async function publish(event: FormEvent<HTMLFormElement>) {
@@ -38,7 +40,7 @@ export default function ExplorePage() {
       <section className="dot-grid relative mt-8 overflow-hidden rounded-[36px] bg-[var(--violet)] p-7 text-white sm:p-10">
         <div className="absolute -right-12 -top-12 size-48 rounded-full bg-[var(--coral)]/80 blur-2xl" />
         <div className="relative grid gap-8 lg:grid-cols-[1.25fr_0.75fr] lg:items-end">
-          <div><span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold"><Dices className="size-4" /> {discovery.eyebrow}</span><h2 className="mt-6 max-w-2xl font-[family-name:var(--font-display)] text-4xl font-bold leading-tight tracking-[-0.04em] sm:text-5xl">{discovery.title}</h2><p className="mt-5 max-w-xl text-sm leading-7 text-white/75">{discovery.description}</p><p className="mt-4 max-w-xl rounded-2xl bg-white/10 p-4 text-xs leading-6 text-white/80"><strong>为什么推荐给你：</strong>{discovery.why}</p><div className="mt-6 flex flex-wrap items-center gap-3"><span className="rounded-full bg-[var(--lime)] px-3 py-1.5 text-xs font-bold text-[var(--ink)]">{discovery.bridge}</span><span className="text-xs text-white/60">{discovery.readTime}</span></div></div>
+          <div><span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold"><Dices className="size-4" /> {discovery.eyebrow} · {discovery.generationMode === "ai" ? "AI 个性化生成" : "可信内容降级"}</span><h2 className="mt-6 max-w-2xl font-[family-name:var(--font-display)] text-4xl font-bold leading-tight tracking-[-0.04em] sm:text-5xl">{discovery.title}</h2><p className="mt-5 max-w-xl text-sm leading-7 text-white/75">{discovery.description}</p><p className="mt-4 max-w-xl rounded-2xl bg-white/10 p-4 text-xs leading-6 text-white/80"><strong>为什么推荐给你：</strong>{discovery.why}</p><div className="mt-6 flex flex-wrap items-center gap-3"><span className="rounded-full bg-[var(--lime)] px-3 py-1.5 text-xs font-bold text-[var(--ink)]">{discovery.bridge}</span><span className="text-xs text-white/60">{discovery.readTime}</span></div></div>
           <button onClick={randomize} disabled={loading} className="flex items-center justify-between rounded-2xl border border-white/15 bg-white/10 p-5 text-left backdrop-blur-sm"><div><p className="text-xs text-white/55">不太对胃口？</p><p className="mt-1 text-sm font-bold">换一个未知方向</p></div>{loading ? <LoaderCircle className="size-5 animate-spin" /> : <RefreshCw className="size-5" />}</button>
         </div>
       </section>

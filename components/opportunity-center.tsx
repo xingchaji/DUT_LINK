@@ -2,7 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { CalendarDays, ExternalLink, LoaderCircle, Plus, Search, ShieldCheck, Sparkles, UsersRound } from "lucide-react";
+import { CalendarDays, ExternalLink, Heart, LoaderCircle, Plus, Search, ShieldCheck, Sparkles, UsersRound } from "lucide-react";
 import { opportunities as seedOpportunities } from "@/lib/mock-data";
 import type { Opportunity } from "@/lib/types";
 
@@ -18,11 +18,12 @@ export function OpportunityCenter() {
   const [showPublish, setShowPublish] = useState(false);
   const [notice, setNotice] = useState<Notice>(null);
   const [loading, setLoading] = useState(false);
+  const [intendedIds, setIntendedIds] = useState<string[]>([]);
 
   const load = useCallback(async () => {
     const response = await fetch("/api/opportunities", { cache: "no-store" });
     const data = await response.json();
-    setOverview(data.overview ?? []); setRecommended(data.recommended ?? []); setCounts(data.recruitmentCounts ?? {});
+    setOverview(data.overview ?? []); setRecommended(data.recommended ?? []); setCounts(data.recruitmentCounts ?? {}); setIntendedIds(data.intendedOpportunityIds ?? []);
     const stored = localStorage.getItem("dut-link-profile");
     if (stored) {
       const ranked = await fetch("/api/opportunities/recommend", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ profile: JSON.parse(stored) }) });
@@ -55,6 +56,15 @@ export function OpportunityCenter() {
     setShowPublish(false); formElement.reset(); await load(); setView("overview");
   }
 
+  async function toggleInterest(opportunityId: string) {
+    const intended = !intendedIds.includes(opportunityId);
+    const response = await fetch("/api/opportunity-interests", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ opportunityId, intended }) });
+    const data = await response.json();
+    if (!response.ok) { setNotice({ type: "error", text: data.message }); return; }
+    setIntendedIds((current) => intended ? [...current, opportunityId] : current.filter((id) => id !== opportunityId));
+    setNotice({ type: "success", text: intended ? "已加入参赛意向，队长推荐队友时会优先筛选你" : "已取消参赛意向" });
+  }
+
   return (
     <div className="space-y-7">
       <section className="card p-5 sm:p-6">
@@ -76,14 +86,14 @@ export function OpportunityCenter() {
 
       <section>
         <div className="flex items-end justify-between"><div><h2 className="font-[family-name:var(--font-display)] text-2xl font-bold">{view === "overview" ? "全部比赛" : "为你推荐"}</h2><p className="mt-1 text-xs text-[var(--muted)]">{view === "overview" ? "未知报名时间的比赛排列在后，绝不猜测日期" : "推荐分仅用于排序，比赛事实仍来自发布者或官方来源"}</p></div><span className="text-xs text-[var(--muted)]">{visible.length} 个机会</span></div>
-        <div className="mt-5 grid gap-4 lg:grid-cols-3">{visible.map((item) => <OpportunityCard key={item.id} item={item} recommended={view === "recommended"} teamCount={counts[item.id] ?? 0} />)}</div>
+        <div className="mt-5 grid gap-4 lg:grid-cols-3">{visible.map((item) => <OpportunityCard key={item.id} item={item} recommended={view === "recommended"} teamCount={counts[item.id] ?? 0} intended={intendedIds.includes(item.id)} onToggleInterest={() => toggleInterest(item.id)} />)}</div>
       </section>
     </div>
   );
 }
 
-function OpportunityCard({ item, recommended, teamCount }: { item: Opportunity; recommended: boolean; teamCount: number }) {
-  return <article className="card flex flex-col p-5"><div className="flex items-start justify-between gap-3"><div className="flex flex-wrap gap-2"><span className="rounded-full bg-black/[0.04] px-2.5 py-1 text-[10px] font-bold">{item.type}</span><span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${item.verification === "pending" ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>{item.verification === "pending" ? "待核验" : "已核验来源"}</span></div>{recommended && <span className="font-[family-name:var(--font-mono)] text-xs font-bold text-[var(--violet)]">{item.fit}% FIT</span>}</div><h3 className="mt-5 font-[family-name:var(--font-display)] text-xl font-bold">{item.title}</h3><p className="mt-1 text-xs text-[var(--muted)]">{item.organizer} · {item.scope ?? "全国"}</p><p className="mt-4 text-sm leading-6 text-[var(--muted)]">{item.description}</p><div className="mt-4 flex flex-wrap gap-2">{item.tags.map((tag) => <span key={tag} className="rounded-full bg-[var(--paper)] px-2.5 py-1 text-[10px]">{tag}</span>)}</div><div className="mt-5 rounded-2xl bg-[var(--paper)] p-3 text-xs leading-6"><p><strong>开始报名：</strong>{item.registrationStart ?? "待官方或发布者补充"}</p><p><strong>截止报名：</strong>{item.registrationEnd ?? "待补充"}</p><p className="flex items-center gap-1.5"><UsersRound className="size-3.5" /><strong>{teamCount}</strong> 支队伍正在招募</p></div>{recommended && item.matchReasons && <p className="mt-3 text-xs leading-5 text-[var(--violet)]">{item.matchReasons.join("；")}</p>}<div className="mt-auto grid grid-cols-2 gap-2 pt-5"><Link href={`/opportunities/${item.id}#publish`} className="flex items-center justify-center rounded-xl bg-[var(--ink)] px-3 py-2.5 text-center text-[11px] font-bold text-white">为此机会招募</Link><Link href={`/opportunities/${item.id}#teams`} className="flex items-center justify-center rounded-xl border border-black/10 px-3 py-2.5 text-center text-[11px] font-bold">查看招募队伍</Link></div><div className="mt-3 flex items-center justify-between text-[10px] text-[var(--muted)]"><span className="inline-flex items-center gap-1"><ShieldCheck className="size-3" /> {item.sourceName}</span>{item.sourceUrl !== "#" && <a href={item.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1">官方来源 <ExternalLink className="size-3" /></a>}</div></article>;
+function OpportunityCard({ item, recommended, teamCount, intended, onToggleInterest }: { item: Opportunity; recommended: boolean; teamCount: number; intended: boolean; onToggleInterest: () => void }) {
+  return <article className="card flex flex-col p-5"><div className="flex items-start justify-between gap-3"><div className="flex flex-wrap gap-2"><span className="rounded-full bg-black/[0.04] px-2.5 py-1 text-[10px] font-bold">{item.type}</span><span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${item.verification === "pending" ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>{item.verification === "pending" ? "待核验" : "已核验来源"}</span></div>{recommended && <span className="font-[family-name:var(--font-mono)] text-xs font-bold text-[var(--violet)]">{item.fit}% FIT</span>}</div><h3 className="mt-5 font-[family-name:var(--font-display)] text-xl font-bold">{item.title}</h3><p className="mt-1 text-xs text-[var(--muted)]">{item.organizer} · {item.scope ?? "全国"}</p><p className="mt-4 text-sm leading-6 text-[var(--muted)]">{item.description}</p><div className="mt-4 flex flex-wrap gap-2">{item.tags.map((tag) => <span key={tag} className="rounded-full bg-[var(--paper)] px-2.5 py-1 text-[10px]">{tag}</span>)}</div><button type="button" onClick={onToggleInterest} aria-pressed={intended} className={`mt-4 flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-bold ${intended ? "bg-[#ebe8ff] text-[var(--violet)]" : "border border-black/10"}`}><Heart className={`size-4 ${intended ? "fill-current" : ""}`} />{intended ? "已有参赛意向" : "标记参赛意向"}</button><div className="mt-4 rounded-2xl bg-[var(--paper)] p-3 text-xs leading-6"><p><strong>开始报名：</strong>{item.registrationStart ?? "待官方或发布者补充"}</p><p><strong>截止报名：</strong>{item.registrationEnd ?? "待补充"}</p><p className="flex items-center gap-1.5"><UsersRound className="size-3.5" /><strong>{teamCount}</strong> 支队伍正在招募</p></div>{recommended && item.matchReasons && <p className="mt-3 text-xs leading-5 text-[var(--violet)]">{item.matchReasons.join("；")}</p>}<div className="mt-auto grid grid-cols-2 gap-2 pt-5"><Link href={`/opportunities/${item.id}/recruit`} className="flex items-center justify-center rounded-xl bg-[var(--ink)] px-3 py-2.5 text-center text-[11px] font-bold text-white">队长招募工作台</Link><Link href={`/opportunities/${item.id}/teams`} className="flex items-center justify-center rounded-xl border border-black/10 px-3 py-2.5 text-center text-[11px] font-bold">查看招募队伍</Link></div><div className="mt-3 flex items-center justify-between text-[10px] text-[var(--muted)]"><span className="inline-flex items-center gap-1"><ShieldCheck className="size-3" /> {item.sourceName}</span>{item.sourceUrl !== "#" && <a href={item.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1">官方来源 <ExternalLink className="size-3" /></a>}</div></article>;
 }
 
 function Tab({ active, onClick, icon, title, subtitle }: { active: boolean; onClick: () => void; icon: React.ReactNode; title: string; subtitle: string }) {

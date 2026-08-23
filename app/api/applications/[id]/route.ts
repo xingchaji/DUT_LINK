@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { store } from "@/lib/store";
+import { findCompetitionMembership } from "@/lib/team-membership";
+import { getTeamMemberSummary } from "@/lib/people";
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
@@ -14,7 +16,16 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   const body = (await request.json()) as { status?: "accepted" | "rejected" };
   if (!body.status || !["accepted", "rejected"].includes(body.status)) return NextResponse.json({ message: "无效状态" }, { status: 400 });
   if (body.status === "accepted" && recruitment.currentSize >= recruitment.capacity) return NextResponse.json({ message: "队伍人数已满" }, { status: 409 });
+  if (body.status === "accepted") {
+    const membership = findCompetitionMembership(application.applicantId, recruitment.opportunityId);
+    if (membership && membership.recruitment.id !== recruitment.id) return NextResponse.json({ message: "该申请人已经加入本场比赛的其他队伍" }, { status: 409 });
+  }
   application.status = body.status;
-  if (body.status === "accepted") recruitment.currentSize += 1;
+  if (body.status === "accepted") {
+    recruitment.currentSize += 1;
+    if (!recruitment.members.some((member) => member.userId === application.applicantId)) {
+      recruitment.members.push(getTeamMemberSummary(application.applicantId, { name: application.applicantName, major: application.applicantMajor }));
+    }
+  }
   return NextResponse.json({ application, teamSize: recruitment.currentSize });
 }

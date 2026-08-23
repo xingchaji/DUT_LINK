@@ -1,5 +1,5 @@
 import { demoProfile, matches } from "@/lib/mock-data";
-import type { GeneratedProfile, Opportunity, PersonMatch } from "@/lib/types";
+import type { GeneratedProfile, Opportunity, PersonMatch, RecruitmentPost } from "@/lib/types";
 
 const candidateSignals: Record<string, { skills: string[]; interests: string[]; majorFamily: string }> = {
   "lin-yi": { skills: ["UI 设计", "视觉表达", "用户研究"], interests: ["校园创新", "人工智能", "视觉叙事"], majorFamily: "设计" },
@@ -10,6 +10,21 @@ const candidateSignals: Record<string, { skills: string[]; interests: string[]; 
 function overlap(a: string[], b: string[]) {
   const normalized = new Set(a.map((item) => item.toLowerCase()));
   return b.filter((item) => normalized.has(item.toLowerCase())).length;
+}
+
+const relatedTerms = [
+  ["用户调研", "用户研究", "用户访谈", "问卷", "调研"],
+  ["视觉设计", "视觉表达", "UI 设计", "品牌视觉", "排版"],
+  ["前端", "React", "TypeScript", "页面", "交互开发"],
+  ["三维", "3D 建模", "数字建筑", "空间设计", "建模"],
+  ["交互设计", "交互装置", "Unity", "游戏开发"],
+];
+
+function isRelated(left: string, right: string) {
+  const a = left.toLowerCase();
+  const b = right.toLowerCase();
+  if (a.includes(b) || b.includes(a)) return true;
+  return relatedTerms.some((group) => group.some((term) => a.includes(term.toLowerCase())) && group.some((term) => b.includes(term.toLowerCase())));
 }
 
 export function rankPeople(profile: GeneratedProfile = demoProfile): PersonMatch[] {
@@ -35,6 +50,7 @@ export function rankPeople(profile: GeneratedProfile = demoProfile): PersonMatch
 
 export function rankPeopleForOpportunity(opportunity: Opportunity): PersonMatch[] {
   return matches
+    .filter((person) => person.interestedOpportunityIds?.includes(opportunity.id))
     .map((person) => {
       const signals = candidateSignals[person.id];
       const relevant = [...signals.skills, ...signals.interests].filter((signal) => opportunity.tags.some((tag) => signal.includes(tag) || tag.includes(signal)));
@@ -45,9 +61,45 @@ export function rankPeopleForOpportunity(opportunity: Opportunity): PersonMatch[
       return {
         ...person,
         match,
-        reason: relevant.length ? `与本场比赛相关：${relevant.slice(0, 3).join("、")}` : `能为「${opportunity.title}」提供跨专业视角`,
+        reason: relevant.length ? `已表达参赛意向 · 相关能力：${relevant.slice(0, 3).join("、")}` : `已表达参赛意向，并能提供跨专业视角`,
         scoreBreakdown: { complementarity: teamValue, sharedInterests: skillFit, crossDiscipline },
       };
     })
     .sort((a, b) => b.match - a.match);
+}
+
+export function rankPeopleForRecruitment(opportunity: Opportunity, recruitment: RecruitmentPost): PersonMatch[] {
+  const hasDetailedNeeds = recruitment.neededSkills.length > 0 && recruitment.requirements.trim().length >= 8;
+  const interested = matches.filter((person) => person.interestedOpportunityIds?.includes(opportunity.id));
+  const pool = interested.length > 0 ? interested : matches;
+
+  return pool
+    .map((person) => {
+      const signals = candidateSignals[person.id];
+      const abilitySignals = [...person.tags, ...signals.skills];
+      const matchedSkills = abilitySignals.filter((signal) => recruitment.neededSkills.some((need) => isRelated(signal, need)));
+      const requirementMatches = abilitySignals.filter((signal) => isRelated(signal, recruitment.requirements));
+      const opportunityMatches = [...abilitySignals, ...signals.interests].filter((signal) => opportunity.tags.some((tag) => isRelated(signal, tag)));
+      const intentScore = person.interestedOpportunityIds?.includes(opportunity.id) ? 100 : 45;
+      const needScore = hasDetailedNeeds ? Math.min(100, 54 + matchedSkills.length * 24 + requirementMatches.length * 14) : Math.min(90, 58 + opportunityMatches.length * 12);
+      const profileScore = Math.min(100, 68 + abilitySignals.length * 4 + opportunityMatches.length * 8);
+      const match = Math.round(intentScore * 0.3 + needScore * 0.45 + profileScore * 0.25);
+      const reasons = [person.interestedOpportunityIds?.includes(opportunity.id) ? "已表达本场参赛意向" : "当前意向池不足，按能力画像补充"];
+      if (matchedSkills.length) reasons.push(`招募技能命中：${matchedSkills.slice(0, 2).join("、")}`);
+      if (requirementMatches.length) reasons.push(`招募要求相关：${requirementMatches.slice(0, 2).join("、")}`);
+      if (!matchedSkills.length && opportunityMatches.length) reasons.push(`赛事方向相关：${opportunityMatches.slice(0, 2).join("、")}`);
+      if (reasons.length === 1) reasons.push(`能力画像提供${signals.majorFamily}视角`);
+      return {
+        ...person,
+        match,
+        reason: reasons.join("；"),
+        scoreBreakdown: { complementarity: needScore, sharedInterests: intentScore, crossDiscipline: profileScore },
+      };
+    })
+    .sort((a, b) => b.match - a.match);
+}
+
+export function isRecruitmentActive(post: RecruitmentPost, now = new Date()) {
+  const end = new Date(`${post.recruitmentDeadline}T23:59:59`);
+  return Number.isFinite(end.getTime()) && end >= now && post.currentSize < post.capacity;
 }

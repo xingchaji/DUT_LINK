@@ -14,6 +14,8 @@ model User {
   major       String?
   grade       String?
   bio         String?
+  contact     String?
+  skillTags   String[]
   passwordHash String?
   profile     Profile?
   experiences Experience[]
@@ -27,6 +29,10 @@ model User {
   applications RecruitmentApplication[]
   articles    Article[]
   publishedOpportunities Opportunity[]
+  opportunityInterests OpportunityInterest[]
+  sentInvitations TeamInvitation[] @relation("InvitationSender")
+  receivedInvitations TeamInvitation[] @relation("InvitationRecipient")
+  competitionMemberships CompetitionMembership[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 }
@@ -39,6 +45,8 @@ model Profile {
   potentialDirections String[]
   embedding           Float[]
   version             Int      @default(1)
+  assessmentMethod    String   @default("competition-survey-v3-cross-major")
+  assessmentAnswers   Json?
   user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
@@ -154,6 +162,9 @@ model Opportunity {
   publisherId String?
   publisher   User?    @relation(fields: [publisherId], references: [id], onDelete: SetNull)
   recruitments RecruitmentPost[]
+  interestedUsers OpportunityInterest[]
+  invitations TeamInvitation[]
+  memberships CompetitionMembership[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -163,15 +174,66 @@ model RecruitmentPost {
   opportunityId String
   ownerId       String
   teamName      String
-  description   String
+  projectDirection String?
+  description   String?
+  requirements  String
   neededSkills  String[]
   capacity      Int
-  contact       String?
+  currentSize   Int      @default(1)
+  contact       String
+  recruitmentDeadline DateTime
   opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
   owner         User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   applications  RecruitmentApplication[]
+  invitations   TeamInvitation[]
+  members       CompetitionMembership[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  @@unique([ownerId, opportunityId])
+}
+
+model CompetitionMembership {
+  id            String   @id @default(cuid())
+  userId        String
+  opportunityId String
+  recruitmentId String
+  role          String
+  user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  recruitment   RecruitmentPost @relation(fields: [recruitmentId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+
+  @@unique([userId, opportunityId])
+  @@index([recruitmentId])
+}
+
+model OpportunityInterest {
+  userId        String
+  opportunityId String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  createdAt     DateTime    @default(now())
+
+  @@id([userId, opportunityId])
+  @@index([opportunityId])
+}
+
+model TeamInvitation {
+  id            String   @id @default(cuid())
+  recruitmentId String
+  opportunityId String
+  senderId      String
+  recipientId   String
+  message       String
+  status        String   @default("pending")
+  recruitment   RecruitmentPost @relation(fields: [recruitmentId], references: [id], onDelete: Cascade)
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  sender        User @relation("InvitationSender", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient     User @relation("InvitationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+
+  @@index([recipientId, status])
 }
 
 model RecruitmentApplication {
