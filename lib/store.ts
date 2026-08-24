@@ -1,8 +1,8 @@
 import { opportunities as seedOpportunities } from "@/lib/mock-data";
-import type { CommunityArticle, Opportunity, OpportunityInterest, RecruitmentApplication, RecruitmentPost, TeamInvitation, UserAccountProfile } from "@/lib/types";
+import type { CommunityArticle, Notification, Opportunity, OpportunityInterest, RecruitmentApplication, RecruitmentPost, TeamInvitation, UserAccountProfile } from "@/lib/types";
 
 type Store = {
-  schemaVersion: 5;
+  schemaVersion: 6;
   opportunities: Opportunity[];
   recruitments: RecruitmentPost[];
   applications: RecruitmentApplication[];
@@ -10,10 +10,11 @@ type Store = {
   invitations: TeamInvitation[];
   articles: CommunityArticle[];
   accountProfiles: UserAccountProfile[];
+  notifications: Notification[];
 };
 
 const initialStore: Store = {
-  schemaVersion: 5,
+  schemaVersion: 6,
   opportunities: [...seedOpportunities],
   recruitments: [
     {
@@ -95,8 +96,20 @@ const initialStore: Store = {
       updatedAt: "2026-08-23T08:00:00.000Z",
     },
   ],
+  notifications: [
+    {
+      id: "seed-notification-1",
+      userId: "demo-user",
+      type: "application_received",
+      title: "收到新申请",
+      body: "周宇 申请加入「校园同行者」",
+      relatedId: "seed-application-1",
+      read: false,
+      createdAt: "2026-08-20T10:00:00.000Z",
+    },
+  ],
 };
 
 const globalStore = globalThis as typeof globalThis & { __dutLinkStore?: Store };
-export const store = globalStore.__dutLinkStore?.schemaVersion === 5 ? globalStore.__dutLinkStore : initialStore;
+export const store = globalStore.__dutLinkStore?.schemaVersion === 6 ? globalStore.__dutLinkStore : initialStore;
 if (process.env.NODE_ENV !== "production") globalStore.__dutLinkStore = store;
