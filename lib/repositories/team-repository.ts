@@ -41,6 +41,7 @@ export async function createRecruitment(user: SessionUser, post: RecruitmentPost
           ownerId: user.id,
           teamName: post.teamName,
           projectDirection: post.projectDirection || null,
+          expectedAvailability: post.expectedAvailability || null,
           description: post.description || null,
           requirements: post.requirements,
           neededSkills: post.neededSkills,

@@ -11,6 +11,10 @@ function derive(password: string, salt: Buffer) {
   });
 }
 
+export function isPasswordAcceptable(password: string) {
+  return password.length >= 8 && password.length <= 72 && /[A-Za-z]/.test(password) && /\d/.test(password);
+}
+
 export async function hashPassword(password: string) {
   const salt = randomBytes(16);
   const key = await derive(password, salt);

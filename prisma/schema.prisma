@@ -17,6 +17,7 @@ model User {
   contact                String?
   skillTags              String[]                 @default([])
   passwordHash           String?
+  role                   String                   @default("student")
   profile                Profile?
   experiences            Experience[]
   awards                 Award[]
@@ -25,6 +26,7 @@ model User {
   interests              UserInterest[]
   memberships            TeamMember[]
   sessions               Session[]
+  passwordResetTokens    PasswordResetToken[]
   recruitmentPosts       RecruitmentPost[]
   applications           RecruitmentApplication[]
   articles               Article[]
@@ -105,10 +107,23 @@ model Session {
   userId    String
   tokenHash String   @unique
   expiresAt DateTime
+  userAgent String?
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
   @@index([userId, expiresAt])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model Interest {
@@ -183,6 +198,7 @@ model RecruitmentPost {
   ownerId             String
   teamName            String
   projectDirection    String?
+  expectedAvailability String?
   description         String?
   requirements        String
   neededSkills        String[]

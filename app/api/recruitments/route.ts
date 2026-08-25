@@ -35,6 +35,7 @@ export async function POST(request: Request) {
     ownerId: user.id,
     description: body.description?.trim() ?? "",
     projectDirection: body.projectDirection?.trim() ?? "",
+    expectedAvailability: body.expectedAvailability?.trim() ?? "",
     requirements: body.requirements.trim(),
     neededSkills: (body.neededSkills ?? []).map((item) => item.trim()).filter(Boolean).slice(0, 8),
     currentSize: 1,
