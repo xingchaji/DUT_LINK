@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { ArrowLeft, Clock3, ExternalLink, Mail, UserRound } from "lucide-react";
 import { notFound } from "next/navigation";
-import { findPersonProfile } from "@/lib/people";
+import { findPublicPersonProfile } from "@/lib/people";
 
 export default async function PublicProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const person = findPersonProfile(id);
+  const person = await findPublicPersonProfile(id);
   if (!person) notFound();
 
   return <div className="mx-auto max-w-4xl px-5 py-8 sm:px-8 lg:px-12 lg:py-10">

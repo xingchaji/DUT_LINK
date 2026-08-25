@@ -1,20 +1,19 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { rankOpportunities, sortOpportunitiesByRegistration } from "@/lib/opportunity-ranking";
-import { store } from "@/lib/store";
-import { isRecruitmentActive } from "@/lib/matching";
 import type { Opportunity } from "@/lib/types";
+import { createOpportunity, listActiveRecruitments, listOpportunities, listOpportunityInterests } from "@/lib/repositories/opportunity-repository";
 
 export async function GET() {
   const user = await getCurrentUser();
-  const activeRecruitments = store.recruitments.filter((post) => isRecruitmentActive(post));
-  const counts = Object.fromEntries(store.opportunities.map((item) => [item.id, activeRecruitments.filter((post) => post.opportunityId === item.id).length]));
+  const [opportunities, activeRecruitments, intendedOpportunityIds] = await Promise.all([listOpportunities(), listActiveRecruitments(), user ? listOpportunityInterests(user.id) : Promise.resolve([])]);
+  const counts = Object.fromEntries(opportunities.map((item) => [item.id, activeRecruitments.filter((post) => post.opportunityId === item.id).length]));
   return NextResponse.json({
-    overview: sortOpportunitiesByRegistration(store.opportunities),
-    recommended: rankOpportunities(undefined, store.opportunities),
+    overview: sortOpportunitiesByRegistration(opportunities),
+    recommended: rankOpportunities(undefined, opportunities),
     recruitmentCounts: counts,
     rankedBy: "evidence-based-profile",
-    intendedOpportunityIds: user ? store.opportunityInterests.filter((item) => item.userId === user.id).map((item) => item.opportunityId) : [],
+    intendedOpportunityIds,
   });
 }
 
@@ -50,6 +49,5 @@ export async function POST(request: Request) {
     publisherId: user.id,
     publisherName: user.name,
   };
-  store.opportunities.push(opportunity);
-  return NextResponse.json({ opportunity }, { status: 201 });
+  return NextResponse.json({ opportunity: await createOpportunity(opportunity, user) }, { status: 201 });
 }

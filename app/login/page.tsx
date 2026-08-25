@@ -2,37 +2,78 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, LoaderCircle, LogIn, ShieldCheck } from "lucide-react";
+import { ArrowLeft, LoaderCircle, LogIn, ShieldCheck, UserPlus } from "lucide-react";
+
+type Mode = "login" | "register";
 
 export default function LoginPage() {
+  const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("student@dlut.edu.cn");
   const [password, setPassword] = useState("demo1234");
+  const [name, setName] = useState("");
+  const [major, setMajor] = useState("");
+  const [grade, setGrade] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  function switchMode(nextMode: Mode) {
+    setMode(nextMode);
+    setError("");
+    if (nextMode === "login") {
+      setEmail("student@dlut.edu.cn");
+      setPassword("demo1234");
+    } else {
+      setEmail("");
+      setPassword("");
+    }
+  }
+
   async function submit(event: FormEvent) {
-    event.preventDefault(); setLoading(true); setError("");
-    const response = await fetch("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) });
+    event.preventDefault();
+    setLoading(true);
+    setError("");
+    const endpoint = mode === "login" ? "/api/auth/login" : "/api/auth/register";
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(mode === "login" ? { email, password } : { email, password, name, major, grade }),
+    });
     const data = await response.json();
-    if (!response.ok) { setError(data.message ?? "登录失败"); setLoading(false); return; }
-    const target = new URLSearchParams(window.location.search).get("next") || "/";
-    window.location.href = target.startsWith("/") ? target : "/";
+    if (!response.ok) {
+      setError(data.message ?? (mode === "login" ? "登录失败" : "注册失败"));
+      setLoading(false);
+      return;
+    }
+    const requestedTarget = new URLSearchParams(window.location.search).get("next");
+    const target = requestedTarget?.startsWith("/") && !requestedTarget.startsWith("//") ? requestedTarget : mode === "register" ? "/account" : "/";
+    window.location.href = target;
   }
 
   return (
     <div className="mx-auto flex min-h-screen max-w-lg flex-col justify-center px-5 py-10">
       <Link href="/" className="mb-6 inline-flex items-center gap-2 text-xs font-semibold text-[var(--muted)]"><ArrowLeft className="size-4" /> 返回首页</Link>
       <section className="card p-7 sm:p-9">
-        <div className="grid size-12 place-items-center rounded-2xl bg-[var(--ink)] text-[var(--lime)]"><LogIn className="size-5" /></div>
-        <h1 className="mt-6 font-[family-name:var(--font-display)] text-3xl font-bold">登录 DUT Link</h1>
-        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">登录后可在个人主页维护昵称、专业、公开联系方式和个人介绍。当前账户仍用于功能验证，正式版将接入校园邮箱注册与验证。</p>
-        <form onSubmit={submit} className="mt-7 space-y-4">
-          <label className="block"><span className="mb-2 block text-xs font-bold">校园邮箱</span><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="w-full rounded-2xl border border-black/10 bg-[var(--paper)] px-4 py-3 text-sm outline-none focus:border-[var(--violet)]" /></label>
-          <label className="block"><span className="mb-2 block text-xs font-bold">密码</span><input type="password" value={password} onChange={(event) => setPassword(event.target.value)} className="w-full rounded-2xl border border-black/10 bg-[var(--paper)] px-4 py-3 text-sm outline-none focus:border-[var(--violet)]" /></label>
+        <div className="grid size-12 place-items-center rounded-2xl bg-[var(--ink)] text-[var(--lime)]">{mode === "login" ? <LogIn className="size-5" /> : <UserPlus className="size-5" />}</div>
+        <h1 className="mt-6 font-[family-name:var(--font-display)] text-3xl font-bold">{mode === "login" ? "登录 DUT Link" : "创建校园账号"}</h1>
+        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{mode === "login" ? "登录后可维护能力画像、发布队伍并处理申请和邀请。" : "当前仅允许大连理工大学邮箱注册。邮箱验证码将在邮件服务接入后启用。"}</p>
+        <div className="mt-6 grid grid-cols-2 rounded-2xl bg-[var(--paper)] p-1 text-xs font-bold">
+          <button type="button" onClick={() => switchMode("login")} className={`rounded-xl px-4 py-2.5 ${mode === "login" ? "bg-white shadow-sm" : "text-[var(--muted)]"}`}>登录</button>
+          <button type="button" onClick={() => switchMode("register")} className={`rounded-xl px-4 py-2.5 ${mode === "register" ? "bg-white shadow-sm" : "text-[var(--muted)]"}`}>注册</button>
+        </div>
+        <form onSubmit={submit} className="mt-6 space-y-4">
+          {mode === "register" && <>
+            <label className="block"><span className="mb-2 block text-xs font-bold">姓名或昵称</span><input value={name} onChange={(event) => setName(event.target.value)} required maxLength={30} className="w-full rounded-2xl border border-black/10 bg-[var(--paper)] px-4 py-3 text-sm outline-none focus:border-[var(--violet)]" /></label>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="block"><span className="mb-2 block text-xs font-bold">专业</span><input value={major} onChange={(event) => setMajor(event.target.value)} required maxLength={40} className="w-full rounded-2xl border border-black/10 bg-[var(--paper)] px-4 py-3 text-sm outline-none focus:border-[var(--violet)]" /></label>
+              <label className="block"><span className="mb-2 block text-xs font-bold">年级（选填）</span><input value={grade} onChange={(event) => setGrade(event.target.value)} maxLength={20} placeholder="例如：大二" className="w-full rounded-2xl border border-black/10 bg-[var(--paper)] px-4 py-3 text-sm outline-none focus:border-[var(--violet)]" /></label>
+            </div>
+          </>}
+          <label className="block"><span className="mb-2 block text-xs font-bold">校园邮箱</span><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required autoComplete="email" placeholder="name@dlut.edu.cn" className="w-full rounded-2xl border border-black/10 bg-[var(--paper)] px-4 py-3 text-sm outline-none focus:border-[var(--violet)]" /></label>
+          <label className="block"><span className="mb-2 block text-xs font-bold">密码</span><input type="password" value={password} onChange={(event) => setPassword(event.target.value)} required minLength={8} maxLength={72} autoComplete={mode === "login" ? "current-password" : "new-password"} className="w-full rounded-2xl border border-black/10 bg-[var(--paper)] px-4 py-3 text-sm outline-none focus:border-[var(--violet)]" />{mode === "register" && <span className="mt-2 block text-[11px] text-[var(--muted)]">至少 8 位，同时包含字母和数字</span>}</label>
           {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-xs text-red-600">{error}</p>}
-          <button disabled={loading} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--ink)] px-5 py-4 text-sm font-bold text-white disabled:opacity-60">{loading ? <LoaderCircle className="size-4 animate-spin" /> : <ShieldCheck className="size-4 text-[var(--lime)]" />} {loading ? "登录中…" : "登录"}</button>
+          <button disabled={loading} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--ink)] px-5 py-4 text-sm font-bold text-white disabled:opacity-60">{loading ? <LoaderCircle className="size-4 animate-spin" /> : <ShieldCheck className="size-4 text-[var(--lime)]" />} {loading ? (mode === "login" ? "登录中…" : "创建中…") : (mode === "login" ? "登录" : "注册并登录")}</button>
         </form>
-        <div className="mt-5 rounded-2xl bg-[var(--lime)]/45 p-4 text-xs leading-6"><strong>Demo 账户</strong><br />student@dlut.edu.cn / demo1234</div>
+        {mode === "login" && <div className="mt-5 rounded-2xl bg-[var(--lime)]/45 p-4 text-xs leading-6"><strong>Demo 账户</strong><br />student@dlut.edu.cn / demo1234</div>}
       </section>
     </div>
   );

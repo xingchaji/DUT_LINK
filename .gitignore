@@ -7,3 +7,5 @@ out
 .DS_Store
 coverage
 *.tsbuildinfo
+generated/prisma
+.local/

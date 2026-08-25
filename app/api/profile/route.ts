@@ -3,6 +3,8 @@ import { analyzeProfile, analyzeQuestionnaireProfile, getAIStatus } from "@/lib/
 import type { ProfileInput } from "@/lib/types";
 import type { QuestionnaireInput } from "@/lib/types";
 import { profileQuestions } from "@/lib/questionnaire";
+import { getCurrentUser } from "@/lib/auth";
+import { saveAbilityProfile } from "@/lib/repositories/account-repository";
 
 export async function GET() {
   return NextResponse.json(getAIStatus());
@@ -18,7 +20,11 @@ export async function POST(request: Request) {
     }
     const complete = profileQuestions.every((question) => Number.isInteger(input.answers?.[question.id]) && Number(input.answers?.[question.id]) >= 1 && Number(input.answers?.[question.id]) <= 5);
     if (!complete) return NextResponse.json({ message: `请完成全部 ${profileQuestions.length} 道竞赛能力调查题` }, { status: 400 });
-    return NextResponse.json(await analyzeQuestionnaireProfile({ name: input.name ?? "新同学", major: input.major, grade: input.grade ?? "", answers: input.answers, interests: input.interests, evidence: input.evidence }));
+    const questionnaire = { name: input.name ?? "新同学", major: input.major, grade: input.grade ?? "", answers: input.answers, interests: input.interests, evidence: input.evidence };
+    const profile = await analyzeQuestionnaireProfile(questionnaire);
+    const user = await getCurrentUser();
+    if (user) await saveAbilityProfile(user, profile, questionnaire);
+    return NextResponse.json(profile);
   }
 
   const input = body as Partial<ProfileInput>;
@@ -27,8 +33,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "请填写专业和至少一段经历" }, { status: 400 });
   }
 
-  return NextResponse.json(
-    await analyzeProfile({
+  const profile = await analyzeProfile({
       name: input.name ?? "新同学",
       major: input.major,
       grade: input.grade ?? "",
@@ -38,6 +43,8 @@ export async function POST(request: Request) {
       awards: input.awards ?? "",
       achievements: input.achievements ?? "",
       githubRepos: input.githubRepos ?? "",
-    }),
-  );
+    });
+  const user = await getCurrentUser();
+  if (user) await saveAbilityProfile(user, profile);
+  return NextResponse.json(profile);
 }

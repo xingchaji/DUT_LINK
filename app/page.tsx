@@ -5,7 +5,8 @@ import { SkillBars } from "@/components/skill-bars";
 import { demoProfile, matches } from "@/lib/mock-data";
 import { rankOpportunities } from "@/lib/opportunity-ranking";
 import { getCurrentUser } from "@/lib/auth";
-import { store } from "@/lib/store";
+import { getAbilityProfile, getAccountProfile } from "@/lib/repositories/account-repository";
+import { listOpportunities } from "@/lib/repositories/opportunity-repository";
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -19,14 +20,19 @@ function getGreeting(hour: number) {
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();
-  const profile = user ? store.accountProfiles.find((p) => p.userId === user.id) : null;
+  const [profile, abilityProfile, opportunityCatalog] = await Promise.all([
+    user ? getAccountProfile(user) : Promise.resolve(null),
+    user ? getAbilityProfile(user.id) : Promise.resolve(null),
+    listOpportunities(),
+  ]);
   const displayName = profile?.nickname ?? user?.name ?? "同学";
 
   const now = new Date();
   const eyebrow = `${WEEKDAYS[now.getDay()]} · ${now.getDate()} ${MONTHS[now.getMonth()]}`;
   const title = `${getGreeting(now.getHours())}，${displayName}`;
 
-  const opportunities = rankOpportunities(demoProfile);
+  const activeProfile = abilityProfile ?? demoProfile;
+  const opportunities = rankOpportunities(activeProfile, opportunityCatalog);
   return (
     <div className="mx-auto max-w-[1500px] px-5 py-8 sm:px-8 lg:px-10 lg:py-10 xl:px-14">
       <PageHeader eyebrow={eyebrow} title={title} />
@@ -68,7 +74,7 @@ export default async function DashboardPage() {
             <Link href="/account" className="flex items-center gap-1 text-xs font-semibold text-[var(--violet)]">完整画像 <ChevronRight className="size-4" /></Link>
           </div>
           <div className="mt-7 grid gap-7 sm:grid-cols-[1fr_0.78fr] sm:items-center">
-            <SkillBars skills={demoProfile.skills} />
+            <SkillBars skills={activeProfile.skills} />
             <div className="relative mx-auto grid aspect-square w-full max-w-[220px] place-items-center rounded-full border border-dashed border-[var(--violet)]/30 bg-[var(--violet)]/[0.06]">
               <div className="grid size-[72%] place-items-center rounded-full border border-[var(--violet)]/20 bg-white shadow-sm">
                 <div className="text-center"><span className="font-[family-name:var(--font-display)] text-4xl font-bold">78</span><span className="text-sm text-[var(--muted)]">/100</span><p className="mt-1 text-xs font-semibold text-[var(--violet)]">画像完整度</p></div>

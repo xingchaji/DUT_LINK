@@ -1,6 +1,7 @@
 import { matches } from "@/lib/mock-data";
 import { store } from "@/lib/store";
 import type { PersonProfile, TeamMemberSummary } from "@/lib/types";
+import { getAccountProfileById } from "@/lib/repositories/account-repository";
 
 export function findPersonProfile(userId: string): PersonProfile | undefined {
   const candidate = matches.find((item) => item.id === userId);
@@ -38,5 +39,28 @@ export function getTeamMemberSummary(userId: string, fallback: { name: string; m
     major: fallback.major ?? "专业待补充",
     grade: "年级待补充",
     skills: [],
+  };
+}
+
+export async function findPublicPersonProfile(userId: string): Promise<PersonProfile | undefined> {
+  const candidate = matches.find((item) => item.id === userId);
+  const account = await getAccountProfileById(userId);
+  if (!account) return candidate;
+  return {
+    id: account.userId,
+    name: account.nickname,
+    major: account.major,
+    grade: account.grade,
+    avatar: account.nickname.slice(0, 1) || "同",
+    match: candidate?.match ?? 0,
+    tags: account.skills,
+    reason: candidate?.reason ?? "个人主页公开资料",
+    status: candidate?.status ?? "DUT Link 用户",
+    interestedOpportunityIds: candidate?.interestedOpportunityIds,
+    scoreBreakdown: candidate?.scoreBreakdown,
+    bio: account.bio || candidate?.bio || "这位同学还没有填写个人介绍。",
+    contact: account.contact || candidate?.contact || "暂未公开联系方式",
+    availability: candidate?.availability ?? "可在组队邀请中进一步沟通",
+    portfolio: candidate?.portfolio,
   };
 }

@@ -11,6 +11,8 @@ const TYPE_LABELS: Record<Notification["type"], string> = {
   application_accepted: "申请通过",
   application_rejected: "申请未通过",
   invitation_received: "组队邀请",
+  invitation_accepted: "邀请已接受",
+  invitation_rejected: "邀请未接受",
 };
 
 export function HeaderActions() {

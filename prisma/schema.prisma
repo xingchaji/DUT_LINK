@@ -1,40 +1,41 @@
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model User {
-  id          String       @id @default(cuid())
-  email       String       @unique
-  name        String
-  major       String?
-  grade       String?
-  bio         String?
-  contact     String?
-  skillTags   String[]
-  passwordHash String?
-  profile     Profile?
-  experiences Experience[]
-  awards      Award[]
-  achievements Achievement[]
-  repositories GitHubRepository[]
-  interests   UserInterest[]
-  memberships TeamMember[]
-  sessions    Session[]
-  recruitmentPosts RecruitmentPost[]
-  applications RecruitmentApplication[]
-  articles    Article[]
+  id                     String                   @id @default(cuid())
+  email                  String                   @unique
+  name                   String
+  major                  String?
+  grade                  String?
+  bio                    String?
+  contact                String?
+  skillTags              String[]                 @default([])
+  passwordHash           String?
+  profile                Profile?
+  experiences            Experience[]
+  awards                 Award[]
+  achievements           Achievement[]
+  repositories           GitHubRepository[]
+  interests              UserInterest[]
+  memberships            TeamMember[]
+  sessions               Session[]
+  recruitmentPosts       RecruitmentPost[]
+  applications           RecruitmentApplication[]
+  articles               Article[]
   publishedOpportunities Opportunity[]
-  opportunityInterests OpportunityInterest[]
-  sentInvitations TeamInvitation[] @relation("InvitationSender")
-  receivedInvitations TeamInvitation[] @relation("InvitationRecipient")
+  opportunityInterests   OpportunityInterest[]
+  sentInvitations        TeamInvitation[]         @relation("InvitationSender")
+  receivedInvitations    TeamInvitation[]         @relation("InvitationRecipient")
   competitionMemberships CompetitionMembership[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  notifications          Notification[]
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
 }
 
 model Profile {
@@ -43,7 +44,10 @@ model Profile {
   summary             String
   skills              Json
   potentialDirections String[]
-  embedding           Float[]
+  interests           String[] @default([])
+  analysisMode        String   @default("questionnaire")
+  evidenceCount       Int      @default(0)
+  embedding           Float[]  @default([])
   version             Int      @default(1)
   assessmentMethod    String   @default("competition-survey-v3-cross-major")
   assessmentAnswers   Json?
@@ -53,47 +57,47 @@ model Profile {
 }
 
 model Experience {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   userId      String
   title       String
   description String
   type        String
   startedAt   DateTime?
   endedAt     DateTime?
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Award {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   userId      String
   title       String
   level       String?
   awardedAt   DateTime?
   evidenceUrl String?
   description String?
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Achievement {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   userId      String
   title       String
   description String
   evidenceUrl String?
   metrics     Json?
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model GitHubRepository {
-  id          String   @id @default(cuid())
-  userId      String
-  url         String
-  name        String
-  description String?
-  languages   Json?
-  stars       Int      @default(0)
+  id           String    @id @default(cuid())
+  userId       String
+  url          String
+  name         String
+  description  String?
+  languages    Json?
+  stars        Int       @default(0)
   lastSyncedAt DateTime?
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Session {
@@ -103,6 +107,8 @@ model Session {
   expiresAt DateTime
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+
+  @@index([userId, expiresAt])
 }
 
 model Interest {
@@ -122,87 +128,89 @@ model UserInterest {
 }
 
 model Team {
-  id          String       @id @default(cuid())
-  name        String
-  description String
+  id            String       @id @default(cuid())
+  name          String
+  description   String
   desiredSkills String[]
-  members     TeamMember[]
-  createdAt   DateTime     @default(now())
+  members       TeamMember[]
+  createdAt     DateTime     @default(now())
 }
 
 model TeamMember {
-  teamId   String
-  userId   String
-  role     String
-  team     Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  teamId String
+  userId String
+  role   String
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([teamId, userId])
 }
 
 model Opportunity {
-  id          String   @id @default(cuid())
-  title       String
-  organizer   String
-  type        String
-  description String
-  sourceName  String
-  sourceUrl   String
-  sourceHash  String?
-  status      String
-  deadline    DateTime?
+  id                String                  @id @default(cuid())
+  title             String
+  organizer         String
+  type              String
+  description       String
+  sourceName        String
+  sourceUrl         String
+  sourceHash        String?
+  status            String
+  deadline          String?
   registrationStart DateTime?
-  registrationEnd DateTime?
-  eventDate   DateTime?
-  scope       String   @default("全国")
-  verification String  @default("pending")
-  tags        String[]
-  bonusPolicy Json?
-  verifiedAt  DateTime?
-  publisherId String?
-  publisher   User?    @relation(fields: [publisherId], references: [id], onDelete: SetNull)
-  recruitments RecruitmentPost[]
-  interestedUsers OpportunityInterest[]
-  invitations TeamInvitation[]
-  memberships CompetitionMembership[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  registrationEnd   DateTime?
+  eventDate         DateTime?
+  scope             String                  @default("全国")
+  verification      String                  @default("pending")
+  tags              String[]
+  fit               Int                     @default(0)
+  accent            String                  @default("violet")
+  bonusPolicy       Json?
+  verifiedAt        DateTime?
+  publisherId       String?
+  publisher         User?                   @relation(fields: [publisherId], references: [id], onDelete: SetNull)
+  recruitments      RecruitmentPost[]
+  interestedUsers   OpportunityInterest[]
+  invitations       TeamInvitation[]
+  memberships       CompetitionMembership[]
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
 }
 
 model RecruitmentPost {
-  id            String   @id @default(cuid())
-  opportunityId String
-  ownerId       String
-  teamName      String
-  projectDirection String?
-  description   String?
-  requirements  String
-  neededSkills  String[]
-  capacity      Int
-  currentSize   Int      @default(1)
-  contact       String
+  id                  String                   @id @default(cuid())
+  opportunityId       String
+  ownerId             String
+  teamName            String
+  projectDirection    String?
+  description         String?
+  requirements        String
+  neededSkills        String[]
+  capacity            Int
+  currentSize         Int                      @default(1)
+  contact             String
   recruitmentDeadline DateTime
-  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
-  owner         User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  applications  RecruitmentApplication[]
-  invitations   TeamInvitation[]
-  members       CompetitionMembership[]
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  opportunity         Opportunity              @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  owner               User                     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  applications        RecruitmentApplication[]
+  invitations         TeamInvitation[]
+  members             CompetitionMembership[]
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
 
   @@unique([ownerId, opportunityId])
 }
 
 model CompetitionMembership {
-  id            String   @id @default(cuid())
+  id            String          @id @default(cuid())
   userId        String
   opportunityId String
   recruitmentId String
   role          String
-  user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  opportunity   Opportunity     @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
   recruitment   RecruitmentPost @relation(fields: [recruitmentId], references: [id], onDelete: Cascade)
-  createdAt     DateTime @default(now())
+  createdAt     DateTime        @default(now())
 
   @@unique([userId, opportunityId])
   @@index([recruitmentId])
@@ -220,44 +228,58 @@ model OpportunityInterest {
 }
 
 model TeamInvitation {
-  id            String   @id @default(cuid())
+  id            String          @id @default(cuid())
   recruitmentId String
   opportunityId String
   senderId      String
   recipientId   String
   message       String
-  status        String   @default("pending")
+  status        String          @default("pending")
   recruitment   RecruitmentPost @relation(fields: [recruitmentId], references: [id], onDelete: Cascade)
-  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
-  sender        User @relation("InvitationSender", fields: [senderId], references: [id], onDelete: Cascade)
-  recipient     User @relation("InvitationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
-  createdAt     DateTime @default(now())
+  opportunity   Opportunity     @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  sender        User            @relation("InvitationSender", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient     User            @relation("InvitationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  createdAt     DateTime        @default(now())
 
   @@index([recipientId, status])
 }
 
 model RecruitmentApplication {
-  id            String   @id @default(cuid())
+  id            String          @id @default(cuid())
   recruitmentId String
   applicantId   String
   message       String
-  status        String   @default("pending")
+  status        String          @default("pending")
   recruitment   RecruitmentPost @relation(fields: [recruitmentId], references: [id], onDelete: Cascade)
-  applicant     User @relation(fields: [applicantId], references: [id], onDelete: Cascade)
-  createdAt     DateTime @default(now())
+  applicant     User            @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  createdAt     DateTime        @default(now())
 
   @@unique([recruitmentId, applicantId])
 }
 
 model Article {
-  id          String   @id @default(cuid())
-  authorId    String
-  title       String
-  summary     String
-  content     String?
-  bridge      String
-  status      String   @default("pending")
-  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  authorId  String
+  title     String
+  summary   String
+  content   String?
+  bridge    String
+  status    String   @default("pending")
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  body      String
+  relatedId String
+  read      Boolean  @default(false)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([userId, read, createdAt])
 }

@@ -16,17 +16,19 @@ export default function AccountPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState("");
+  const [serverAbilityProfile, setServerAbilityProfile] = useState<GeneratedProfile | null>(null);
   const storedAbilityProfile = useSyncExternalStore(subscribeToAbilityProfile, readStoredAbilityProfile, () => null);
   const abilityProfile = useMemo<GeneratedProfile>(() => {
+    if (serverAbilityProfile) return serverAbilityProfile;
     if (!storedAbilityProfile) return demoProfile;
     try { return JSON.parse(storedAbilityProfile); } catch { return demoProfile; }
-  }, [storedAbilityProfile]);
+  }, [serverAbilityProfile, storedAbilityProfile]);
 
   const load = useCallback(async () => {
     const response = await fetch("/api/account", { cache: "no-store" });
     const data = await response.json();
     if (!response.ok) { setNotice(data.message); setLoading(false); return; }
-    setProfile(data.profile); setLoading(false);
+    setProfile(data.profile); setServerAbilityProfile(data.abilityProfile ?? null); setLoading(false);
   }, []);
   useEffect(() => { void Promise.resolve().then(load); }, [load]);
 

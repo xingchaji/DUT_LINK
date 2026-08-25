@@ -6,10 +6,10 @@
 - 样式系统：Tailwind CSS；设计令牌统一维护在 `app/globals.css`
 - API：Next.js Route Handlers，后续可拆分为独立服务
 - 数据库：PostgreSQL
-- ORM：Prisma（数据模型草案见 `prisma/schema.prisma`）
+- ORM：Prisma 7 + PostgreSQL Driver Adapter（模型与初始迁移见 `prisma/`）
 - AI：服务端 Adapter 模式；能力画像、智能组队、探索盲盒共用兼容 Chat Completions 的模型接口，并按模块独立降级
 - 向量检索：Phase 2 建议启用 PostgreSQL `pgvector`，避免过早引入独立向量数据库
-- 身份认证：建议采用 Auth.js，并对接学校邮箱验证
+- 身份认证：当前使用 `scrypt` 密码哈希、随机不透明 Cookie 与数据库 Session；下一阶段对接校园邮箱验证码，规模扩大时可迁移 Auth.js
 - 测试：TypeScript 静态检查 + ESLint；接入业务后补充 Vitest 与 Playwright
 
 ## 为什么这样选择
@@ -27,9 +27,12 @@ lib/mock-data.ts      Demo 数据
 lib/matching.ts       招募需求驱动的可解释人员匹配
 lib/people.ts         统一公开用户资料解析
 lib/opportunity-ranking.ts 机会排序
-lib/auth.ts           签名会话与认证 DAL
-lib/store.ts          开发期进程内数据仓库
-prisma/schema.prisma  数据模型草案
+lib/auth.ts           数据库/内存双模式认证与会话 DAL
+lib/password.ts       scrypt 密码哈希与恒定时间校验
+lib/db.ts             Prisma Client 生命周期、数据后端选择与连接探测
+lib/repositories/     领域数据仓库；统一 PostgreSQL 与内存演示模式
+lib/store.ts          无数据库时的内存演示仓库
+prisma/               PostgreSQL 模型、迁移与可重复种子数据
 ```
 
 机会领域的核心关系：
@@ -45,7 +48,7 @@ Opportunity（比赛/活动）
 
 比赛事实、组队信息与推荐结果分层保存。平台管理的是组队意向，不把组队申请解释成主办方的官方参赛名单。
 
-正式数据库使用 `CompetitionMembership` 的 `(userId, opportunityId)` 唯一约束保证一个用户在同一比赛只能属于一个队伍；`RecruitmentPost` 的 `(ownerId, opportunityId)` 唯一约束保证队长不能重复发布。内存原型在 Route Handler 中执行相同校验，不能只依赖前端隐藏按钮。
+正式数据库使用 `CompetitionMembership` 的 `(userId, opportunityId)` 唯一约束保证一个用户在同一比赛只能属于一个队伍；`RecruitmentPost` 的 `(ownerId, opportunityId)` 唯一约束保证队长不能重复发布。招募创建、申请审批、成员写入与通知使用串行化事务处理；内存演示仓库执行相同的领域校验，规则不只依赖前端隐藏按钮。
 
 能力画像采用版本化竞赛能力问卷：所有用户回答相同的 16 道分档题，服务端使用固定公式计算问题解决、调研表达、竞赛经验和项目交付。前八题使用跨专业通用的任务拆解、资料核验、证据分析、工具学习、需求定义、调研、写作和答辩场景，不推断人格类型。
 
@@ -55,11 +58,11 @@ Opportunity（比赛/活动）
 
 ## 建议的后续顺序
 
-1. PostgreSQL/Prisma 落库，把进程内招募、报名和文章迁移为持久数据。
-2. 将 Demo 登录替换为 Auth.js + 学校邮箱注册验证。
-3. 增加 GitHub OAuth 或后台同步服务，提取仓库语言、提交与协作证据。
+1. 接入校园邮箱验证码、登录限流、找回密码和会话设备管理。
+2. 增加 GitHub OAuth 或后台同步服务，提取仓库语言、提交与协作证据。
+3. 为三个 AI 模块配置正式模型服务、评测集和调用观测。
 4. 接入赛事采集任务；只有可追溯官方来源的数据才能进入公开目录。
-5. 添加举报、拉黑、内容审核与 AI 推荐反馈闭环。
+5. 添加举报、拉黑、内容审核、AI 推荐反馈与自动化测试闭环。
 
 ## 当前数据边界
 

@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { store } from "@/lib/store";
 import type { RecruitmentPost } from "@/lib/types";
-import { isRecruitmentActive } from "@/lib/matching";
-import { findCompetitionMembership } from "@/lib/team-membership";
-import { getTeamMemberSummary } from "@/lib/people";
+import { getAccountProfile } from "@/lib/repositories/account-repository";
+import { listActiveRecruitments } from "@/lib/repositories/opportunity-repository";
+import { createRecruitment, findCompetitionMembership } from "@/lib/repositories/team-repository";
+import { errorResponse } from "@/lib/domain-error";
 
 export async function GET() {
-  return NextResponse.json({ recruitments: store.recruitments.filter((post) => isRecruitmentActive(post)) });
+  return NextResponse.json({ recruitments: await listActiveRecruitments() });
 }
 
 export async function POST(request: Request) {
@@ -19,18 +19,19 @@ export async function POST(request: Request) {
   }
   if (!body.neededSkills?.map((item) => item.trim()).filter(Boolean).length) return NextResponse.json({ message: "请至少添加一个招募技能标签" }, { status: 400 });
   if (body.requirements.trim().length < 8) return NextResponse.json({ message: "请更具体地描述招募能力、职责或投入要求（至少 8 个字）" }, { status: 400 });
-  const membership = findCompetitionMembership(user.id, body.opportunityId);
+  const membership = await findCompetitionMembership(user.id, body.opportunityId);
   if (membership) return NextResponse.json({ message: membership.role === "captain" ? "同一场比赛只能发布一个招募队伍" : "你已加入本场比赛的其他队伍，不能再创建队伍" }, { status: 409 });
   const capacity = Math.max(2, Math.min(12, Number(body.capacity) || 4));
   if (new Date(`${body.recruitmentDeadline}T23:59:59`) < new Date()) {
     return NextResponse.json({ message: "招募截止日期不能早于今天" }, { status: 400 });
   }
+  const account = await getAccountProfile(user);
   const post: RecruitmentPost = {
     id: crypto.randomUUID(),
     opportunityId: body.opportunityId,
     opportunityTitle: body.opportunityTitle,
     teamName: body.teamName.trim(),
-    ownerName: store.accountProfiles.find((item) => item.userId === user.id)?.nickname ?? user.name,
+    ownerName: account.nickname,
     ownerId: user.id,
     description: body.description?.trim() ?? "",
     projectDirection: body.projectDirection?.trim() ?? "",
@@ -39,11 +40,14 @@ export async function POST(request: Request) {
     currentSize: 1,
     capacity,
     contact: body.contact.trim(),
-    members: [getTeamMemberSummary(user.id, { name: user.name, major: user.major })],
+    members: [{ userId: user.id, name: account.nickname, major: account.major, grade: account.grade, skills: account.skills }],
     recruitmentDeadline: body.recruitmentDeadline,
     createdAt: new Date().toISOString(),
     applicants: 0,
   };
-  store.recruitments.unshift(post);
-  return NextResponse.json({ recruitment: post }, { status: 201 });
+  try {
+    return NextResponse.json({ recruitment: await createRecruitment(user, post) }, { status: 201 });
+  } catch (error) {
+    return errorResponse(error);
+  }
 }

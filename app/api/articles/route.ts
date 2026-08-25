@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { store } from "@/lib/store";
 import type { CommunityArticle } from "@/lib/types";
+import { createArticle, listArticles } from "@/lib/repositories/social-repository";
 
 export async function GET() {
-  return NextResponse.json({ articles: store.articles });
+  return NextResponse.json({ articles: await listArticles() });
 }
 
 export async function POST(request: Request) {
@@ -23,6 +23,5 @@ export async function POST(request: Request) {
     authorMajor: user.major,
     createdAt: new Date().toISOString(),
   };
-  store.articles.unshift(article);
-  return NextResponse.json({ article }, { status: 201 });
+  return NextResponse.json({ article: await createArticle(user, article) }, { status: 201 });
 }
