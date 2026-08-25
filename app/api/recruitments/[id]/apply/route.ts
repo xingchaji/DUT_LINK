@@ -31,5 +31,18 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   };
   store.applications.push(application);
   recruitment.applicants += 1;
+
+  // 通知队长：收到新申请
+  store.notifications.push({
+    id: crypto.randomUUID(),
+    userId: recruitment.ownerId,
+    type: "application_received",
+    title: "收到新申请",
+    body: `${application.applicantName} 申请加入「${recruitment.teamName}」`,
+    relatedId: application.id,
+    read: false,
+    createdAt: application.createdAt,
+  });
+
   return NextResponse.json({ ok: true, applicants: recruitment.applicants, application });
 }

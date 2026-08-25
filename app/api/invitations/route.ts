@@ -33,5 +33,18 @@ export async function POST(request: Request) {
     message: body.message?.trim() || `邀请你加入「${recruitment.teamName}」共同参赛。`, status: "pending", createdAt: new Date().toISOString(),
   };
   store.invitations.unshift(invitation);
+
+  // 通知被邀请人
+  store.notifications.push({
+    id: crypto.randomUUID(),
+    userId: person.id,
+    type: "invitation_received",
+    title: "收到组队邀请",
+    body: `${user.name} 邀请你加入「${recruitment.teamName}」`,
+    relatedId: invitation.id,
+    read: false,
+    createdAt: invitation.createdAt,
+  });
+
   return NextResponse.json({ invitation }, { status: 201 });
 }

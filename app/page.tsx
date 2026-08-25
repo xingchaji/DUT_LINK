@@ -4,12 +4,32 @@ import { PageHeader } from "@/components/page-header";
 import { SkillBars } from "@/components/skill-bars";
 import { demoProfile, matches } from "@/lib/mock-data";
 import { rankOpportunities } from "@/lib/opportunity-ranking";
+import { getCurrentUser } from "@/lib/auth";
+import { store } from "@/lib/store";
 
-export default function DashboardPage() {
+const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+function getGreeting(hour: number) {
+  if (hour < 6) return "深夜好";
+  if (hour < 12) return "早上好";
+  if (hour < 18) return "下午好";
+  return "晚上好";
+}
+
+export default async function DashboardPage() {
+  const user = await getCurrentUser();
+  const profile = user ? store.accountProfiles.find((p) => p.userId === user.id) : null;
+  const displayName = profile?.nickname ?? user?.name ?? "同学";
+
+  const now = new Date();
+  const eyebrow = `${WEEKDAYS[now.getDay()]} · ${now.getDate()} ${MONTHS[now.getMonth()]}`;
+  const title = `${getGreeting(now.getHours())}，${displayName}`;
+
   const opportunities = rankOpportunities(demoProfile);
   return (
     <div className="mx-auto max-w-[1500px] px-5 py-8 sm:px-8 lg:px-10 lg:py-10 xl:px-14">
-      <PageHeader eyebrow="Thursday · 20 August" title="下午好，陆同学" />
+      <PageHeader eyebrow={eyebrow} title={title} />
 
       <section className="dot-grid relative mt-8 overflow-hidden rounded-[34px] bg-[var(--ink)] px-6 py-8 text-white sm:px-9 sm:py-10">
         <div className="absolute -right-16 -top-28 size-72 rounded-full bg-[var(--violet)] opacity-70 blur-2xl" />

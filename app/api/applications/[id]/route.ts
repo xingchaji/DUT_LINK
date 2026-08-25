@@ -27,5 +27,20 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       recruitment.members.push(getTeamMemberSummary(application.applicantId, { name: application.applicantName, major: application.applicantMajor }));
     }
   }
+
+  // 通知申请人：申请结果
+  store.notifications.push({
+    id: crypto.randomUUID(),
+    userId: application.applicantId,
+    type: body.status === "accepted" ? "application_accepted" : "application_rejected",
+    title: body.status === "accepted" ? "申请已通过" : "申请未通过",
+    body: body.status === "accepted"
+      ? `你已成功加入「${recruitment.teamName}」`
+      : `「${recruitment.teamName}」暂时没有接受你的申请`,
+    relatedId: application.id,
+    read: false,
+    createdAt: new Date().toISOString(),
+  });
+
   return NextResponse.json({ application, teamSize: recruitment.currentSize });
 }

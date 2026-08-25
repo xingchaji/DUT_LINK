@@ -186,3 +186,14 @@ export type SessionUser = {
   email: string;
   major: string;
 };
+
+export type Notification = {
+  id: string;
+  userId: string;
+  type: "application_received" | "application_accepted" | "application_rejected" | "invitation_received";
+  title: string;
+  body: string;
+  relatedId: string;
+  read: boolean;
+  createdAt: string;
+};
