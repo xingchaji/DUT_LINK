@@ -15,7 +15,9 @@
       "Bash(powershell:*)",
       "Bash(sc qc:*)",
       "Bash(export:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(cmd:*)",
+      "Bash(netstat:*)"
     ]
   }
 }
