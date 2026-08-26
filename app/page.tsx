@@ -49,7 +49,7 @@ export default async function DashboardPage() {
       </section>
 
       <section className="mt-8">
-        <div className="flex items-end justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--coral)]">Primary workspace</p><h2 className="mt-2 font-[family-name:var(--font-display)] text-3xl font-bold">适合你的机会</h2><p className="mt-2 text-sm text-[var(--muted)]">先发现可信机会，再完成组队与报名。</p></div><Link href="/opportunities" className="inline-flex items-center gap-2 rounded-full bg-[var(--ink)] px-5 py-3 text-xs font-bold text-white">进入机会中心 <ArrowRight className="size-4" /></Link></div>
+        <div className="flex items-end justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--coral)]">Primary workspace</p><h2 className="mt-2 font-[family-name:var(--font-display)] text-3xl font-bold">适合你的组队机会</h2><p className="mt-2 text-sm text-[var(--muted)]">先发现可信比赛，再找到互补队友并完成报名。</p></div><Link href="/opportunities" className="inline-flex items-center gap-2 rounded-full bg-[var(--ink)] px-5 py-3 text-xs font-bold text-white">进入组队中心 <ArrowRight className="size-4" /></Link></div>
         <div className="mt-5 grid gap-4 md:grid-cols-3">
           {opportunities.map((item, index) => {
             const icons = [Orbit, CircleUserRound, BookOpen];

@@ -94,13 +94,13 @@ export function OpportunityDetail({ opportunityId, mode }: { opportunityId: stri
     if (response.ok) setSelectedPerson(null);
   }
 
-  if (error) return <div className="mx-auto max-w-3xl px-5 py-20 text-center"><h1 className="text-2xl font-bold">{error}</h1><Link href="/opportunities" className="mt-5 inline-block underline">返回机会中心</Link></div>;
+  if (error) return <div className="mx-auto max-w-3xl px-5 py-20 text-center"><h1 className="text-2xl font-bold">{error}</h1><Link href="/opportunities" className="mt-5 inline-block underline">返回组队中心</Link></div>;
   if (!data) return <div className="flex min-h-[60vh] items-center justify-center gap-2 text-sm text-[var(--muted)]"><LoaderCircle className="size-4 animate-spin" /> 加载比赛空间</div>;
   const { opportunity, recruitments, ownedRecruitment } = data;
 
   return (
     <div className="mx-auto max-w-7xl px-5 py-8 sm:px-8 lg:px-12 lg:py-10">
-      <Link href="/opportunities" className="inline-flex items-center gap-2 text-xs font-semibold text-[var(--muted)]"><ArrowLeft className="size-4" /> 返回机会中心</Link>
+      <Link href="/opportunities" className="inline-flex items-center gap-2 text-xs font-semibold text-[var(--muted)]"><ArrowLeft className="size-4" /> 返回组队中心</Link>
       <OpportunityHeader opportunity={opportunity} activeTeams={recruitments.length} />
       {notice && <div className="mt-5 rounded-2xl bg-[var(--lime)]/45 px-4 py-3 text-sm">{notice}{notice.includes("登录") && <Link href={`/login?next=/opportunities/${opportunity.id}/${mode === "teams" ? "teams" : "recruit"}`} className="ml-2 font-bold underline">去登录</Link>}</div>}
       {mode === "overview" && <RoleChooser opportunity={opportunity} activeTeams={recruitments.length} />}

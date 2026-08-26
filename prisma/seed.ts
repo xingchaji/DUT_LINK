@@ -77,6 +77,52 @@ async function main() {
     update: {},
     create: { userId: "demo-user", summary: demoProfile.summary, skills: demoProfile.skills as unknown as Prisma.InputJsonValue, interests: demoProfile.interests, potentialDirections: demoProfile.potentialDirections, analysisMode: demoProfile.analysisMode ?? "rules", evidenceCount: demoProfile.evidenceCount ?? 0 },
   });
+  const candidateProfiles: Array<{ userId: string; summary: string; skills: Prisma.InputJsonValue; interests: string[]; potentialDirections: string[]; evidenceCount: number }> = [
+    {
+      userId: "lin-yi",
+      summary: "具备视觉表达、界面设计与用户研究能力，适合在跨专业团队中承担体验设计与方案呈现。",
+      skills: [
+        { name: "UI 设计", score: 88, category: "创意", confidence: 84, evidence: ["校园产品界面设计", "品牌视觉练习"] },
+        { name: "用户研究", score: 76, category: "探索", confidence: 72, evidence: ["用户访谈与体验复盘"] },
+        { name: "团队协作", score: 79, category: "协作", confidence: 74, evidence: ["跨专业校园产品合作"] },
+      ] as unknown as Prisma.InputJsonValue,
+      interests: ["校园创新", "人工智能", "视觉叙事"],
+      potentialDirections: ["产品体验设计", "竞赛视觉表达", "用户研究"],
+      evidenceCount: 4,
+    },
+    {
+      userId: "zhou-yu",
+      summary: "擅长空间调研、三维建模和方案表达，能够为产品创新与虚拟场景类项目补充空间视角。",
+      skills: [
+        { name: "空间调研", score: 84, category: "探索", confidence: 82, evidence: ["建筑场地调研"] },
+        { name: "3D 建模", score: 86, category: "技术", confidence: 85, evidence: ["建筑数字模型"] },
+        { name: "方案表达", score: 78, category: "协作", confidence: 76, evidence: ["课程设计汇报"] },
+      ] as unknown as Prisma.InputJsonValue,
+      interests: ["独立游戏", "数字建筑", "人工智能"],
+      potentialDirections: ["虚拟校园", "空间交互", "场景研究"],
+      evidenceCount: 3,
+    },
+    {
+      userId: "chen-xi",
+      summary: "具备 Unity 开发、交互设计与数字叙事经验，适合参与游戏、交互装置和智能体验项目。",
+      skills: [
+        { name: "Unity 开发", score: 83, category: "技术", confidence: 81, evidence: ["Unity 交互原型"] },
+        { name: "交互设计", score: 82, category: "创意", confidence: 78, evidence: ["交互装置课程项目"] },
+        { name: "视觉表达", score: 74, category: "创意", confidence: 72, evidence: ["数字媒体作品"] },
+      ] as unknown as Prisma.InputJsonValue,
+      interests: ["独立游戏", "人工智能", "交互装置"],
+      potentialDirections: ["游戏开发", "智能交互", "数字叙事"],
+      evidenceCount: 3,
+    },
+  ];
+  for (const profile of candidateProfiles) {
+    const { userId, ...profileData } = profile;
+    await prisma.profile.upsert({
+      where: { userId },
+      update: profileData,
+      create: { userId, ...profileData, analysisMode: "rules" },
+    });
+  }
 }
 
 main().then(() => prisma.$disconnect()).catch(async (error) => { console.error(error); await prisma.$disconnect(); process.exit(1); });

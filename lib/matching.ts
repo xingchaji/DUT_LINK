@@ -1,5 +1,5 @@
 import { demoProfile, matches } from "@/lib/mock-data";
-import type { GeneratedProfile, Opportunity, PersonMatch, RecruitmentPost } from "@/lib/types";
+import type { GeneratedProfile, Opportunity, PersonMatch, RecruitmentCandidateProfile, RecruitmentPost } from "@/lib/types";
 
 const candidateSignals: Record<string, { skills: string[]; interests: string[]; majorFamily: string }> = {
   "lin-yi": { skills: ["UI 设计", "视觉表达", "用户研究"], interests: ["校园创新", "人工智能", "视觉叙事"], majorFamily: "设计" },
@@ -77,15 +77,22 @@ export function rankPeopleForOpportunity(opportunity: Opportunity): PersonMatch[
     .sort((a, b) => b.match - a.match);
 }
 
-export function rankPeopleForRecruitment(opportunity: Opportunity, recruitment: RecruitmentPost): PersonMatch[] {
+export function rankPeopleForRecruitment(opportunity: Opportunity, recruitment: RecruitmentPost, candidates: RecruitmentCandidateProfile[] = matches): PersonMatch[] {
   const hasDetailedNeeds = recruitment.neededSkills.length > 0 && recruitment.requirements.trim().length >= 8;
-  const interested = matches.filter((person) => person.interestedOpportunityIds?.includes(opportunity.id));
-  const pool = interested.length > 0 ? interested : matches;
+  const interested = candidates.filter((person) => person.interestedOpportunityIds?.includes(opportunity.id));
+  const pool = interested.length > 0 ? interested : candidates;
 
   return pool
     .map((person) => {
-      const signals = candidateSignals[person.id];
-      const abilitySignals = [...person.tags, ...signals.skills];
+      const fallbackSignals = candidateSignals[person.id] ?? { skills: person.tags, interests: [], majorFamily: person.major };
+      const profileSkills = person.abilityProfile?.skills.map((skill) => skill.name) ?? [];
+      const profileInterests = person.abilityProfile?.interests ?? [];
+      const signals = {
+        skills: [...new Set([...fallbackSignals.skills, ...profileSkills])],
+        interests: [...new Set([...fallbackSignals.interests, ...profileInterests])],
+        majorFamily: fallbackSignals.majorFamily,
+      };
+      const abilitySignals = [...new Set([...person.tags, ...signals.skills])];
       const matchedSkills = abilitySignals.filter((signal) => recruitment.neededSkills.some((need) => isRelated(signal, need)));
       const requirementMatches = abilitySignals.filter((signal) => isRelated(signal, recruitment.requirements));
       const opportunityMatches = [...abilitySignals, ...signals.interests].filter((signal) => opportunity.tags.some((tag) => isRelated(signal, tag)));
@@ -105,7 +112,14 @@ export function rankPeopleForRecruitment(opportunity: Opportunity, recruitment: 
       if (hasExpectedAvailability && timeOverlap > 0) reasons.push(`可用时间契合：${recruitment.expectedAvailability}`);
       if (reasons.length === 1) reasons.push(`能力画像提供${signals.majorFamily}视角`);
       return {
-        ...person,
+        id: person.id,
+        name: person.name,
+        major: person.major,
+        grade: person.grade,
+        avatar: person.avatar,
+        tags: person.tags,
+        status: person.status,
+        interestedOpportunityIds: person.interestedOpportunityIds,
         match,
         reason: reasons.join("；"),
         scoreBreakdown: { complementarity: needScore, sharedInterests: intentScore, crossDiscipline: profileScore },

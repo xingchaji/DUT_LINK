@@ -63,6 +63,18 @@ export type PersonProfile = PersonMatch & {
   portfolio?: string;
 };
 
+export type RecruitmentCandidateProfile = PersonProfile & {
+  abilityProfile?: GeneratedProfile | null;
+};
+
+export type AISettingsView = {
+  enabled: boolean;
+  hasApiKey: boolean;
+  keyHint: string | null;
+  baseUrl: string;
+  model: string;
+};
+
 export type TeamMemberSummary = {
   userId: string;
   name: string;
@@ -169,6 +181,25 @@ export type Discovery = {
   why: string;
   generationMode?: "ai" | "curated";
   sources: Array<{ title: string; url: string; type: "论文" | "文章" | "视频" }>;
+};
+
+export type WinningWorkInsight = {
+  id: string;
+  competitionId: string;
+  competitionTitle: string;
+  workTitle: string;
+  award: string;
+  year: number | null;
+  school: string;
+  introduction: string;
+  relevanceReason: string;
+  articleSections: Array<{ heading: string; body: string }>;
+  knowledgeDomains: Array<{ name: string; role: string; integration: string }>;
+  crossDisciplinaryValue: string;
+  takeaways: string[];
+  recommendedFor: string;
+  mode: "ai" | "curated";
+  source: { title: string; url: string; publisher: string };
 };
 
 export type CommunityArticle = {

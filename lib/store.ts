@@ -2,7 +2,7 @@ import { demoProfile, opportunities as seedOpportunities } from "@/lib/mock-data
 import type { CommunityArticle, GeneratedProfile, Notification, Opportunity, OpportunityInterest, RecruitmentApplication, RecruitmentPost, TeamInvitation, UserAccountProfile } from "@/lib/types";
 
 type Store = {
-  schemaVersion: 7;
+  schemaVersion: 8;
   opportunities: Opportunity[];
   recruitments: RecruitmentPost[];
   applications: RecruitmentApplication[];
@@ -12,10 +12,11 @@ type Store = {
   accountProfiles: UserAccountProfile[];
   abilityProfiles: Record<string, GeneratedProfile>;
   notifications: Notification[];
+  aiSettings: Record<string, { enabled: boolean; apiKeyEncrypted: string | null; baseUrl: string; model: string; createdAt: string; updatedAt: string }>;
 };
 
 const initialStore: Store = {
-  schemaVersion: 7,
+  schemaVersion: 8,
   opportunities: [...seedOpportunities, {
     id: "campus-ai-hackathon",
     title: "校园 AI 创新挑战赛",
@@ -145,8 +146,9 @@ const initialStore: Store = {
       createdAt: "2026-08-20T10:00:00.000Z",
     },
   ],
+  aiSettings: {},
 };
 
 const globalStore = globalThis as typeof globalThis & { __dutLinkStore?: Store };
-export const store = globalStore.__dutLinkStore?.schemaVersion === 7 ? globalStore.__dutLinkStore : initialStore;
+export const store = globalStore.__dutLinkStore?.schemaVersion === 8 ? globalStore.__dutLinkStore : initialStore;
 if (process.env.NODE_ENV !== "production") globalStore.__dutLinkStore = store;

@@ -38,10 +38,11 @@ export default function LoginPage() {
     setError("");
     setNotice("");
 
+    try {
     if (mode === "forgot") {
       if (!resetToken) {
         const response = await fetch("/api/auth/forgot-password", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) });
-        const data = await response.json();
+        const data = await readResponse(response);
         setLoading(false);
         if (!response.ok) { setError(data.message ?? "提交失败"); return; }
         if (data.resetToken) { setResetToken(data.resetToken); setNotice("已生成重置令牌，请输入新密码完成重置。"); }
@@ -49,7 +50,7 @@ export default function LoginPage() {
         return;
       }
       const response = await fetch("/api/auth/reset-password", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: resetToken, password }) });
-      const data = await response.json();
+      const data = await readResponse(response);
       setLoading(false);
       if (!response.ok) { setError(data.message ?? "重置失败"); return; }
       setResetToken("");
@@ -62,11 +63,15 @@ export default function LoginPage() {
 
     const endpoint = mode === "login" ? "/api/auth/login" : "/api/auth/register";
     const response = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(mode === "login" ? { email, password } : { email, password, name, major, grade }) });
-    const data = await response.json();
+    const data = await readResponse(response);
     if (!response.ok) { setError(data.message ?? (mode === "login" ? "登录失败" : "注册失败")); setLoading(false); return; }
     const requestedTarget = new URLSearchParams(window.location.search).get("next");
     const target = requestedTarget?.startsWith("/") && !requestedTarget.startsWith("//") ? requestedTarget : mode === "register" ? "/account" : "/";
     window.location.href = target;
+    } catch {
+      setError("无法连接登录服务，请确认开发服务已启动后重试");
+      setLoading(false);
+    }
   }
 
   return (
@@ -103,4 +108,14 @@ export default function LoginPage() {
       </section>
     </div>
   );
+}
+
+async function readResponse(response: Response): Promise<{ message?: string; resetToken?: string }> {
+  const text = await response.text();
+  if (!text) return { message: response.ok ? undefined : `登录服务暂时不可用（HTTP ${response.status}）` };
+  try {
+    return JSON.parse(text) as { message?: string; resetToken?: string };
+  } catch {
+    return { message: `服务器返回了无法解析的响应（HTTP ${response.status}）` };
+  }
 }

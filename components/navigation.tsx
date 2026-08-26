@@ -10,7 +10,7 @@ import type { SessionUser } from "@/lib/types";
 
 const baseNav = [
   { href: "/", label: "首页", icon: Home },
-  { href: "/opportunities", label: "机会中心", icon: Trophy },
+  { href: "/opportunities", label: "组队中心", icon: Trophy },
   { href: "/applications", label: "申请管理", icon: Inbox },
   { href: "/explore", label: "探索盲盒", icon: Compass },
   { href: "/account", label: "个人主页", icon: UserRound },

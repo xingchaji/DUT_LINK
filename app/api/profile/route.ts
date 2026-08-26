@@ -4,25 +4,30 @@ import type { ProfileInput } from "@/lib/types";
 import type { QuestionnaireInput } from "@/lib/types";
 import { profileQuestions } from "@/lib/questionnaire";
 import { getCurrentUser } from "@/lib/auth";
-import { saveAbilityProfile } from "@/lib/repositories/account-repository";
+import { resolveAIConfig } from "@/lib/ai-settings";
+import { getAccountProfile, saveAbilityProfile } from "@/lib/repositories/account-repository";
 
 export async function GET() {
-  return NextResponse.json(getAIStatus());
+  const user = await getCurrentUser();
+  return NextResponse.json(getAIStatus(await resolveAIConfig(user?.id)));
 }
 
 export async function POST(request: Request) {
   const body = (await request.json()) as { mode?: string };
+  const user = await getCurrentUser();
+  const aiConfig = await resolveAIConfig(user?.id);
 
   if (body.mode === "questionnaire") {
     const input = body as Partial<QuestionnaireInput> & { mode: string };
-    if (!input.major || !input.answers || !Array.isArray(input.interests) || input.interests.length === 0) {
-      return NextResponse.json({ message: "请完成基本信息、全部题目并至少选择一个兴趣" }, { status: 400 });
+    if (!user) return NextResponse.json({ message: "请登录后生成能力画像" }, { status: 401 });
+    if (!input.answers || !Array.isArray(input.interests) || input.interests.length === 0) {
+      return NextResponse.json({ message: "请完成全部题目并至少选择一个兴趣" }, { status: 400 });
     }
     const complete = profileQuestions.every((question) => Number.isInteger(input.answers?.[question.id]) && Number(input.answers?.[question.id]) >= 1 && Number(input.answers?.[question.id]) <= 5);
     if (!complete) return NextResponse.json({ message: `请完成全部 ${profileQuestions.length} 道竞赛能力调查题` }, { status: 400 });
-    const questionnaire = { name: input.name ?? "新同学", major: input.major, grade: input.grade ?? "", answers: input.answers, interests: input.interests, evidence: input.evidence };
-    const profile = await analyzeQuestionnaireProfile(questionnaire);
-    const user = await getCurrentUser();
+    const account = await getAccountProfile(user);
+    const questionnaire = { name: account.nickname, major: account.major, grade: account.grade, answers: input.answers, interests: input.interests, evidence: input.evidence };
+    const profile = await analyzeQuestionnaireProfile(questionnaire, aiConfig);
     if (user) await saveAbilityProfile(user, profile, questionnaire);
     return NextResponse.json(profile);
   }
@@ -43,8 +48,7 @@ export async function POST(request: Request) {
       awards: input.awards ?? "",
       achievements: input.achievements ?? "",
       githubRepos: input.githubRepos ?? "",
-    });
-  const user = await getCurrentUser();
+    }, aiConfig);
   if (user) await saveAbilityProfile(user, profile);
   return NextResponse.json(profile);
 }
