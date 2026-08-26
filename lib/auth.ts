@@ -14,7 +14,8 @@ export const SESSION_MAX_AGE = 7 * 24 * 60 * 60;
 type SessionPayload = SessionUser & { expiresAt: number };
 
 const demoUsers = [
-  { id: "demo-user", name: "陆同学", email: "student@dlut.edu.cn", password: "demo1234", major: "软件工程" },
+  { id: "demo-user", name: "陆同学", email: "student@dlut.edu.cn", password: "demo1234", major: "软件工程", role: "student" as const },
+  { id: "admin-user", name: "平台管理员", email: "admin@dlut.edu.cn", password: "demo1234", major: "平台运营", role: "admin" as const },
 ];
 
 function secret() {
@@ -45,7 +46,7 @@ async function verifyStatelessSessionToken(token?: string): Promise<SessionUser 
     if (!valid) return null;
     const session = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as SessionPayload;
     if (session.expiresAt < Date.now()) return null;
-    return { id: session.id, name: session.name, email: session.email, major: session.major };
+    return { id: session.id, name: session.name, email: session.email, major: session.major, role: session.role === "admin" ? "admin" : "student" };
   } catch {
     return null;
   }
@@ -55,16 +56,16 @@ function tokenHash(token: string) {
   return createHash("sha256").update(token).digest("base64url");
 }
 
-function toSessionUser(user: { id: string; name: string; email: string; major: string | null }): SessionUser {
-  return { id: user.id, name: user.name, email: user.email, major: user.major ?? "专业待补充" };
+function toSessionUser(user: { id: string; name: string; email: string; major: string | null; role?: string | null }): SessionUser {
+  return { id: user.id, name: user.name, email: user.email, major: user.major ?? "专业待补充", role: user.role === "admin" ? "admin" : "student" };
 }
 
-export async function createSessionToken(user: SessionUser) {
+export async function createSessionToken(user: SessionUser, userAgent?: string | null) {
   const prisma = getPrisma();
   if (!prisma) return createStatelessSessionToken(user);
   const token = randomBytes(32).toString("base64url");
   await prisma.session.create({
-    data: { userId: user.id, tokenHash: tokenHash(token), expiresAt: new Date(Date.now() + SESSION_MAX_AGE * 1000) },
+    data: { userId: user.id, tokenHash: tokenHash(token), expiresAt: new Date(Date.now() + SESSION_MAX_AGE * 1000), userAgent: userAgent?.slice(0, 200) ?? null },
   });
   return token;
 }
@@ -98,7 +99,7 @@ export async function getCurrentUser() {
 
 function authenticateDemoUser(email: string, password: string): SessionUser | null {
   const user = demoUsers.find((item) => item.email.toLowerCase() === email.toLowerCase() && item.password === password);
-  return user ? { id: user.id, name: user.name, email: user.email, major: user.major } : null;
+  return user ? { id: user.id, name: user.name, email: user.email, major: user.major, role: user.role } : null;
 }
 
 export async function authenticateUser(email: string, password: string): Promise<SessionUser | null> {
@@ -129,4 +130,66 @@ export async function registerUser(input: { name: string; email: string; passwor
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") throw new DomainError("该校园邮箱已经注册", 409);
     throw error;
   }
+}
+
+export type SessionDevice = {
+  id: string;
+  createdAt: string;
+  expiresAt: string;
+  userAgent: string | null;
+  isCurrent: boolean;
+};
+
+export async function listSessions(userId: string, currentToken?: string): Promise<SessionDevice[]> {
+  const prisma = getPrisma();
+  if (!prisma) return [];
+  const currentHash = currentToken ? tokenHash(currentToken) : null;
+  const sessions = await prisma.session.findMany({ where: { userId }, orderBy: { createdAt: "desc" } });
+  return sessions.map((session) => ({
+    id: session.id,
+    createdAt: session.createdAt.toISOString(),
+    expiresAt: session.expiresAt.toISOString(),
+    userAgent: session.userAgent,
+    isCurrent: session.tokenHash === currentHash,
+  }));
+}
+
+export async function deleteSessionById(userId: string, sessionId: string) {
+  const prisma = getPrisma();
+  if (!prisma) return;
+  await prisma.session.deleteMany({ where: { id: sessionId, userId } });
+}
+
+const RESET_TOKEN_TTL_MS = 15 * 60 * 1000;
+
+export async function requestPasswordReset(email: string): Promise<string | null> {
+  const prisma = getPrisma();
+  if (!prisma) throw new DomainError("找回密码需要 PostgreSQL 持久化模式", 503);
+  const user = await prisma.user.findUnique({ where: { email: email.trim().toLowerCase() } });
+  if (!user?.passwordHash) return null;
+  const token = randomBytes(32).toString("base64url");
+  await prisma.passwordResetToken.create({
+    data: { userId: user.id, tokenHash: tokenHash(token), expiresAt: new Date(Date.now() + RESET_TOKEN_TTL_MS) },
+  });
+  return token;
+}
+
+export async function resetPasswordWithToken(token: string, newPassword: string) {
+  const prisma = getPrisma();
+  if (!prisma) throw new DomainError("找回密码需要 PostgreSQL 持久化模式", 503);
+  const record = await prisma.passwordResetToken.findUnique({ where: { tokenHash: tokenHash(token) } });
+  if (!record || record.used || record.expiresAt <= new Date()) throw new DomainError("重置链接无效或已过期", 400);
+  const passwordHash = await hashPassword(newPassword);
+  await prisma.$transaction([
+    prisma.user.update({ where: { id: record.userId }, data: { passwordHash } }),
+    prisma.passwordResetToken.update({ where: { id: record.id }, data: { used: true } }),
+    prisma.session.deleteMany({ where: { userId: record.userId } }),
+  ]);
+}
+
+export async function requireAdmin(): Promise<SessionUser> {
+  const user = await getCurrentUser();
+  if (!user) throw new DomainError("请先登录", 401);
+  if (user.role !== "admin") throw new DomainError("需要管理员权限", 403);
+  return user;
 }

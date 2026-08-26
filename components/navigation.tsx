@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Compass, Home, Inbox, Sparkles, Trophy, UserRound } from "lucide-react";
+import { Compass, Home, Inbox, ShieldCheck, Sparkles, Trophy, UserRound } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { Logo } from "@/components/logo";
 import { AuthMenu } from "@/components/auth-menu";
+import type { SessionUser } from "@/lib/types";
 
-const nav = [
+const baseNav = [
   { href: "/", label: "首页", icon: Home },
   { href: "/opportunities", label: "机会中心", icon: Trophy },
   { href: "/applications", label: "申请管理", icon: Inbox },
@@ -16,6 +18,16 @@ const nav = [
 
 export function Navigation() {
   const pathname = usePathname();
+  const [user, setUser] = useState<SessionUser | null>(null);
+
+  useEffect(() => {
+    fetch("/api/auth/session").then((response) => response.json()).then((data) => setUser(data.user)).catch(() => setUser(null));
+  }, []);
+
+  const nav = useMemo(() => {
+    if (user?.role === "admin") return [...baseNav, { href: "/admin", label: "内容审核", icon: ShieldCheck }];
+    return baseNav;
+  }, [user]);
 
   return (
     <>

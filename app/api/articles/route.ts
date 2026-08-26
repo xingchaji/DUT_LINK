@@ -21,6 +21,7 @@ export async function POST(request: Request) {
     bridge: body.bridge.trim(),
     authorName: user.name,
     authorMajor: user.major,
+    status: "pending",
     createdAt: new Date().toISOString(),
   };
   return NextResponse.json({ article: await createArticle(user, article) }, { status: 201 });

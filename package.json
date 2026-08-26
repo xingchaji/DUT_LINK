@@ -9,6 +9,8 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "db:generate": "prisma generate",
     "db:local:start": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/postgres-local.ps1 start",
     "db:local:stop": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/postgres-local.ps1 stop",
@@ -39,6 +41,7 @@
     "prisma": "^7.9.1",
     "tailwindcss": "latest",
     "tsx": "^4.23.12",
-    "typescript": "latest"
+    "typescript": "latest",
+    "vitest": "^4.1.11"
   }
 }

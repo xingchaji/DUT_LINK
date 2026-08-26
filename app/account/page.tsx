@@ -2,7 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { BrainCircuit, Layers3, LoaderCircle, Mail, Pencil, PencilLine, Save, UserRound } from "lucide-react";
+import { BrainCircuit, Layers3, LoaderCircle, Mail, Monitor, Pencil, PencilLine, Save, UserRound } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { SkillBars } from "@/components/skill-bars";
 import { TagEditor } from "@/components/tag-editor";
@@ -11,12 +11,16 @@ import type { GeneratedProfile, UserAccountProfile } from "@/lib/types";
 
 const emptyProfile: UserAccountProfile = { userId: "", nickname: "", email: "", major: "", grade: "", contact: "", bio: "", skills: [], updatedAt: "" };
 
+type SessionDevice = { id: string; createdAt: string; expiresAt: string; userAgent: string | null; isCurrent: boolean };
+
 export default function AccountPage() {
   const [profile, setProfile] = useState(emptyProfile);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState("");
   const [serverAbilityProfile, setServerAbilityProfile] = useState<GeneratedProfile | null>(null);
+  const [sessions, setSessions] = useState<SessionDevice[]>([]);
+  const [sessionsLoaded, setSessionsLoaded] = useState(false);
   const storedAbilityProfile = useSyncExternalStore(subscribeToAbilityProfile, readStoredAbilityProfile, () => null);
   const abilityProfile = useMemo<GeneratedProfile>(() => {
     if (serverAbilityProfile) return serverAbilityProfile;
@@ -31,6 +35,19 @@ export default function AccountPage() {
     setProfile(data.profile); setServerAbilityProfile(data.abilityProfile ?? null); setLoading(false);
   }, []);
   useEffect(() => { void Promise.resolve().then(load); }, [load]);
+
+  async function loadSessions() {
+    const response = await fetch("/api/auth/sessions", { cache: "no-store" });
+    const data = await response.json();
+    if (response.ok) setSessions(data.sessions ?? []);
+    setSessionsLoaded(true);
+  }
+  useEffect(() => { void Promise.resolve().then(loadSessions); }, []);
+
+  async function revokeSession(id: string) {
+    const response = await fetch(`/api/auth/sessions/${id}`, { method: "DELETE" });
+    if (response.ok) setSessions((current) => current.filter((session) => session.id !== id));
+  }
 
   async function save(event: FormEvent) {
     event.preventDefault(); setSaving(true); setNotice("");
@@ -51,6 +68,7 @@ export default function AccountPage() {
     </div>
     <section className="card mt-7 p-6 sm:p-8"><div className="flex flex-wrap items-center justify-between gap-4"><div className="flex items-center gap-3"><div className="grid size-10 place-items-center rounded-2xl bg-[#ebe8ff] text-[var(--violet)]"><BrainCircuit className="size-5" /></div><div><p className="text-xs text-[var(--muted)]">标准化竞赛调查结果</p><h2 className="text-xl font-bold">竞赛能力画像</h2></div></div><Link href="/onboarding" className="inline-flex items-center gap-2 rounded-xl border border-black/10 px-4 py-3 text-xs font-bold"><Pencil className="size-3.5" /> 重新测评</Link></div><p className="mt-5 max-w-3xl text-sm leading-7 text-[var(--muted)]">{abilityProfile.summary}</p><div className="mt-7"><SkillBars skills={abilityProfile.skills} /></div><div className="mt-6 grid gap-3 sm:grid-cols-2">{abilityProfile.skills.map((skill) => <div key={skill.name} className="rounded-2xl bg-[var(--paper)] p-4"><div className="flex justify-between text-xs"><strong>{skill.name}</strong><span>置信度 {skill.confidence}%</span></div><p className="mt-2 text-xs leading-5 text-[var(--muted)]">依据：{skill.evidence?.join("；")}</p></div>)}</div></section>
     <section className="card mt-7 p-6 sm:p-8"><div className="flex items-center gap-3"><Layers3 className="size-5 text-[#bd792a]" /><div><p className="text-xs text-[var(--muted)]">兴趣与能力综合，不是职业定论</p><h2 className="text-xl font-bold">兴趣与潜在方向</h2></div></div><div className="mt-5 flex flex-wrap gap-2">{abilityProfile.interests.map((item) => <span key={item} className="rounded-full bg-[var(--lime)]/60 px-3 py-1.5 text-xs font-semibold">{item}</span>)}</div><div className="mt-5 grid gap-3 sm:grid-cols-3">{abilityProfile.potentialDirections.map((item) => <div key={item} className="rounded-2xl border border-black/[0.06] p-4 text-sm font-bold">{item}</div>)}</div></section>
+    <section className="card mt-7 p-6 sm:p-8"><div className="flex items-center gap-3"><div className="grid size-10 place-items-center rounded-2xl bg-[#ebe8ff] text-[var(--violet)]"><Monitor className="size-5" /></div><div><p className="text-xs text-[var(--muted)]">当前账号的登录会话</p><h2 className="text-xl font-bold">登录设备</h2></div></div>{!sessionsLoaded ? <p className="mt-5 text-sm text-[var(--muted)]">正在加载登录会话…</p> : sessions.length === 0 ? <p className="mt-5 text-sm text-[var(--muted)]">当前登录模式不提供会话列表，或暂无其他登录设备。</p> : <div className="mt-5 space-y-3">{sessions.map((session) => <div key={session.id} className="flex items-center justify-between gap-4 rounded-2xl bg-[var(--paper)] p-4"><div className="min-w-0"><p className="truncate text-sm font-bold">{session.userAgent || "未知设备"}{session.isCurrent && <span className="ml-2 rounded-full bg-[var(--lime)]/60 px-2 py-0.5 text-[11px]">当前设备</span>}</p><p className="mt-1 text-xs text-[var(--muted)]">登录于 {new Date(session.createdAt).toLocaleString()}</p></div>{!session.isCurrent && <button onClick={() => revokeSession(session.id)} className="shrink-0 rounded-xl border border-black/10 px-3 py-2 text-xs font-bold text-red-600">注销</button>}</div>)}</div>}</section>
   </div>;
 }
 

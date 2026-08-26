@@ -1,4 +1,5 @@
 import { getPrisma } from "@/lib/db";
+import { DomainError } from "@/lib/domain-error";
 import { isRecruitmentActive } from "@/lib/matching";
 import { ensureUser } from "@/lib/repositories/account-repository";
 import { opportunityInclude, recruitmentInclude, toOpportunity, toRecruitment } from "@/lib/repositories/mappers";
@@ -11,9 +12,46 @@ function parseDate(value?: string | null) {
 
 export async function listOpportunities() {
   const prisma = getPrisma();
-  if (!prisma) return store.opportunities;
-  const rows = await prisma.opportunity.findMany({ include: opportunityInclude });
+  if (!prisma) return store.opportunities.filter((item) => item.verification !== "pending" && item.verification !== "rejected");
+  const rows = await prisma.opportunity.findMany({ where: { verification: { notIn: ["pending", "rejected"] } }, include: opportunityInclude });
   return rows.map(toOpportunity);
+}
+
+export async function listPendingOpportunities() {
+  const prisma = getPrisma();
+  if (!prisma) return store.opportunities.filter((item) => item.verification === "pending");
+  const rows = await prisma.opportunity.findMany({ where: { verification: "pending" }, include: opportunityInclude, orderBy: { createdAt: "desc" } });
+  return rows.map(toOpportunity);
+}
+
+export async function reviewOpportunity(opportunityId: string, decision: "approved" | "rejected") {
+  const prisma = getPrisma();
+  if (!prisma) {
+    const opportunity = store.opportunities.find((item) => item.id === opportunityId);
+    if (!opportunity) throw new DomainError("比赛不存在", 404);
+    if (decision === "approved") {
+      opportunity.verification = "campus-verified";
+      opportunity.verifiedAt = new Date().toISOString().slice(0, 10);
+      opportunity.status = "校内组织已核验";
+    } else {
+      opportunity.verification = "rejected";
+      opportunity.status = "校内用户发布 · 未通过核验";
+    }
+    return opportunity;
+  }
+  const opportunity = await prisma.opportunity.findUnique({ where: { id: opportunityId } });
+  if (!opportunity) throw new DomainError("比赛不存在", 404);
+  const updated = await prisma.opportunity.update({
+    where: { id: opportunityId },
+    data: decision === "approved"
+      ? { verification: "campus-verified", verifiedAt: new Date(), status: "校内组织已核验" }
+      : { verification: "rejected", status: "校内用户发布 · 未通过核验" },
+    include: opportunityInclude,
+  });
+  if (opportunity.publisherId) {
+    await prisma.notification.create({ data: { userId: opportunity.publisherId, type: decision === "approved" ? "opportunity_approved" : "opportunity_rejected", title: decision === "approved" ? "比赛已通过审核" : "比赛未通过审核", body: decision === "approved" ? `「${opportunity.title}」已公开发布` : `「${opportunity.title}」未通过核验`, relatedId: opportunityId } });
+  }
+  return toOpportunity(updated);
 }
 
 export async function findOpportunity(id: string) {

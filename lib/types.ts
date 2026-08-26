@@ -91,7 +91,7 @@ export type Opportunity = {
   registrationEnd?: string | null;
   eventDate?: string | null;
   scope?: "全国" | "校内" | "社区";
-  verification?: "official" | "campus-verified" | "pending";
+  verification?: "official" | "campus-verified" | "pending" | "rejected";
   publisherId?: string | null;
   publisherName?: string;
 };
@@ -105,6 +105,7 @@ export type RecruitmentPost = {
   ownerId: string;
   description: string;
   projectDirection?: string;
+  expectedAvailability?: string;
   requirements: string;
   neededSkills: string[];
   currentSize: number;
@@ -177,6 +178,7 @@ export type CommunityArticle = {
   authorName: string;
   authorMajor: string;
   bridge: string;
+  status: "pending" | "approved" | "rejected";
   createdAt: string;
 };
 
@@ -185,12 +187,13 @@ export type SessionUser = {
   name: string;
   email: string;
   major: string;
+  role: "student" | "admin";
 };
 
 export type Notification = {
   id: string;
   userId: string;
-  type: "application_received" | "application_accepted" | "application_rejected" | "invitation_received" | "invitation_accepted" | "invitation_rejected";
+  type: "application_received" | "application_accepted" | "application_rejected" | "invitation_received" | "invitation_accepted" | "invitation_rejected" | "opportunity_approved" | "opportunity_rejected" | "article_approved" | "article_rejected";
   title: string;
   body: string;
   relatedId: string;

@@ -60,6 +60,7 @@ export function toRecruitment(row: RecruitmentRow): RecruitmentPost {
     ownerId: row.ownerId,
     description: row.description ?? "",
     projectDirection: row.projectDirection ?? "",
+    expectedAvailability: row.expectedAvailability ?? "",
     requirements: row.requirements,
     neededSkills: row.neededSkills,
     currentSize: row.members.length,
@@ -81,7 +82,7 @@ export function toInvitation(row: InvitationRow): TeamInvitation & { teamName: s
 }
 
 export function toArticle(row: ArticleRow): CommunityArticle {
-  return { id: row.id, title: row.title, summary: row.summary, authorName: row.author.name, authorMajor: row.author.major ?? "专业待补充", bridge: row.bridge, createdAt: row.createdAt.toISOString() };
+  return { id: row.id, title: row.title, summary: row.summary, authorName: row.author.name, authorMajor: row.author.major ?? "专业待补充", bridge: row.bridge, status: row.status as CommunityArticle["status"], createdAt: row.createdAt.toISOString() };
 }
 
 export function toNotification(row: { id: string; userId: string; type: string; title: string; body: string; relatedId: string; read: boolean; createdAt: Date }): Notification {

@@ -27,6 +27,15 @@ function isRelated(left: string, right: string) {
   return relatedTerms.some((group) => group.some((term) => a.includes(term.toLowerCase())) && group.some((term) => b.includes(term.toLowerCase())));
 }
 
+const timeKeywords = ["工作日", "周中", "晚间", "晚上", "周末", "周六", "周日", "灵活", "随时", "空闲", "假期"];
+
+function availabilityOverlap(candidate?: string, expected?: string) {
+  if (!candidate || !expected) return 0;
+  const a = candidate.toLowerCase();
+  const b = expected.toLowerCase();
+  return timeKeywords.filter((keyword) => a.includes(keyword) && b.includes(keyword)).length;
+}
+
 export function rankPeople(profile: GeneratedProfile = demoProfile): PersonMatch[] {
   const userSkills = profile.skills.map((skill) => skill.name);
   return matches
@@ -83,11 +92,17 @@ export function rankPeopleForRecruitment(opportunity: Opportunity, recruitment: 
       const intentScore = person.interestedOpportunityIds?.includes(opportunity.id) ? 100 : 45;
       const needScore = hasDetailedNeeds ? Math.min(100, 54 + matchedSkills.length * 24 + requirementMatches.length * 14) : Math.min(90, 58 + opportunityMatches.length * 12);
       const profileScore = Math.min(100, 68 + abilitySignals.length * 4 + opportunityMatches.length * 8);
-      const match = Math.round(intentScore * 0.3 + needScore * 0.45 + profileScore * 0.25);
+      const hasExpectedAvailability = Boolean(recruitment.expectedAvailability?.trim());
+      const timeOverlap = availabilityOverlap(person.availability, recruitment.expectedAvailability);
+      const timeFit = hasExpectedAvailability ? Math.min(100, 55 + timeOverlap * 22) : 70;
+      const match = hasExpectedAvailability
+        ? Math.round(intentScore * 0.3 + needScore * 0.4 + profileScore * 0.2 + timeFit * 0.1)
+        : Math.round(intentScore * 0.3 + needScore * 0.45 + profileScore * 0.25);
       const reasons = [person.interestedOpportunityIds?.includes(opportunity.id) ? "已表达本场参赛意向" : "当前意向池不足，按能力画像补充"];
       if (matchedSkills.length) reasons.push(`招募技能命中：${matchedSkills.slice(0, 2).join("、")}`);
       if (requirementMatches.length) reasons.push(`招募要求相关：${requirementMatches.slice(0, 2).join("、")}`);
       if (!matchedSkills.length && opportunityMatches.length) reasons.push(`赛事方向相关：${opportunityMatches.slice(0, 2).join("、")}`);
+      if (hasExpectedAvailability && timeOverlap > 0) reasons.push(`可用时间契合：${recruitment.expectedAvailability}`);
       if (reasons.length === 1) reasons.push(`能力画像提供${signals.majorFamily}视角`);
       return {
         ...person,
