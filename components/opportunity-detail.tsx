@@ -20,6 +20,7 @@ export function OpportunityDetail({ opportunityId, mode }: { opportunityId: stri
   const [notice, setNotice] = useState("");
   const [publishing, setPublishing] = useState(false);
   const [selectedPerson, setSelectedPerson] = useState<PersonProfile | null>(null);
+  const [inviteNotice, setInviteNotice] = useState("");
   const [profileLoading, setProfileLoading] = useState(false);
   const [formVersion, setFormVersion] = useState(0);
   const [recommendations, setRecommendations] = useState<RecommendationData | null>(null);
@@ -79,6 +80,7 @@ export function OpportunityDetail({ opportunityId, mode }: { opportunityId: stri
   }
 
   async function openPerson(id: string) {
+    setInviteNotice("");
     setProfileLoading(true);
     const response = await fetch(`/api/people/${id}`);
     const payload = await response.json(); setProfileLoading(false);
@@ -88,10 +90,12 @@ export function OpportunityDetail({ opportunityId, mode }: { opportunityId: stri
 
   async function invite(person: PersonProfile) {
     if (!data) return;
+    setInviteNotice("");
     const response = await fetch("/api/invitations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recipientId: person.id, opportunityId: data.opportunity.id }) });
     const payload = await response.json();
-    setNotice(response.ok ? `已向 ${person.name} 发送组队邀请` : payload.message);
-    if (response.ok) setSelectedPerson(null);
+    if (!response.ok) { setInviteNotice(payload.message ?? "邀请发送失败"); return; }
+    setNotice(`已向 ${person.name} 发送组队邀请`);
+    setSelectedPerson(null);
   }
 
   if (error) return <div className="mx-auto max-w-3xl px-5 py-20 text-center"><h1 className="text-2xl font-bold">{error}</h1><Link href="/opportunities" className="mt-5 inline-block underline">返回组队中心</Link></div>;
@@ -106,7 +110,7 @@ export function OpportunityDetail({ opportunityId, mode }: { opportunityId: stri
       {mode === "overview" && <RoleChooser opportunity={opportunity} activeTeams={recruitments.length} />}
       {mode === "teams" && <TeamsView recruitments={recruitments} opportunity={opportunity} onApply={apply} />}
       {mode === "recruit" && <RecruitView key={formVersion} opportunity={opportunity} recommendations={recommendations} ownedRecruitment={ownedRecruitment} publishing={publishing} profileLoading={profileLoading} onPublish={publish} onDelete={deleteTeam} onOpenPerson={openPerson} />}
-      {selectedPerson && <PersonDialog person={selectedPerson} onClose={() => setSelectedPerson(null)} onInvite={() => invite(selectedPerson)} />}
+      {selectedPerson && <PersonDialog person={selectedPerson} inviteNotice={inviteNotice} onClose={() => setSelectedPerson(null)} onInvite={() => invite(selectedPerson)} />}
     </div>
   );
 }
@@ -135,8 +139,8 @@ function RecruitView({ opportunity, recommendations, ownedRecruitment, publishin
   return <div className="mt-7 grid gap-7 xl:grid-cols-[1fr_0.72fr]">{createPanel}<aside><section className="card sticky top-6 p-6"><div className="flex items-center gap-3"><Sparkles className="size-5 text-[var(--violet)]" /><div><h2 className="font-[family-name:var(--font-display)] text-xl font-bold">智能推荐队友</h2><p className="text-xs text-[var(--muted)]">{ownedRecruitment ? recommendations?.policy ?? "正在根据队伍需求生成推荐" : "创建队伍并填写招募需求后生成"}</p></div></div>{!ownedRecruitment ? <div className="mt-5 rounded-2xl border border-dashed border-black/10 p-7 text-center text-xs leading-6 text-[var(--muted)]">推荐不会提前展示。请先补全技能标签和招募要求，系统将据此匹配有参赛意向的同学。</div> : <div className="mt-5 space-y-4">{recommendations && <span className="inline-flex rounded-full bg-[var(--lime)]/55 px-2.5 py-1 text-[10px] font-bold">{recommendations.mode === "ai" ? "AI 匹配" : recommendations.mode === "rules" ? "可解释规则匹配" : "能力画像降级匹配"}</span>}{people.map((person) => <article key={person.id} className="rounded-2xl border border-black/[0.06] p-4"><button type="button" onClick={() => onOpenPerson(person.id)} className="flex w-full items-center gap-3 text-left"><div className="grid size-11 place-items-center rounded-2xl bg-[#ebe8ff] text-sm font-bold text-[var(--violet)]">{person.avatar}</div><div className="min-w-0 flex-1"><div className="flex items-center gap-2"><strong className="text-sm">{person.name}</strong><span className="rounded-full bg-[var(--lime)] px-2 py-0.5 text-[9px] font-bold">{person.match}%</span></div><p className="text-[10px] text-[var(--muted)]">{person.major} · {person.grade}</p></div><UserRound className="size-4 text-[var(--muted)]" /></button><div className="mt-3 flex gap-2"><BadgeCheck className="mt-0.5 size-3.5 shrink-0 text-[var(--violet)]" /><p className="text-xs leading-5 text-[var(--muted)]">{person.reason}</p></div></article>)}{recommendations && people.length === 0 && <div className="rounded-2xl border border-dashed border-black/10 p-7 text-center text-xs leading-6 text-[var(--muted)]">当前暂无可推荐同学，等待意向池或能力资料更新。</div>}</div>}{profileLoading && <p className="mt-4 flex items-center gap-2 text-xs text-[var(--muted)]"><LoaderCircle className="size-3.5 animate-spin" /> 加载用户主页</p>}</section></aside></div>;
 }
 
-function PersonDialog({ person, onClose, onInvite }: { person: PersonProfile; onClose: () => void; onInvite: () => void }) {
-  return <div className="fixed inset-0 z-50 grid place-items-center bg-black/45 p-5" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><section role="dialog" aria-modal="true" aria-label={`${person.name}的用户主页`} className="card w-full max-w-lg p-6 sm:p-8"><div className="flex items-start justify-between"><div className="flex items-center gap-4"><div className="grid size-16 place-items-center rounded-3xl bg-[#ebe8ff] text-xl font-bold text-[var(--violet)]">{person.avatar}</div><div><p className="text-xs text-[var(--violet)]">用户主页</p><h2 className="mt-1 text-2xl font-bold">{person.name}</h2><p className="text-xs text-[var(--muted)]">{person.major} · {person.grade}</p></div></div><button onClick={onClose} aria-label="关闭用户主页" className="rounded-xl p-2 hover:bg-black/5"><X className="size-5" /></button></div><p className="mt-6 text-sm leading-7 text-[var(--muted)]">{person.bio}</p><div className="mt-5 grid gap-3 rounded-2xl bg-[var(--paper)] p-4 text-xs sm:grid-cols-2"><p><strong>联系方式</strong><br />{person.contact}</p><p><strong>可投入时间</strong><br />{person.availability}</p></div><div className="mt-5 flex flex-wrap gap-2">{person.tags.map((tag) => <span key={tag} className="rounded-full bg-[#ebe8ff] px-3 py-1.5 text-xs font-semibold text-[var(--violet)]">{tag}</span>)}</div><div className="mt-6 grid grid-cols-2 gap-2"><Link href={`/people/${person.id}`} className="flex items-center justify-center rounded-2xl border border-black/10 px-4 py-3 text-xs font-bold">打开完整主页</Link><button onClick={onInvite} className="flex items-center justify-center gap-2 rounded-2xl bg-[var(--ink)] px-4 py-3 text-xs font-bold text-white"><MailPlus className="size-4 text-[var(--lime)]" /> 发送邀请</button></div></section></div>;
+function PersonDialog({ person, inviteNotice, onClose, onInvite }: { person: PersonProfile; inviteNotice: string; onClose: () => void; onInvite: () => void }) {
+  return <div className="fixed inset-0 z-50 grid place-items-center bg-black/45 p-5" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><section role="dialog" aria-modal="true" aria-label={`${person.name}的用户主页`} className="card w-full max-w-lg p-6 sm:p-8"><div className="flex items-start justify-between"><div className="flex items-center gap-4"><div className="grid size-16 place-items-center rounded-3xl bg-[#ebe8ff] text-xl font-bold text-[var(--violet)]">{person.avatar}</div><div><p className="text-xs text-[var(--violet)]">用户主页</p><h2 className="mt-1 text-2xl font-bold">{person.name}</h2><p className="text-xs text-[var(--muted)]">{person.major} · {person.grade}</p></div></div><button onClick={onClose} aria-label="关闭用户主页" className="rounded-xl p-2 hover:bg-black/5"><X className="size-5" /></button></div><p className="mt-6 text-sm leading-7 text-[var(--muted)]">{person.bio}</p><div className="mt-5 grid gap-3 rounded-2xl bg-[var(--paper)] p-4 text-xs sm:grid-cols-2"><p><strong>联系方式</strong><br />{person.contact}</p><p><strong>可投入时间</strong><br />{person.availability}</p></div><div className="mt-5 flex flex-wrap gap-2">{person.tags.map((tag) => <span key={tag} className="rounded-full bg-[#ebe8ff] px-3 py-1.5 text-xs font-semibold text-[var(--violet)]">{tag}</span>)}</div>{inviteNotice && <p role="alert" className="mt-5 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-xs font-semibold text-red-600">{inviteNotice}</p>}<div className="mt-6 grid grid-cols-2 gap-2"><Link href={`/people/${person.id}`} className="flex items-center justify-center rounded-2xl border border-black/10 px-4 py-3 text-xs font-bold">打开完整主页</Link><button onClick={onInvite} className="flex items-center justify-center gap-2 rounded-2xl bg-[var(--ink)] px-4 py-3 text-xs font-bold text-white"><MailPlus className="size-4 text-[var(--lime)]" /> 发送邀请</button></div></section></div>;
 }
 
 function MemberLinks({ members }: { members: TeamMemberSummary[] }) {

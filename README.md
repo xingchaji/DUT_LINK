@@ -39,6 +39,7 @@ npm run build      # 生产构建
 npm run db:migrate # 开发环境执行数据库迁移
 npm run db:seed    # 写入可重复执行的演示数据
 npm run db:studio  # 打开数据库管理界面
+npm run db:local:init   # 首次初始化本机免安装 PostgreSQL
 npm run db:local:start  # 启动本机免安装 PostgreSQL
 ```
 

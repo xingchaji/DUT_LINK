@@ -199,10 +199,10 @@ export async function listInvitations(userId: string) {
 }
 
 export async function createInvitation(user: SessionUser, recipientId: string, opportunityId: string, message?: string) {
-  const person = matches.find((item) => item.id === recipientId);
-  if (!person) throw new DomainError("推荐用户不存在", 404);
   const prisma = getPrisma();
   if (!prisma) {
+    const person = matches.find((item) => item.id === recipientId);
+    if (!person) throw new DomainError("推荐用户不存在", 404);
     const recruitment = store.recruitments.find((item) => item.ownerId === user.id && item.opportunityId === opportunityId);
     if (!recruitment) throw new DomainError("请先在本场比赛创建队伍，再发送邀请");
     if (!person.interestedOpportunityIds?.includes(recruitment.opportunityId)) throw new DomainError("该同学尚未表达本场比赛意向", 409);
@@ -216,10 +216,10 @@ export async function createInvitation(user: SessionUser, recipientId: string, o
   await ensureUser(user);
   const recruitment = await prisma.recruitmentPost.findUnique({ where: { ownerId_opportunityId: { ownerId: user.id, opportunityId } }, include: { members: true } });
   if (!recruitment) throw new DomainError("请先在本场比赛创建队伍，再发送邀请");
-  if (!person.interestedOpportunityIds?.includes(opportunityId)) throw new DomainError("该同学尚未表达本场比赛意向", 409);
   if (recruitment.recruitmentDeadline < new Date() || recruitment.members.length >= recruitment.capacity) throw new DomainError("当前队伍已满员或超过招募截止日期", 409);
   const recipient = await prisma.user.findUnique({ where: { id: recipientId } });
   if (!recipient) throw new DomainError("推荐用户尚未同步到数据库，请先运行种子脚本", 409);
+  if (!await prisma.opportunityInterest.findUnique({ where: { userId_opportunityId: { userId: recipientId, opportunityId } } })) throw new DomainError("该同学尚未表达本场比赛意向", 409);
   if (await prisma.teamInvitation.findFirst({ where: { recruitmentId: recruitment.id, recipientId, status: "pending" } })) throw new DomainError("已经向该同学发送过邀请", 409);
   const invitation = await prisma.$transaction(async (tx) => {
     const created = await tx.teamInvitation.create({ data: { recruitmentId: recruitment.id, opportunityId, senderId: user.id, recipientId, message: message?.trim() || `邀请你加入「${recruitment.teamName}」共同参赛。` } });

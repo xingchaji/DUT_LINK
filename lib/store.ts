@@ -104,6 +104,7 @@ const initialStore: Store = {
   ],
   opportunityInterests: [
     { userId: "demo-user", opportunityId: "ccdc-2026", createdAt: "2026-08-20T10:30:00.000Z" },
+    { userId: "zhou-yu", opportunityId: "service-outsourcing-2026", createdAt: "2026-08-20T10:35:00.000Z" },
   ],
   invitations: [],
   articles: [

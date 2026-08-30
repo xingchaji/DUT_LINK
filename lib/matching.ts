@@ -80,9 +80,8 @@ export function rankPeopleForOpportunity(opportunity: Opportunity): PersonMatch[
 export function rankPeopleForRecruitment(opportunity: Opportunity, recruitment: RecruitmentPost, candidates: RecruitmentCandidateProfile[] = matches): PersonMatch[] {
   const hasDetailedNeeds = recruitment.neededSkills.length > 0 && recruitment.requirements.trim().length >= 8;
   const interested = candidates.filter((person) => person.interestedOpportunityIds?.includes(opportunity.id));
-  const pool = interested.length > 0 ? interested : candidates;
 
-  return pool
+  return interested
     .map((person) => {
       const fallbackSignals = candidateSignals[person.id] ?? { skills: person.tags, interests: [], majorFamily: person.major };
       const profileSkills = person.abilityProfile?.skills.map((skill) => skill.name) ?? [];
@@ -105,7 +104,7 @@ export function rankPeopleForRecruitment(opportunity: Opportunity, recruitment: 
       const match = hasExpectedAvailability
         ? Math.round(intentScore * 0.3 + needScore * 0.4 + profileScore * 0.2 + timeFit * 0.1)
         : Math.round(intentScore * 0.3 + needScore * 0.45 + profileScore * 0.25);
-      const reasons = [person.interestedOpportunityIds?.includes(opportunity.id) ? "已表达本场参赛意向" : "当前意向池不足，按能力画像补充"];
+      const reasons = ["已表达本场参赛意向"];
       if (matchedSkills.length) reasons.push(`招募技能命中：${matchedSkills.slice(0, 2).join("、")}`);
       if (requirementMatches.length) reasons.push(`招募要求相关：${requirementMatches.slice(0, 2).join("、")}`);
       if (!matchedSkills.length && opportunityMatches.length) reasons.push(`赛事方向相关：${opportunityMatches.slice(0, 2).join("、")}`);

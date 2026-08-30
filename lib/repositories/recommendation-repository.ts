@@ -4,13 +4,14 @@ import type { GeneratedProfile, RecruitmentCandidateProfile } from "@/lib/types"
 
 export async function listRecruitmentCandidates(opportunityId: string, excludedUserIds: string[]): Promise<RecruitmentCandidateProfile[]> {
   const prisma = getPrisma();
-  if (!prisma) return matches.filter((person) => !excludedUserIds.includes(person.id));
+  if (!prisma) return matches.filter((person) => person.interestedOpportunityIds?.includes(opportunityId) && !excludedUserIds.includes(person.id));
 
   const users = await prisma.user.findMany({
     where: {
       role: "student",
       id: { notIn: excludedUserIds },
       competitionMemberships: { none: { opportunityId } },
+      opportunityInterests: { some: { opportunityId } },
     },
     include: {
       profile: true,

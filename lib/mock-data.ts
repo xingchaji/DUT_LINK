@@ -42,7 +42,7 @@ export const matches: PersonProfile[] = [
     tags: ["数字建筑", "3D 建模"],
     reason: "游戏世界构建与空间设计存在有趣交叉",
     status: "想尝试虚拟校园项目",
-    interestedOpportunityIds: ["innovation-2026", "challenge-cup"],
+    interestedOpportunityIds: ["innovation-2026", "challenge-cup", "service-outsourcing-2026"],
     bio: "对数字建筑、空间叙事和虚拟校园感兴趣，擅长调研、建模与方案表达。",
     contact: "zhouyu_space（微信）",
     availability: "周三、周五晚及周末",

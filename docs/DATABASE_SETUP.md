@@ -24,6 +24,7 @@ npm run db:seed
 
 ```bash
 npm run db:generate # 根据模型生成类型安全客户端
+npm run db:local:init   # 新 clone 首次初始化并启动免安装 PostgreSQL
 npm run db:local:start  # 启动当前 Windows 用户下的免安装 PostgreSQL
 npm run db:local:status # 查看本机 PostgreSQL 状态
 npm run db:local:stop   # 正常停止本机 PostgreSQL
@@ -47,7 +48,7 @@ PostgreSQL 模式已经使用 `passwordHash` 和 `Session`：密码通过 scrypt
 
 ## 当前 Windows 本机运行时
 
-项目提供的 Windows 辅助脚本约定 PostgreSQL 17 二进制运行时位于 `%LOCALAPPDATA%\DUTLink\PostgreSQL17`，项目数据库和日志位于仓库内已忽略的 `.local/`。只有主动按此目录结构配置过运行时的开发机才能使用这些命令。电脑重启后的启动顺序为：
+项目提供的 Windows 辅助脚本约定 PostgreSQL 17 二进制运行时位于 `%LOCALAPPDATA%\DUTLink\PostgreSQL17`，项目数据库和日志位于仓库内已忽略的 `.local/`。Git 不会上传数据库文件，因此每个新 clone 首次执行 `npm run db:local:init`；新版 `db:local:start` 发现数据目录不存在时也会自动完成初始化。电脑重启后的启动顺序为：
 
 ```bash
 npm run db:local:start

@@ -23,6 +23,17 @@ npm run dev
 
 默认采用内存演示模式，不需要 PostgreSQL，也不需要 AI Key。进程重启后演示数据会恢复。需要持久化数据时再阅读 [`DATABASE_SETUP.md`](DATABASE_SETUP.md)。
 
+需要录制两个账号互相申请、邀请并在重启后保留结果时，可以在已安装项目免安装 PostgreSQL 运行时的 Windows 电脑上执行：
+
+```bash
+npm run db:local:init
+npm run db:deploy
+npm run db:seed
+npm run dev
+```
+
+新 clone 没有 `.local/postgres-data` 是正常现象，该目录包含本机数据库文件，不能上传到 Git。`db:local:init` 会首次创建数据目录、随机数据库密码、`dut_link` 数据库和对应的 `.env`；以后开机只需将第一条换成 `npm run db:local:start`。
+
 Windows 用户可以双击仓库根目录的 `start.bat`。它会检查 Node.js、安装锁定依赖、创建环境文件并启动应用，但不会尝试寻找或启动某台电脑特有的 PostgreSQL。
 
 ## 常见错误

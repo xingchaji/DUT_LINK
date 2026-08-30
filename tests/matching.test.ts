@@ -60,15 +60,10 @@ describe("rankPeopleForRecruitment", () => {
     }
   });
 
-  it("表达意向的候选人优先（意向分数更高）", () => {
+  it("只返回明确表达本场参赛意向的候选人", () => {
     const people = rankPeopleForRecruitment(opportunity, makePost());
-    const interested = people.filter((person) => person.interestedOpportunityIds?.includes("ccdc-2026"));
-    const notInterested = people.filter((person) => !person.interestedOpportunityIds?.includes("ccdc-2026"));
-    for (const a of interested) {
-      for (const b of notInterested) {
-        expect(a.match).toBeGreaterThanOrEqual(b.match);
-      }
-    }
+    expect(people.length).toBeGreaterThan(0);
+    expect(people.every((person) => person.interestedOpportunityIds?.includes("ccdc-2026"))).toBe(true);
   });
 
   it("填写期望可用时间后，时间契合的候选人获得命中理由", () => {

@@ -69,6 +69,7 @@ async function main() {
 
   const application = await prisma.recruitmentApplication.upsert({ where: { recruitmentId_applicantId: { recruitmentId: recruitment2.id, applicantId: "zhou-yu" } }, update: {}, create: { id: "seed-application-1", recruitmentId: recruitment2.id, applicantId: "zhou-yu", message: "有空间调研与 3D 建模经验，希望负责场景研究。" } });
   await prisma.opportunityInterest.upsert({ where: { userId_opportunityId: { userId: "demo-user", opportunityId: "ccdc-2026" } }, update: {}, create: { userId: "demo-user", opportunityId: "ccdc-2026" } });
+  await prisma.opportunityInterest.upsert({ where: { userId_opportunityId: { userId: "zhou-yu", opportunityId: "service-outsourcing-2026" } }, update: {}, create: { userId: "zhou-yu", opportunityId: "service-outsourcing-2026" } });
   await prisma.article.upsert({ where: { id: "seed-article-1" }, update: {}, create: { id: "seed-article-1", authorId: "zhou-yu", title: "为什么程序员应该了解建筑？", summary: "从空间动线、模块边界与人的尺度出发，重新理解软件架构。", bridge: "建筑 × 软件工程", status: "approved" } });
   await prisma.article.upsert({ where: { id: "seed-article-2" }, update: {}, create: { id: "seed-article-2", authorId: "chen-xi", title: "从竞赛答辩看工程表达", summary: "把技术方案讲清楚，是每个参赛者都需要补的一课。", bridge: "表达 × 工程", status: "pending" } });
   await prisma.notification.upsert({ where: { id: "seed-notification-1" }, update: {}, create: { id: "seed-notification-1", userId: "demo-user", type: "application_received", title: "收到新申请", body: "周宇 申请加入「校园同行者」", relatedId: application.id } });
