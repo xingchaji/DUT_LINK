@@ -4,6 +4,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { getPrisma } from "@/lib/db";
 import { DomainError } from "@/lib/domain-error";
 import { hashPassword, verifyPassword } from "@/lib/password";
+import { store } from "@/lib/store";
 import type { SessionUser } from "@/lib/types";
 import { SESSION_COOKIE } from "@/lib/auth-constants";
 
@@ -15,6 +16,7 @@ type SessionPayload = SessionUser & { expiresAt: number };
 
 const demoUsers = [
   { id: "demo-user", name: "陆同学", email: "student@dlut.edu.cn", password: "demo1234", major: "软件工程", role: "student" as const },
+  { id: "zhou-yu", name: "周宇", email: "zhouyu@dlut.edu.cn", password: "demo1234", major: "建筑学", role: "student" as const },
   { id: "admin-user", name: "平台管理员", email: "admin@dlut.edu.cn", password: "demo1234", major: "平台运营", role: "admin" as const },
 ];
 
@@ -97,14 +99,17 @@ export async function getCurrentUser() {
   return verifySessionToken((await cookies()).get(SESSION_COOKIE)?.value);
 }
 
-function authenticateDemoUser(email: string, password: string): SessionUser | null {
+async function authenticateMemoryUser(email: string, password: string): Promise<SessionUser | null> {
   const user = demoUsers.find((item) => item.email.toLowerCase() === email.toLowerCase() && item.password === password);
-  return user ? { id: user.id, name: user.name, email: user.email, major: user.major, role: user.role } : null;
+  if (user) return { id: user.id, name: user.name, email: user.email, major: user.major, role: user.role };
+  const registeredUser = store.authUsers.find((item) => item.email === email.trim().toLowerCase());
+  if (!registeredUser || !(await verifyPassword(password, registeredUser.passwordHash))) return null;
+  return { id: registeredUser.id, name: registeredUser.name, email: registeredUser.email, major: registeredUser.major, role: registeredUser.role };
 }
 
 export async function authenticateUser(email: string, password: string): Promise<SessionUser | null> {
   const prisma = getPrisma();
-  if (!prisma) return authenticateDemoUser(email, password);
+  if (!prisma) return authenticateMemoryUser(email, password);
   const user = await prisma.user.findUnique({ where: { email: email.trim().toLowerCase() } });
   if (!user?.passwordHash || !(await verifyPassword(password, user.passwordHash))) return null;
   return toSessionUser(user);
@@ -112,8 +117,27 @@ export async function authenticateUser(email: string, password: string): Promise
 
 export async function registerUser(input: { name: string; email: string; password: string; major: string; grade?: string }): Promise<SessionUser> {
   const prisma = getPrisma();
-  if (!prisma) throw new DomainError("注册功能需要 PostgreSQL 持久化模式", 503);
   const passwordHash = await hashPassword(input.password);
+  if (!prisma) {
+    const email = input.email.trim().toLowerCase();
+    if (demoUsers.some((item) => item.email.toLowerCase() === email) || store.authUsers.some((item) => item.email === email)) {
+      throw new DomainError("该校园邮箱已经注册", 409);
+    }
+    const user: SessionUser = { id: `memory-${crypto.randomUUID()}`, name: input.name, email, major: input.major, role: "student" };
+    store.authUsers.push({ ...user, passwordHash, role: "student" });
+    store.accountProfiles.push({
+      userId: user.id,
+      nickname: user.name,
+      email: user.email,
+      major: user.major,
+      grade: input.grade ?? "",
+      contact: "",
+      bio: "",
+      skills: [],
+      updatedAt: new Date().toISOString(),
+    });
+    return user;
+  }
   try {
     const user = await prisma.user.create({
       data: {

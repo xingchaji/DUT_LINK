@@ -2,7 +2,8 @@ import { demoProfile, opportunities as seedOpportunities } from "@/lib/mock-data
 import type { CommunityArticle, GeneratedProfile, Notification, Opportunity, OpportunityInterest, RecruitmentApplication, RecruitmentPost, TeamInvitation, UserAccountProfile } from "@/lib/types";
 
 type Store = {
-  schemaVersion: 8;
+  schemaVersion: 9;
+  authUsers: Array<{ id: string; name: string; email: string; passwordHash: string; major: string; role: "student" | "admin" }>;
   opportunities: Opportunity[];
   recruitments: RecruitmentPost[];
   applications: RecruitmentApplication[];
@@ -16,7 +17,8 @@ type Store = {
 };
 
 const initialStore: Store = {
-  schemaVersion: 8,
+  schemaVersion: 9,
+  authUsers: [],
   opportunities: [...seedOpportunities, {
     id: "campus-ai-hackathon",
     title: "校园 AI 创新挑战赛",
@@ -132,6 +134,11 @@ const initialStore: Store = {
       contact: "dut-link-demo（微信）", bio: "正在探索 AI 应用、校园产品和跨专业竞赛合作。", skills: ["TypeScript", "React", "产品原型"],
       updatedAt: "2026-08-23T08:00:00.000Z",
     },
+    {
+      userId: "zhou-yu", nickname: "周宇", email: "zhouyu@dlut.edu.cn", major: "建筑学", grade: "大二",
+      contact: "zhouyu-demo（微信）", bio: "关注空间调研、数字建模与跨专业项目协作。", skills: ["空间调研", "3D 建模", "方案表达"],
+      updatedAt: "2026-08-23T08:00:00.000Z",
+    },
   ],
   abilityProfiles: { "demo-user": demoProfile },
   notifications: [
@@ -150,5 +157,5 @@ const initialStore: Store = {
 };
 
 const globalStore = globalThis as typeof globalThis & { __dutLinkStore?: Store };
-export const store = globalStore.__dutLinkStore?.schemaVersion === 8 ? globalStore.__dutLinkStore : initialStore;
+export const store = globalStore.__dutLinkStore?.schemaVersion === 9 ? globalStore.__dutLinkStore : initialStore;
 if (process.env.NODE_ENV !== "production") globalStore.__dutLinkStore = store;
