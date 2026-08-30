@@ -2,81 +2,74 @@
 setlocal enabledelayedexpansion
 title DUT Link Launcher
 
-REM ============================================================
-REM  DUT Link one-click launcher
-REM  Steps: deps check -> database check -> start Next.js -> open browser
-REM  Edit the two paths below if your PostgreSQL install location differs.
-REM ============================================================
-
 cd /d "%~dp0"
-
-set "PG_ISREADY=E:\postgresql\bin\pg_isready.exe"
-set "PG_SERVICE=postgresql-x64-16"
 set "APP_URL=http://localhost:3000"
 
 echo ============================================
-echo   DUT Link - one-click launcher
+echo   DUT Link - one-click local launcher
 echo ============================================
 echo.
 
-REM 1. Dependencies
-if exist "node_modules" (
-    echo [1/4] Dependencies OK.
-) else (
-    echo [1/4] Installing dependencies, please wait...
-    call npm install
-    if errorlevel 1 (
-        echo [X] npm install failed. Check your network or Node.js install.
-        pause
-        exit /b 1
-    )
-)
-
-REM 2. Database
-echo [2/4] Checking PostgreSQL...
-"%PG_ISREADY%" -h 127.0.0.1 -p 5432 >nul 2>&1
+where node >nul 2>&1
 if errorlevel 1 (
-    echo       Not responding, starting service...
-    net start "%PG_SERVICE%" >nul 2>&1
+    echo [X] Node.js was not found. Install Node.js 22 LTS first.
+    echo     https://nodejs.org/
+    pause
+    exit /b 1
+)
+
+node -e "const [major,minor]=process.versions.node.split('.').map(Number); process.exit((major===20&&minor>=19)||(major===22&&minor>=12)||major>=24?0:1)"
+if errorlevel 1 (
+    echo [X] Unsupported Node.js version. Use 20.19+, 22.12+ or 24+; Node.js 22 LTS is recommended.
+    pause
+    exit /b 1
+)
+
+if not exist "node_modules" (
+    echo [1/3] Installing locked dependencies...
+    call npm ci
     if errorlevel 1 (
-        echo [X] Could not start PostgreSQL. Run this script as Administrator.
+        echo [X] Dependency installation failed. See docs/GETTING_STARTED.md.
         pause
         exit /b 1
     )
+) else (
+    echo [1/3] Dependencies found.
 )
-echo       Database OK.
 
-REM 3. Port check
-echo [3/4] Checking port 3000...
+echo [2/3] Preparing local environment...
+call npm run setup
+if errorlevel 1 (
+    echo [X] Environment setup failed.
+    pause
+    exit /b 1
+)
+
 netstat -ano | findstr ":3000" | findstr "LISTENING" >nul
 if not errorlevel 1 (
-    echo       Already running - opening browser only.
+    echo [3/3] Port 3000 already has a service. Opening it without starting a duplicate.
     start "" "%APP_URL%"
     exit /b 0
 )
 
-REM 4. Start dev server
-echo [4/4] Starting Next.js dev server...
+echo [3/3] Starting DUT Link...
 start "DUT Link Dev Server" cmd /k "npm run dev"
-
-REM 5. Wait for ready then open browser
-echo       Waiting for server to become ready...
+echo       Waiting for the page to become available...
 set /a tries=0
+
 :waitloop
 ping -n 2 127.0.0.1 >nul
 curl -s --max-time 2 -o nul "%APP_URL%/api/health"
 if not errorlevel 1 goto ready
 set /a tries+=1
 if !tries! geq 90 (
-    echo [X] Server did not start within 90s. Check the "DUT Link Dev Server" window.
+    echo [X] Server did not start within 90 seconds. Check the DUT Link Dev Server window.
     pause
     exit /b 1
 )
 goto waitloop
 
 :ready
-echo.
-echo   [OK] DUT Link is up at %APP_URL%
-echo.
+echo [OK] DUT Link is available at %APP_URL%
 start "" "%APP_URL%"
 endlocal

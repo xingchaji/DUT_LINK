@@ -5,12 +5,12 @@
 - `DATA_BACKEND=postgresql`：正式持久化模式，所有已接入领域数据写入 PostgreSQL。
 - `DATA_BACKEND=memory`：零配置演示模式，不连接数据库，进程重启后恢复种子数据。
 
-未设置 `DATABASE_URL` 时会自动使用内存模式。`GET /api/health` 可确认当前模式、数据库连接和 AI Adapter 状态。
+首次执行 `npm run setup` 生成的 `.env` 默认使用内存模式。未设置 `DATABASE_URL` 时也会自动使用内存模式。`GET /api/health` 可确认当前模式、数据库连接和 AI Adapter 状态。
 
 ## 本地初始化
 
 1. 创建 PostgreSQL 数据库 `dut_link`。
-2. 将 `.env.example` 复制为 `.env`，确认 `DATA_BACKEND=postgresql`，并修改 `DATABASE_URL` 中的用户名、密码、地址和数据库名。使用 `.env` 可确保 Next.js 与 Prisma CLI 读取同一份配置。
+2. 先执行 `npm run setup`，再在 `.env` 中将 `DATA_BACKEND` 改为 `postgresql`，取消 `DATABASE_URL` 的注释并修改用户名、密码、地址和数据库名。密码中的 `@`、`:`、`/` 等特殊字符必须进行 URL 编码。使用 `.env` 可确保 Next.js 与 Prisma CLI 读取同一份配置。
 3. 执行迁移与种子数据：
 
 ```bash
@@ -47,11 +47,11 @@ PostgreSQL 模式已经使用 `passwordHash` 和 `Session`：密码通过 scrypt
 
 ## 当前 Windows 本机运行时
 
-当前开发机的 PostgreSQL 17 二进制运行时位于 `%LOCALAPPDATA%\DUTLink\PostgreSQL17`，项目数据库和日志位于仓库内已忽略的 `.local/`。由于当前会话没有注册 Windows 服务的管理员权限，它不会随系统自动启动。电脑重启后的启动顺序为：
+项目提供的 Windows 辅助脚本约定 PostgreSQL 17 二进制运行时位于 `%LOCALAPPDATA%\DUTLink\PostgreSQL17`，项目数据库和日志位于仓库内已忽略的 `.local/`。只有主动按此目录结构配置过运行时的开发机才能使用这些命令。电脑重启后的启动顺序为：
 
 ```bash
 npm run db:local:start
 npm run dev
 ```
 
-该本机脚本仅用于开发便利；正式部署应使用托管 PostgreSQL 或由运维管理的数据库服务。
+该本机脚本仅用于开发便利，不随 Git 仓库分发数据库二进制和数据；其他开发者可继续使用默认内存模式，或按自己的环境安装 PostgreSQL。正式部署应使用托管 PostgreSQL 或由运维管理的数据库服务。

@@ -12,7 +12,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="zh-CN" data-scroll-behavior="smooth">
       <body>
         <Navigation />
-        <main className="min-h-screen pb-28 lg:ml-64 lg:pb-0">{children}</main>
+        <main className="min-h-screen pb-28 lg:ml-72 lg:pb-0">{children}</main>
       </body>
     </html>
   );

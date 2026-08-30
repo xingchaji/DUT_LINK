@@ -1,0 +1,25 @@
+name: Verify clone and build
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Prepare zero-config environment
+        run: npm run setup
+      - name: Verify types, lint, tests and production build
+        run: npm run check
