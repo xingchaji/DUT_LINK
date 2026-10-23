@@ -2,7 +2,8 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, BrainCircuit, CheckCircle2, ChevronLeft, ClipboardCheck, LoaderCircle, Sparkles, Target } from "lucide-react";
+import { ArrowLeft, ArrowRight, BrainCircuit, Check, CheckCircle2, ChevronLeft, ClipboardCheck, LoaderCircle, Sparkles, Target } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
 import { SkillBars } from "@/components/skill-bars";
 import { profileInterestOptions, profileQuestions } from "@/lib/questionnaire";
 import type { GeneratedProfile, UserAccountProfile } from "@/lib/types";
@@ -61,42 +62,203 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="mx-auto max-w-[1500px] px-5 py-7 sm:px-8 lg:px-10 lg:py-9 xl:px-12">
-      <Link href="/" className="inline-flex items-center gap-2 rounded-full border border-black/[0.06] bg-white/70 px-3.5 py-2 text-xs font-semibold text-[var(--muted)] shadow-sm transition hover:text-[var(--ink)]"><ArrowLeft className="size-4" /> 返回首页</Link>
-
-      <section className="dot-grid relative mt-5 overflow-hidden rounded-[30px] bg-[var(--ink)] px-6 py-8 text-white shadow-[0_28px_70px_rgba(23,32,51,0.16)] sm:px-9 sm:py-10">
-        <div className="absolute -right-20 -top-24 size-64 rounded-full bg-[var(--violet)]/70 blur-3xl" />
-        <div className="relative grid gap-7 lg:grid-cols-[1fr_auto] lg:items-end">
-          <div><span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white/60"><BrainCircuit className="size-3.5 text-[var(--lime)]" /> Competition capability survey</span><h1 className="mt-5 max-w-4xl font-[family-name:var(--font-display)] text-3xl font-extrabold leading-tight tracking-[-0.045em] sm:text-5xl">用竞赛事实构建能力画像</h1><p className="mt-4 max-w-3xl text-sm leading-7 text-white/62">16 道统一问题衡量问题解决、调研表达、竞赛经验和项目交付。分数由规则计算，AI 只负责结合证据进行解释。</p></div>
-          <div className="grid grid-cols-2 gap-3"><div className="rounded-2xl border border-white/8 bg-white/[0.065] px-5 py-4"><p className="text-3xl font-extrabold">{answered}</p><p className="mt-1 text-[10px] text-white/45">已回答 / {profileQuestions.length}</p></div><div className="rounded-2xl border border-[var(--lime)]/20 bg-[var(--lime)]/10 px-5 py-4"><p className="text-3xl font-extrabold text-[var(--lime)]">{progress}%</p><p className="mt-1 text-[10px] text-white/45">画像进度</p></div></div>
+    <div className="page-shell">
+      <PageHeader
+        eyebrow="能力测评"
+        title="用竞赛事实构建能力画像"
+        lede="16 道统一问题衡量问题解决、调研表达、竞赛经验和项目交付。分数由规则计算，AI 只负责结合证据进行解释。"
+        icon={<BrainCircuit className="size-5" strokeWidth={1.8} />}
+      >
+        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11.5px] text-faint">
+          <Link href="/" className="inline-flex items-center gap-1 transition hover:text-ink">
+            <ArrowLeft className="size-3" strokeWidth={2} /> 返回工作台
+          </Link>
+          <span className="h-3 w-px bg-line" />
+          <span className="num">{profileQuestions.length} 题 · {totalSteps} 组</span>
         </div>
-      </section>
+      </PageHeader>
 
-      <div className="mt-7 grid gap-5 xl:grid-cols-[1fr_0.68fr]">
-        <form onSubmit={submit} className="space-y-5">
-          <section className="card flex flex-wrap items-center justify-between gap-4 p-5 sm:p-6"><div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-2xl bg-[#eeebff] text-[var(--violet)]"><CheckCircle2 className="size-5" /></span><div><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--violet)]">身份信息已同步</p><p className="mt-1 text-sm font-semibold">{identityLoading ? "正在读取…" : accountProfile ? `${accountProfile.nickname} · ${accountProfile.major} · ${accountProfile.grade || "年级未填写"}` : "暂未读取到个人资料"}</p></div></div><Link href="/account" className="rounded-full border border-black/[0.08] px-4 py-2.5 text-xs font-bold transition hover:border-[var(--violet)]/25 hover:text-[var(--violet)]">修改个人资料</Link></section>
+      {/* 进度统计条 */}
+      <div className="reveal mt-7 overflow-hidden rounded-[14px] border border-line bg-surface" style={{ ["--i" as string]: 0 }}>
+        <dl className="grid grid-cols-3 divide-x divide-line">
+          <div className="px-4 py-3.5">
+            <dt className="text-[10.5px] text-faint">已回答</dt>
+            <dd className="mt-1 flex items-baseline gap-1">
+              <span className="num text-[22px] font-semibold leading-none text-ink">{answered}</span>
+              <span className="num text-[11px] text-muted">/ {profileQuestions.length}</span>
+            </dd>
+          </div>
+          <div className="px-4 py-3.5">
+            <dt className="text-[10.5px] text-faint">画像进度</dt>
+            <dd className="mt-1 flex items-baseline gap-1">
+              <span className="num text-[22px] font-semibold leading-none text-ink">{progress}</span>
+              <span className="text-[11px] text-muted">%</span>
+            </dd>
+          </div>
+          <div className="px-4 py-3.5">
+            <dt className="text-[10.5px] text-faint">当前分组</dt>
+            <dd className="mt-1 flex items-baseline gap-1">
+              <span className="num text-[22px] font-semibold leading-none text-ink">{String(step + 1).padStart(2, "0")}</span>
+              <span className="num text-[11px] text-muted">/ {String(totalSteps).padStart(2, "0")}</span>
+            </dd>
+          </div>
+        </dl>
+        <div role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100} aria-label="问卷完成度" className="h-1 w-full bg-raise">
+          <div className="h-full bg-ink transition-[width] duration-300" style={{ width: `${progress}%` }} />
+        </div>
+      </div>
 
+      <div className="mt-7 grid gap-6 xl:grid-cols-[minmax(0,1fr)_300px] xl:gap-8">
+        <form onSubmit={submit} className="min-w-0 space-y-4">
+          {/* 身份信息 */}
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-line bg-surface px-4 py-3">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <span className="grid size-7 shrink-0 place-items-center rounded-[7px] bg-raise text-muted">
+                <CheckCircle2 className="size-3.5" strokeWidth={2} />
+              </span>
+              <div className="min-w-0">
+                <p className="section-label">身份信息已同步</p>
+                <p className="mt-0.5 truncate text-[12.5px] text-ink-soft">
+                  {identityLoading ? "正在读取…" : accountProfile ? `${accountProfile.nickname} · ${accountProfile.major} · ${accountProfile.grade || "年级未填写"}` : "暂未读取到个人资料"}
+                </p>
+              </div>
+            </div>
+            <Link href="/account" className="btn btn-secondary shrink-0">修改个人资料</Link>
+          </div>
+
+          {/* 题目 */}
           <section className="card overflow-hidden">
-            <header className="border-b border-black/[0.06] p-6 sm:p-7"><div className="flex items-start justify-between gap-4"><div><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--coral)]">Step {String(step + 1).padStart(2, "0")} / {String(totalSteps).padStart(2, "0")}</p><h2 className="mt-2 font-[family-name:var(--font-display)] text-2xl font-extrabold tracking-[-0.035em]">{STEP_LABELS[step] ?? "竞赛能力调查"}</h2><p className="mt-2 text-xs text-[var(--muted)]">请选择最接近你当前真实经历的一项。</p></div><span className="font-[family-name:var(--font-mono)] text-xs font-bold text-[var(--violet)]">{answered}/{profileQuestions.length}</span></div><div role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100} className="mt-5 h-2 overflow-hidden rounded-full bg-black/5"><div className="h-full rounded-full bg-[var(--violet)] transition-all" style={{ width: `${progress}%` }} /></div></header>
+            <header className="border-b border-line px-5 py-4 sm:px-6">
+              <p className="section-label">
+                Step <span className="num">{String(step + 1).padStart(2, "0")}</span> / <span className="num">{String(totalSteps).padStart(2, "0")}</span>
+              </p>
+              <h2 className="section-title mt-1.5">{STEP_LABELS[step] ?? "竞赛能力调查"}</h2>
+              <p className="section-desc mt-1">请选择最接近你当前真实经历的一项。</p>
+            </header>
 
-            <div className="space-y-8 p-6 sm:p-7">
+            <div className="space-y-7 px-5 py-6 sm:px-6">
               {currentQuestions.map((question, questionIndex) => {
                 const index = step * QUESTIONS_PER_STEP + questionIndex;
-                return <fieldset key={question.id}><legend className="flex gap-3 text-sm font-semibold leading-6"><span className="font-[family-name:var(--font-mono)] text-xs font-bold text-[var(--coral)]">{String(index + 1).padStart(2, "0")}</span><span>{question.text}</span></legend><div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-5">{question.options.map((label, optionIndex) => { const value = optionIndex + 1; const selected = answers[question.id] === value; return <label key={label} className={`cursor-pointer rounded-xl border p-3 text-center transition ${selected ? "border-[var(--violet)] bg-[#eeebff] text-[var(--violet)] shadow-sm" : "border-black/[0.07] bg-white hover:border-[var(--violet)]/25"}`}><input className="sr-only" type="radio" name={question.id} value={value} checked={selected} onChange={() => setAnswers((current) => ({ ...current, [question.id]: value }))} /><span className="text-[10px] leading-4">{label}</span></label>; })}</div></fieldset>;
+                return (
+                  <fieldset key={question.id}>
+                    <legend className="flex gap-2.5 text-[13.5px] font-medium leading-6 text-ink">
+                      <span className="num shrink-0 pt-px text-[11px] text-faint">{String(index + 1).padStart(2, "0")}</span>
+                      <span>{question.text}</span>
+                    </legend>
+                    <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-5">
+                      {question.options.map((label, optionIndex) => {
+                        const value = optionIndex + 1;
+                        const selected = answers[question.id] === value;
+                        return (
+                          <label
+                            key={label}
+                            className={`relative flex min-h-11 cursor-pointer items-center justify-center gap-1 rounded-[8px] border px-2.5 py-2 text-center transition focus-within:border-brand ${selected ? "border-ink bg-raise font-medium text-ink shadow-[inset_0_0_0_1px_var(--color-ink)]" : "border-line bg-surface text-muted hover:border-line-strong hover:bg-raise hover:text-ink-soft"}`}
+                          >
+                            <input className="sr-only" type="radio" name={question.id} value={value} checked={selected} onChange={() => setAnswers((current) => ({ ...current, [question.id]: value }))} />
+                            <span className="text-[11.5px] leading-4">{label}</span>
+                            {selected && <Check className="size-3 shrink-0" strokeWidth={2.6} />}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </fieldset>
+                );
               })}
             </div>
 
-            <footer className="flex items-center justify-between border-t border-black/[0.06] bg-[var(--paper)]/60 p-5 sm:px-7"><button type="button" disabled={step === 0} onClick={() => setStep((current) => Math.max(0, current - 1))} className="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-xs font-bold text-[var(--muted)] disabled:opacity-30"><ChevronLeft className="size-4" /> 上一步</button>{!isLastStep && <button type="button" disabled={!currentComplete} onClick={() => setStep((current) => Math.min(totalSteps - 1, current + 1))} className="inline-flex items-center gap-2 rounded-xl bg-[var(--ink)] px-5 py-3 text-xs font-bold text-white disabled:opacity-35">继续下一组 <ArrowRight className="size-4" /></button>}</footer>
+            <footer className="flex items-center justify-between gap-3 border-t border-line bg-raise/50 px-5 py-3.5 sm:px-6">
+              <button type="button" disabled={step === 0} onClick={() => setStep((current) => Math.max(0, current - 1))} className="btn btn-ghost">
+                <ChevronLeft className="size-4" /> 上一步
+              </button>
+              {!isLastStep && (
+                <button type="button" disabled={!currentComplete} onClick={() => setStep((current) => Math.min(totalSteps - 1, current + 1))} className="btn btn-primary">
+                  继续下一组 <ArrowRight className="size-4" />
+                </button>
+              )}
+            </footer>
           </section>
 
-          {isLastStep && <section className="card p-6 sm:p-7"><div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-2xl bg-[var(--lime)]/60"><Target className="size-5" /></span><div><h2 className="text-xl font-extrabold">兴趣与证据</h2><p className="text-xs text-[var(--muted)]">兴趣不改变能力分数，但会参与比赛和队友推荐。</p></div></div><div className="mt-5 flex flex-wrap gap-2">{profileInterestOptions.map((item) => <button key={item} type="button" onClick={() => toggleInterest(item)} aria-pressed={interests.includes(item)} className={`rounded-full border px-4 py-2 text-xs font-semibold transition ${interests.includes(item) ? "border-[var(--lime)] bg-[var(--lime)]" : "border-black/[0.06] bg-[var(--paper)] text-[var(--muted)]"}`}>{item}</button>)}</div><label className="mt-5 block"><span className="mb-2 block text-xs font-bold">补充作品或项目证据（选填）</span><textarea value={evidence} onChange={(event) => setEvidence(event.target.value)} rows={4} placeholder="例如：完成过课程管理系统，负责前端和接口联调" className="w-full rounded-2xl border border-black/[0.08] bg-[var(--paper)] px-4 py-3 text-sm outline-none focus:border-[var(--violet)]" /></label></section>}
+          {/* 兴趣与证据 */}
+          {isLastStep && (
+            <section className="card">
+              <div className="border-b border-line px-5 py-4 sm:px-6">
+                <p className="section-label flex items-center gap-1.5">
+                  <Target className="size-3" strokeWidth={2} /> Interests &amp; evidence
+                </p>
+                <h2 className="section-title mt-1.5">兴趣与证据</h2>
+                <p className="section-desc mt-1">兴趣不改变能力分数，但会参与比赛和队友推荐。</p>
+              </div>
+              <div className="px-5 py-5 sm:px-6">
+                <div className="flex flex-wrap gap-1.5">
+                  {profileInterestOptions.map((item) => (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() => toggleInterest(item)}
+                      aria-pressed={interests.includes(item)}
+                      className={`chip h-8 px-3 text-[12px] transition ${interests.includes(item) ? "chip-ink" : "chip-outline hover:border-line-strong hover:text-ink"}`}
+                    >
+                      {item}
+                    </button>
+                  ))}
+                </div>
+                <label className="mt-5 block">
+                  <span className="field-label">补充作品或项目证据（选填）</span>
+                  <textarea value={evidence} onChange={(event) => setEvidence(event.target.value)} rows={4} placeholder="例如：完成过课程管理系统，负责前端和接口联调" className="field" />
+                </label>
+              </div>
+            </section>
+          )}
 
-          {error && <p role="alert" className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-xs text-red-600">{error}</p>}
-          {isLastStep && <button disabled={loading || identityLoading || !accountProfile || answered !== profileQuestions.length} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--ink)] px-5 py-4 text-sm font-bold text-white shadow-[0_16px_34px_rgba(23,32,51,0.14)] transition hover:-translate-y-0.5 disabled:opacity-40">{loading ? <LoaderCircle className="size-4 animate-spin" /> : <ClipboardCheck className="size-4 text-[var(--lime)]" />}{loading ? "正在计算竞赛能力…" : "生成竞赛能力画像"}<ArrowRight className="size-4" /></button>}
+          {error && <p role="alert" className="callout callout-clay px-4 py-3 text-[12.5px] text-clay">{error}</p>}
+
+          {isLastStep && (
+            <button disabled={loading || identityLoading || !accountProfile || answered !== profileQuestions.length} className="btn btn-primary btn-block h-10">
+              {loading ? <LoaderCircle className="size-4 animate-spin" /> : <ClipboardCheck className="size-4" />}
+              {loading ? "正在计算竞赛能力…" : "生成竞赛能力画像"}
+            </button>
+          )}
         </form>
 
-        <aside>
-          {result ? <div className="card sticky top-8 p-6 sm:p-7"><span className="inline-flex items-center gap-2 rounded-full bg-[var(--lime)]/60 px-3 py-1.5 text-xs font-bold"><Sparkles className="size-3.5" /> {result.analysisMode === "questionnaire-ai" ? "规则评分 · AI 个性化解释" : "统一规则评分 · AI 降级"}</span><h2 className="mt-5 text-2xl font-extrabold tracking-[-0.025em]">你的竞赛能力坐标</h2><p className="mt-3 text-sm leading-7 text-[var(--muted)]">{result.summary}</p><div className="mt-7"><SkillBars skills={result.skills} /></div><div className="mt-7 flex flex-wrap gap-2">{result.interests.map((item) => <span key={item} className="rounded-full bg-[#eeebff] px-3 py-1.5 text-xs font-semibold text-[var(--violet)]">{item}</span>)}</div><Link href="/account" className="mt-7 flex items-center justify-center gap-2 rounded-2xl border border-black/[0.08] px-4 py-3 text-xs font-bold">查看完整画像 <ArrowRight className="size-4" /></Link></div> : <div className="card sticky top-8 overflow-hidden"><div className="dot-grid bg-[var(--ink)] p-6 text-white"><div className="grid size-12 place-items-center rounded-2xl bg-[var(--lime)] text-[var(--ink)]"><ClipboardCheck className="size-5" /></div><h2 className="mt-5 text-xl font-extrabold">四步完成竞赛画像</h2><p className="mt-2 text-xs leading-6 text-white/55">每步只回答 4 道问题，结果仍采用统一的 16 题评分标准。</p></div><div className="p-5"><div className="space-y-3">{STEP_LABELS.map((label, index) => <div key={label} className={`flex items-center gap-3 rounded-2xl p-3 ${index === step ? "bg-[#eeebff] text-[var(--violet)]" : "bg-[var(--paper)] text-[var(--muted)]"}`}><span className={`grid size-7 place-items-center rounded-full text-[10px] font-bold ${index < step ? "bg-[var(--lime)] text-[var(--ink)]" : index === step ? "bg-[var(--violet)] text-white" : "bg-white"}`}>{index < step ? "✓" : index + 1}</span><strong className="text-xs">{label}</strong></div>)}</div><p className="mt-5 text-xs leading-6 text-[var(--muted)]">规则负责定量，AI 只结合项目证据生成总结和方向；模型不可用时自动返回规则画像。</p></div></div>}
+        <aside className="reveal min-w-0" style={{ ["--i" as string]: 1 }}>
+          {result ? (
+            <div className="card sticky top-6 px-5 py-5">
+              <span className="chip chip-moss">
+                <Sparkles className="size-3" strokeWidth={2} />
+                {result.analysisMode === "questionnaire-ai" ? "规则评分 · AI 个性化解释" : "统一规则评分 · AI 降级"}
+              </span>
+              <h2 className="section-title mt-3 text-[15px]">你的竞赛能力坐标</h2>
+              <p className="mt-2 text-[12.5px] leading-6 text-muted">{result.summary}</p>
+              <div className="mt-4">
+                <SkillBars skills={result.skills} />
+              </div>
+              <div className="mt-4 flex flex-wrap gap-1.5">
+                {result.interests.map((item) => (
+                  <span key={item} className="chip">{item}</span>
+                ))}
+              </div>
+              <Link href="/account" className="btn btn-secondary btn-block mt-4">
+                查看完整画像 <ArrowRight className="size-3.5" />
+              </Link>
+            </div>
+          ) : (
+            <div className="card sticky top-6 px-5 py-5">
+              <p className="section-label">Four steps</p>
+              <h2 className="section-title mt-1.5">四步完成竞赛画像</h2>
+              <p className="section-desc mt-1">每步只回答 4 道问题，结果仍采用统一的 16 题评分标准。</p>
+              <ol className="mt-4 divide-y divide-line border-t border-line">
+                {STEP_LABELS.map((label, index) => (
+                  <li key={label} className="flex items-center gap-2.5 py-2.5">
+                    <span className={`grid size-6 shrink-0 place-items-center rounded-full border text-[10.5px] ${index < step ? "border-ink bg-ink text-canvas" : index === step ? "border-ink text-ink" : "border-line text-faint"}`}>
+                      {index < step ? <Check className="size-3" strokeWidth={3} /> : <span className="num">{index + 1}</span>}
+                    </span>
+                    <span className={`text-[12.5px] ${index === step ? "font-medium text-ink" : "text-muted"}`}>{label}</span>
+                  </li>
+                ))}
+              </ol>
+              <p className="mt-3 border-t border-line pt-3 text-[11px] leading-6 text-faint">规则负责定量，AI 只结合项目证据生成总结和方向；模型不可用时自动返回规则画像。</p>
+            </div>
+          )}
         </aside>
       </div>
     </div>

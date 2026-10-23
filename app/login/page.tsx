@@ -2,9 +2,46 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, BrainCircuit, CheckCircle2, KeyRound, LoaderCircle, LogIn, ShieldCheck, Sparkles, UserPlus, UsersRound } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowLeft,
+  BadgeCheck,
+  BrainCircuit,
+  CheckCircle2,
+  KeyRound,
+  LoaderCircle,
+  LogIn,
+  ShieldCheck,
+  UserPlus,
+  UsersRound,
+} from "lucide-react";
+import { Logo } from "@/components/logo";
 
 type Mode = "login" | "register" | "forgot";
+
+const MODE_COPY: Record<Mode, { label: string; title: string; lede: string }> = {
+  login: {
+    label: "Welcome back",
+    title: "登录 DUT Link",
+    lede: "继续维护能力画像、发现比赛并处理组队协作。",
+  },
+  register: {
+    label: "New account",
+    title: "创建校园账号",
+    lede: "仅允许大连理工大学邮箱注册；邮箱验证码将在邮件服务接入后启用。",
+  },
+  forgot: {
+    label: "Account recovery",
+    title: "找回密码",
+    lede: "输入注册邮箱生成重置令牌，生产环境将通过邮件发送重置链接。",
+  },
+};
+
+const VALUE_POINTS = [
+  { icon: BrainCircuit, text: "持续维护可解释的能力画像" },
+  { icon: UsersRound, text: "创建队伍、申请加入并处理邀请" },
+  { icon: BadgeCheck, text: "赛事事实保留可追溯来源" },
+] as const;
 
 export default function LoginPage() {
   const [mode, setMode] = useState<Mode>("login");
@@ -74,55 +111,212 @@ export default function LoginPage() {
     }
   }
 
+  const copy = MODE_COPY[mode];
+  const ModeIcon = mode === "login" ? LogIn : mode === "register" ? UserPlus : KeyRound;
+  const resetsPassword = mode === "forgot" && Boolean(resetToken);
+
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-6xl items-center px-5 py-8 sm:px-8 lg:min-h-screen lg:px-10">
-      <section className="card grid w-full overflow-hidden lg:grid-cols-[0.88fr_1.12fr]">
-        <aside className="dot-grid relative overflow-hidden bg-[var(--ink)] p-7 text-white sm:p-9 lg:p-10">
-          <div className="absolute -right-24 -top-20 size-64 rounded-full bg-[var(--violet)]/70 blur-3xl" />
-          <div className="absolute -bottom-24 -left-20 size-56 rounded-full bg-[var(--cyan)]/25 blur-3xl" />
-          <div className="relative flex h-full flex-col">
-            <Link href="/" className="inline-flex w-fit items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3.5 py-2 text-xs font-semibold text-white/70 transition hover:text-white"><ArrowLeft className="size-4" /> 返回首页</Link>
-            <div className="mt-8 lg:mt-20">
-              <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white/60"><Sparkles className="size-3.5 text-[var(--lime)]" /> Campus collaboration</span>
-              <h2 className="mt-6 font-[family-name:var(--font-display)] text-3xl font-extrabold leading-tight tracking-[-0.045em] sm:text-4xl">让你的能力，<br />被合适的人看见。</h2>
-              <p className="mt-4 max-w-sm text-sm leading-7 text-white/58">登录后，能力画像、比赛意向和组队记录会归属于同一个校园账号。</p>
-              <div className="mt-8 hidden space-y-4 text-xs text-white/68 lg:block">
-                <p className="flex items-center gap-3"><span className="grid size-8 place-items-center rounded-xl bg-white/10 text-[var(--lime)]"><BrainCircuit className="size-4" /></span>持续维护可解释的能力画像</p>
-                <p className="flex items-center gap-3"><span className="grid size-8 place-items-center rounded-xl bg-white/10 text-[var(--lime)]"><UsersRound className="size-4" /></span>创建队伍、申请加入并处理邀请</p>
-                <p className="flex items-center gap-3"><span className="grid size-8 place-items-center rounded-xl bg-white/10 text-[var(--lime)]"><CheckCircle2 className="size-4" /></span>所有赛事事实保留可追溯来源</p>
+    <div className="page-shell flex min-h-[calc(100vh-9rem)] items-center justify-center lg:min-h-[calc(100vh-4.5rem)]">
+      <section className="card reveal grid w-full max-w-[880px] overflow-hidden md:grid-cols-[0.86fr_1fr]">
+        <aside className="flex flex-col border-b border-line bg-raise p-6 sm:p-8 md:border-b-0 md:border-r lg:p-9">
+          <Logo />
+
+          <p className="mt-7 max-w-[24rem] text-[13.5px] font-medium leading-6 text-ink-soft">让你的能力，被合适的人看见。</p>
+          <p className="mt-2 max-w-[24rem] text-[12px] leading-6 text-muted">
+            登录后，能力画像、比赛意向和组队记录会归属于同一个校园账号。
+          </p>
+
+          <ul className="mt-6 hidden divide-y divide-line border-t border-line md:block">
+            {VALUE_POINTS.map((point) => {
+              const Icon = point.icon;
+              return (
+                <li key={point.text} className="flex items-center gap-2.5 py-2.5">
+                  <span className="grid size-6 shrink-0 place-items-center rounded-[6px] border border-line bg-surface text-muted">
+                    <Icon className="size-3.5" strokeWidth={1.8} />
+                  </span>
+                  <span className="text-[12px] leading-5 text-ink-soft">{point.text}</span>
+                </li>
+              );
+            })}
+          </ul>
+
+          <div className="mt-8 space-y-4 md:mt-auto md:pt-8">
+            {mode === "login" && (
+              <div className="rounded-[10px] border border-line bg-surface px-3 py-2.5">
+                <p className="text-[10.5px] text-faint">Demo 账户</p>
+                <p className="num mt-1 text-[11.5px] leading-5 text-ink-soft">student@dlut.edu.cn · demo1234</p>
               </div>
-            </div>
-            {mode === "login" && <div className="mt-10 hidden rounded-2xl border border-white/10 bg-white/[0.07] p-4 text-xs leading-6 text-white/60 lg:mt-auto lg:block"><strong className="text-white">Demo 账户</strong><br />student@dlut.edu.cn&nbsp;&nbsp;/&nbsp;&nbsp;demo1234</div>}
+            )}
+            <Link
+              href="/"
+              className="flex h-8 w-fit items-center gap-1.5 text-[11.5px] text-muted transition-colors hover:text-ink"
+            >
+              <ArrowLeft className="size-3.5" strokeWidth={1.9} />
+              返回首页
+            </Link>
           </div>
         </aside>
 
-        <div className="p-7 sm:p-9 lg:p-11">
-          <div className="grid size-12 place-items-center rounded-2xl bg-[#eeebff] text-[var(--violet)]">{mode === "login" ? <LogIn className="size-5" /> : mode === "register" ? <UserPlus className="size-5" /> : <KeyRound className="size-5" />}</div>
-          <p className="mt-6 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--violet)]">{mode === "login" ? "Welcome back" : mode === "register" ? "New account" : "Account recovery"}</p>
-          <h1 className="mt-2 font-[family-name:var(--font-display)] text-3xl font-extrabold tracking-[-0.04em]">{mode === "login" ? "登录 DUT Link" : mode === "register" ? "创建校园账号" : "找回密码"}</h1>
-          <p className="mt-3 max-w-lg text-sm leading-6 text-[var(--muted)]">{mode === "login" ? "继续维护能力画像、发现比赛并处理组队协作。" : mode === "register" ? "当前仅允许大连理工大学邮箱注册。邮箱验证码将在邮件服务接入后启用。" : "输入注册邮箱生成重置令牌；生产环境将通过邮件发送重置链接。"}</p>
+        <div className="p-6 sm:p-8 lg:p-10">
+          <div className="flex items-center gap-2.5">
+            <span className="grid size-8 shrink-0 place-items-center rounded-[8px] border border-line bg-raise text-ink-soft">
+              <ModeIcon className="size-4" strokeWidth={1.8} />
+            </span>
+            <span className="section-label">{copy.label}</span>
+          </div>
 
-          {mode !== "forgot" && <div className="mt-7 grid grid-cols-2 rounded-2xl bg-[var(--paper)] p-1.5 text-xs font-bold"><button type="button" onClick={() => switchMode("login")} className={`rounded-xl px-4 py-2.5 transition ${mode === "login" ? "bg-[var(--ink)] text-white shadow-md" : "text-[var(--muted)]"}`}>登录</button><button type="button" onClick={() => switchMode("register")} className={`rounded-xl px-4 py-2.5 transition ${mode === "register" ? "bg-[var(--ink)] text-white shadow-md" : "text-[var(--muted)]"}`}>注册</button></div>}
+          <h1 className="mt-4 text-[21px] font-semibold leading-tight tracking-[-0.022em] text-ink">{copy.title}</h1>
+          <p className="mt-2 text-[12.5px] leading-6 text-muted">{copy.lede}</p>
+
+          {mode !== "forgot" && (
+            <div role="group" aria-label="切换登录或注册" className="mt-6 flex gap-0.5 rounded-[9px] border border-line bg-raise p-0.5">
+              <button
+                type="button"
+                aria-pressed={mode === "login"}
+                onClick={() => switchMode("login")}
+                className={`h-8 flex-1 rounded-[7px] text-[12.5px] font-medium transition ${
+                  mode === "login"
+                    ? "bg-surface text-ink shadow-[0_1px_2px_rgba(30,29,26,0.08)]"
+                    : "text-muted hover:text-ink"
+                }`}
+              >
+                登录
+              </button>
+              <button
+                type="button"
+                aria-pressed={mode === "register"}
+                onClick={() => switchMode("register")}
+                className={`h-8 flex-1 rounded-[7px] text-[12.5px] font-medium transition ${
+                  mode === "register"
+                    ? "bg-surface text-ink shadow-[0_1px_2px_rgba(30,29,26,0.08)]"
+                    : "text-muted hover:text-ink"
+                }`}
+              >
+                注册
+              </button>
+            </div>
+          )}
 
           <form onSubmit={submit} className="mt-6 space-y-4">
-            {mode === "register" && <><AuthField label="姓名或昵称"><input value={name} onChange={(event) => setName(event.target.value)} required maxLength={30} className="auth-input" /></AuthField><div className="grid gap-4 sm:grid-cols-2"><AuthField label="专业"><input value={major} onChange={(event) => setMajor(event.target.value)} required maxLength={40} className="auth-input" /></AuthField><AuthField label="年级（选填）"><input value={grade} onChange={(event) => setGrade(event.target.value)} maxLength={20} placeholder="例如：大二" className="auth-input" /></AuthField></div></>}
-            {mode === "forgot" && resetToken && <AuthField label="重置令牌"><input value={resetToken} onChange={(event) => setResetToken(event.target.value)} required className="auth-input" /></AuthField>}
-            <AuthField label={mode === "forgot" ? (resetToken ? "新密码" : "校园邮箱") : "校园邮箱"}><input type={mode === "forgot" && resetToken ? "password" : "email"} value={mode === "forgot" && resetToken ? password : email} onChange={(event) => (mode === "forgot" && resetToken ? setPassword(event.target.value) : setEmail(event.target.value))} required autoComplete="email" placeholder="name@dlut.edu.cn" className="auth-input" /></AuthField>
-            {mode !== "forgot" && <AuthField label="密码"><input type="password" value={password} onChange={(event) => setPassword(event.target.value)} required minLength={8} maxLength={72} autoComplete={mode === "login" ? "current-password" : "new-password"} className="auth-input" />{mode === "register" && <span className="mt-2 block text-[11px] text-[var(--muted)]">至少 8 位，同时包含字母和数字</span>}</AuthField>}
-            {error && <p role="alert" className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-xs text-red-600">{error}</p>}
-            {notice && <p role="status" className="rounded-xl border border-[var(--lime)] bg-[var(--lime)]/30 px-4 py-3 text-xs">{notice}</p>}
-            <button disabled={loading} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--ink)] px-5 py-4 text-sm font-bold text-white shadow-[0_14px_30px_rgba(23,32,51,0.14)] transition hover:-translate-y-0.5 disabled:opacity-60">{loading ? <LoaderCircle className="size-4 animate-spin" /> : <ShieldCheck className="size-4 text-[var(--lime)]" />} {loading ? (mode === "login" ? "登录中…" : mode === "register" ? "创建中…" : "处理中…") : (mode === "login" ? "登录" : mode === "register" ? "注册并登录" : resetToken ? "重置密码" : "生成重置令牌")}</button>
+            {mode === "register" && (
+              <>
+                <AuthField label="姓名或昵称">
+                  <input value={name} onChange={(event) => setName(event.target.value)} required maxLength={30} className="field" />
+                </AuthField>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <AuthField label="专业">
+                    <input value={major} onChange={(event) => setMajor(event.target.value)} required maxLength={40} className="field" />
+                  </AuthField>
+                  <AuthField label="年级（选填）">
+                    <input value={grade} onChange={(event) => setGrade(event.target.value)} maxLength={20} placeholder="例如：大二" className="field" />
+                  </AuthField>
+                </div>
+              </>
+            )}
+
+            {resetsPassword && (
+              <AuthField label="重置令牌">
+                <input value={resetToken} onChange={(event) => setResetToken(event.target.value)} required className="field" />
+              </AuthField>
+            )}
+
+            <AuthField label={mode === "forgot" ? (resetToken ? "新密码" : "校园邮箱") : "校园邮箱"}>
+              <input
+                type={resetsPassword ? "password" : "email"}
+                value={resetsPassword ? password : email}
+                onChange={(event) => (resetsPassword ? setPassword(event.target.value) : setEmail(event.target.value))}
+                required
+                autoComplete="email"
+                placeholder="name@dlut.edu.cn"
+                className="field"
+              />
+            </AuthField>
+
+            {mode !== "forgot" && (
+              <AuthField
+                label="密码"
+                hint={mode === "register" ? "至少 8 位，同时包含字母和数字" : undefined}
+              >
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  required
+                  minLength={8}
+                  maxLength={72}
+                  autoComplete={mode === "login" ? "current-password" : "new-password"}
+                  className="field"
+                />
+              </AuthField>
+            )}
+
+            {error && (
+              <p role="alert" className="callout callout-clay items-start px-3.5 py-3 text-[12.5px] leading-6 text-clay">
+                <AlertCircle className="mt-0.5 size-3.5 shrink-0" strokeWidth={2} />
+                <span className="min-w-0">{error}</span>
+              </p>
+            )}
+            {notice && (
+              <p role="status" className="callout callout-moss items-start px-3.5 py-3 text-[12.5px] leading-6 text-moss">
+                <CheckCircle2 className="mt-0.5 size-3.5 shrink-0" strokeWidth={2} />
+                <span className="min-w-0">{notice}</span>
+              </p>
+            )}
+
+            <button disabled={loading} className="btn btn-primary btn-block">
+              {loading ? (
+                <LoaderCircle className="size-3.5 animate-spin" />
+              ) : (
+                <ShieldCheck className="size-3.5" strokeWidth={1.9} />
+              )}
+              {loading
+                ? mode === "login"
+                  ? "登录中…"
+                  : mode === "register"
+                    ? "创建中…"
+                    : "处理中…"
+                : mode === "login"
+                  ? "登录"
+                  : mode === "register"
+                    ? "注册并登录"
+                    : resetToken
+                      ? "重置密码"
+                      : "生成重置令牌"}
+            </button>
           </form>
-          {mode === "forgot" && <button type="button" onClick={() => switchMode("login")} className="mt-5 w-full text-center text-xs font-semibold text-[var(--muted)]">返回登录</button>}
-          {mode === "login" && <><button type="button" onClick={() => switchMode("forgot")} className="mt-5 w-full text-center text-xs font-semibold text-[var(--muted)] transition hover:text-[var(--violet)]">忘记密码？</button><div className="mt-5 rounded-2xl bg-[var(--lime)]/30 p-4 text-xs leading-6 lg:hidden"><strong>Demo 账户</strong><br />student@dlut.edu.cn / demo1234</div></>}
+
+          {mode === "forgot" && (
+            <button
+              type="button"
+              onClick={() => switchMode("login")}
+              className="mt-3 flex h-8 w-full items-center justify-center text-[12px] font-medium text-muted transition-colors hover:text-ink"
+            >
+              返回登录
+            </button>
+          )}
+          {mode === "login" && (
+            <button
+              type="button"
+              onClick={() => switchMode("forgot")}
+              className="mt-3 flex h-8 w-full items-center justify-center text-[12px] font-medium text-muted transition-colors hover:text-ink"
+            >
+              忘记密码
+            </button>
+          )}
         </div>
       </section>
     </div>
   );
 }
 
-function AuthField({ label, children }: { label: string; children: React.ReactNode }) {
-  return <label className="block"><span className="mb-2 block text-xs font-bold">{label}</span>{children}</label>;
+function AuthField({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="field-label">{label}</span>
+      {children}
+      {hint && <span className="field-hint">{hint}</span>}
+    </label>
+  );
 }
 
 async function readResponse(response: Response): Promise<{ message?: string; resetToken?: string }> {

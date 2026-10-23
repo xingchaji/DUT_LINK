@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowLeft, ArrowRight, BookOpenCheck, CheckCircle2, ExternalLink, Lightbulb, Link2, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpenCheck, CheckCircle2, ExternalLink, Lightbulb, Link2, Plus, ShieldCheck } from "lucide-react";
 import type { WinningWorkInsight } from "@/lib/types";
 
 const sectionKinds = ["问题定义", "方案拆解", "专业落点", "跨域协同", "验证设计", "证据边界"];
@@ -61,40 +61,123 @@ export function WinningWorkStory({ insight }: { insight: WinningWorkInsight }) {
   if (!active) return null;
 
   return (
-    <section className="mt-10 border-t border-black/[0.07] pt-9">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div><p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--coral)]">Project Design Review</p><h4 className="mt-2 font-[family-name:var(--font-display)] text-2xl font-bold">从获奖作品中学习如何设计参赛项目</h4><p className="mt-2 max-w-3xl text-sm leading-7 text-[var(--muted)]">选择一个板块，查看作品在这一阶段如何组织问题、调用其他领域知识，以及参赛团队可以复用的设计方法。</p></div>
-        <span className="rounded-full bg-[var(--paper)] px-3 py-1.5 text-xs font-bold text-[var(--muted)]">{activeIndex + 1} / {sections.length}</span>
+    <section className="mt-8 border-t border-line pt-7">
+      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
+        <div className="min-w-0">
+          <p className="section-label">Project design review</p>
+          <h4 className="section-title mt-1.5 text-[17px]">从获奖作品中学习如何设计参赛项目</h4>
+          <p className="section-desc mt-1 max-w-2xl">选择一个板块，查看作品在这一阶段如何组织问题、调用其他领域知识，以及参赛团队可以复用的设计方法。</p>
+        </div>
+        <span className="chip num shrink-0">{activeIndex + 1} / {sections.length}</span>
       </div>
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-4 flex flex-wrap gap-1.5">
         {sections.map((section, index) => {
           const selected = index === activeIndex;
-          return <button key={section.heading} type="button" onClick={() => setActiveIndex(index)} aria-pressed={selected} className={`group min-h-36 rounded-3xl border p-5 text-left transition ${selected ? "border-[var(--violet)] bg-[var(--ink)] text-white shadow-xl shadow-[var(--violet)]/10" : "border-black/[0.06] bg-[var(--paper)] hover:-translate-y-1 hover:border-[var(--violet)]/30 hover:bg-white"}`}><div className="flex items-center justify-between"><span className={`grid size-9 place-items-center rounded-2xl text-xs font-black ${selected ? "bg-[var(--lime)] text-[var(--ink)]" : "bg-white text-[var(--violet)]"}`}>{String(index + 1).padStart(2, "0")}</span><ArrowRight className={`size-4 transition ${selected ? "text-[var(--lime)]" : "text-[var(--muted)] group-hover:translate-x-1"}`} /></div><p className={`mt-4 text-[10px] font-bold uppercase tracking-[0.14em] ${selected ? "text-white/45" : "text-[var(--coral)]"}`}>{sectionKinds[index % sectionKinds.length]}</p><strong className="mt-1 block text-sm leading-6">{stripSectionNumber(section.heading)}</strong></button>;
+          return (
+            <button
+              key={section.heading}
+              type="button"
+              onClick={() => setActiveIndex(index)}
+              aria-pressed={selected}
+              className={`inline-flex h-8 items-center gap-2 rounded-[6px] border px-2.5 text-[11.5px] transition-colors ${
+                selected
+                  ? "border-line-strong bg-raise font-semibold text-ink"
+                  : "border-transparent text-muted hover:bg-raise hover:text-ink"
+              }`}
+            >
+              <span className={`num text-[10px] ${selected ? "text-ink" : "text-faint"}`}>{String(index + 1).padStart(2, "0")}</span>
+              <span>{stripSectionNumber(section.heading)}</span>
+            </button>
+          );
         })}
       </div>
 
-      <article className="mt-5 overflow-hidden rounded-[32px] border border-black/[0.07] bg-white">
-        <header className="flex flex-wrap items-center justify-between gap-4 bg-[var(--ink)] px-6 py-6 text-white sm:px-8"><div><p className="text-xs font-bold text-[var(--lime)]">板块 {String(activeIndex + 1).padStart(2, "0")} · {sectionKinds[activeIndex % sectionKinds.length]}</p><h5 className="mt-2 font-[family-name:var(--font-display)] text-2xl font-bold">{active.heading}</h5></div><div className="flex gap-2"><NavButton label="上一板块" disabled={activeIndex === 0} onClick={() => setActiveIndex((index) => Math.max(0, index - 1))}><ArrowLeft className="size-4" /></NavButton><NavButton label="下一板块" disabled={activeIndex === sections.length - 1} onClick={() => setActiveIndex((index) => Math.min(sections.length - 1, index + 1))}><ArrowRight className="size-4" /></NavButton></div></header>
+      <article className="reveal mt-4 overflow-hidden rounded-[14px] border border-line bg-surface" style={{ ["--i" as string]: 0 }}>
+        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3.5 sm:px-5">
+          <div className="min-w-0">
+            <p className="text-[10.5px] text-faint">
+              板块 <span className="num">{String(activeIndex + 1).padStart(2, "0")}</span> · {sectionKinds[activeIndex % sectionKinds.length]}
+            </p>
+            <h5 className="mt-1 text-[15px] font-semibold leading-6 tracking-[-0.01em] text-ink">{active.heading}</h5>
+          </div>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <NavButton label="上一板块" disabled={activeIndex === 0} onClick={() => setActiveIndex((index) => Math.max(0, index - 1))}>
+              <ArrowLeft className="size-3.5" />
+            </NavButton>
+            <NavButton label="下一板块" disabled={activeIndex === sections.length - 1} onClick={() => setActiveIndex((index) => Math.min(sections.length - 1, index + 1))}>
+              <ArrowRight className="size-3.5" />
+            </NavButton>
+          </div>
+        </header>
 
-        <div className="divide-y divide-black/[0.06]">
-          <ExpandablePart icon={<Lightbulb className="size-4" />} title="作品在这一部分的设计思路" subtitle={stage.question} defaultOpen>
-            <p className="text-sm leading-8 text-[var(--muted)]">{active.body}</p>
-            <div className="mt-5 rounded-2xl bg-[#fff6eb] p-5"><p className="text-xs font-bold text-[var(--coral)]">设计逻辑提炼</p><p className="mt-2 text-sm leading-7">{stage.method}</p></div>
+        <div className="divide-y divide-line">
+          <ExpandablePart icon={<Lightbulb className="size-3.5" />} title="作品在这一部分的设计思路" subtitle={stage.question} defaultOpen>
+            <p className="text-[13.5px] leading-7 text-ink-soft">{active.body}</p>
+            <div className="mt-4 rounded-[10px] border border-line bg-raise px-3.5 py-3">
+              <p className="text-[11px] font-semibold text-muted">设计逻辑提炼</p>
+              <p className="mt-1.5 text-[12.5px] leading-6 text-ink-soft">{stage.method}</p>
+            </div>
           </ExpandablePart>
 
-          <ExpandablePart icon={<Link2 className="size-4" />} title="其他领域的知识具体用在了哪里" subtitle={`围绕“${stripSectionNumber(active.heading)}”分析各专业的实际落点`} defaultOpen>
-            <div className="grid gap-4 lg:grid-cols-3">{domains.map((domain, index) => <section key={domain.name} className="rounded-3xl border border-black/[0.06] bg-[var(--paper)] p-5"><div className="flex items-center gap-3"><span className="grid size-7 place-items-center rounded-full bg-[#ebe8ff] text-[10px] font-black text-[var(--violet)]">{index + 1}</span><h6 className="text-sm font-bold">{domain.name}</h6></div><p className="mt-5 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--coral)]">应用位置</p><p className="mt-2 text-xs leading-6">在作品的“{stripSectionNumber(active.heading)}”阶段，{domain.role}。</p><p className="mt-4 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--violet)]">怎样与其他领域结合</p><p className="mt-2 border-l-2 border-[var(--lime)] pl-3 text-xs leading-6 text-[var(--muted)]">{domain.integration}</p></section>)}</div>
-            <p className="mt-5 text-xs leading-6 text-[var(--muted)]"><strong className="text-[var(--ink)]">判断是否真正跨学科：</strong>不要只看作品使用了多少领域名词，而要看上述知识是否改变了另一个模块的输入、约束、决策或验证方式。</p>
+          <ExpandablePart icon={<Link2 className="size-3.5" />} title="其他领域的知识具体用在了哪里" subtitle={`围绕“${stripSectionNumber(active.heading)}”分析各专业的实际落点`} defaultOpen>
+            <div className="grid gap-3 lg:grid-cols-3">
+              {domains.map((domain, index) => (
+                <section key={domain.name} className="rounded-[10px] border border-line bg-canvas px-3.5 py-3">
+                  <div className="flex items-center gap-2">
+                    <span className="num grid size-5 shrink-0 place-items-center rounded-full border border-line bg-surface text-[10px] font-semibold text-muted">{index + 1}</span>
+                    <h6 className="truncate text-[12.5px] font-semibold text-ink">{domain.name}</h6>
+                  </div>
+                  <p className="mt-3 text-[10.5px] text-faint">应用位置</p>
+                  <p className="mt-1 text-[12px] leading-6 text-ink-soft">在作品的“{stripSectionNumber(active.heading)}”阶段，{domain.role}。</p>
+                  <p className="mt-3 text-[10.5px] text-faint">怎样与其他领域结合</p>
+                  <p className="mt-1 border-l-2 border-line-strong pl-2.5 text-[12px] leading-6 text-muted">{domain.integration}</p>
+                </section>
+              ))}
+            </div>
+            <p className="mt-4 text-[11.5px] leading-6 text-muted">
+              <strong className="font-semibold text-ink-soft">判断是否真正跨学科：</strong>不要只看作品使用了多少领域名词，而要看上述知识是否改变了另一个模块的输入、约束、决策或验证方式。
+            </p>
           </ExpandablePart>
 
-          <ExpandablePart icon={<BookOpenCheck className="size-4" />} title="给参赛者的可复用方法" subtitle="把作品分析转化为自己的项目检查表">
-            <div className="grid gap-6 lg:grid-cols-[1fr_0.8fr]"><div><p className="text-xs font-bold text-[var(--violet)]">本阶段行动清单</p><div className="mt-4 space-y-3">{stage.checklist.map((item) => <div key={item} className="flex gap-3 rounded-2xl bg-[var(--paper)] p-4"><CheckCircle2 className="mt-0.5 size-4 shrink-0 text-[#238983]" /><p className="text-sm leading-6">{item}</p></div>)}</div></div><div className="space-y-4"><div className="rounded-2xl bg-[#eef8f5] p-5"><p className="text-xs font-bold text-[#238983]">答辩前应准备的证据</p><p className="mt-2 text-sm leading-7">{stage.evidence}</p></div><div className="rounded-2xl bg-[#fff0ec] p-5"><p className="text-xs font-bold text-[var(--coral)]">常见误区</p><p className="mt-2 text-sm leading-7">{stage.pitfall}</p></div></div></div>
+          <ExpandablePart icon={<BookOpenCheck className="size-3.5" />} title="给参赛者的可复用方法" subtitle="把作品分析转化为自己的项目检查表">
+            <div className="grid gap-4 lg:grid-cols-[1fr_0.9fr]">
+              <div>
+                <p className="text-[11px] font-semibold text-muted">本阶段行动清单</p>
+                <ul className="mt-2.5 divide-y divide-line overflow-hidden rounded-[10px] border border-line">
+                  {stage.checklist.map((item) => (
+                    <li key={item} className="flex items-start gap-2.5 px-3 py-2.5">
+                      <CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-moss" strokeWidth={1.9} />
+                      <p className="text-[12.5px] leading-6 text-ink-soft">{item}</p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="space-y-3">
+                <div className="callout callout-moss">
+                  <ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-moss" strokeWidth={1.9} />
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold text-moss">答辩前应准备的证据</p>
+                    <p className="mt-1 text-[12.5px] leading-6 text-ink-soft">{stage.evidence}</p>
+                  </div>
+                </div>
+                <div className="callout callout-clay">
+                  <Lightbulb className="mt-0.5 size-3.5 shrink-0 text-clay" strokeWidth={1.9} />
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold text-clay">常见误区</p>
+                    <p className="mt-1 text-[12.5px] leading-6 text-ink-soft">{stage.pitfall}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </ExpandablePart>
 
-          <ExpandablePart icon={<ShieldCheck className="size-4" />} title="事实边界与原作品资料" subtitle="区分官方确认信息与本文的专业分析">
-            <p className="text-sm leading-7 text-[var(--muted)]">本文对设计流程和跨学科接口的讨论，是基于作品题目、官方简介和工程方法形成的分析。官方未公开的算法、设备型号、实验数字或实施细节，不作为原团队事实陈述。</p>
-            <a href={insight.source.url} target="_blank" rel="noreferrer" className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[var(--ink)] px-4 py-3 text-xs font-bold text-white">查看原作品与官方来源：{insight.source.title} <ExternalLink className="size-3.5" /></a>
+          <ExpandablePart icon={<ShieldCheck className="size-3.5" />} title="事实边界与原作品资料" subtitle="区分官方确认信息与本文的专业分析">
+            <p className="text-[13px] leading-7 text-ink-soft">本文对设计流程和跨学科接口的讨论，是基于作品题目、官方简介和工程方法形成的分析。官方未公开的算法、设备型号、实验数字或实施细节，不作为原团队事实陈述。</p>
+            <a href={insight.source.url} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-2 rounded-[8px] border border-line-strong bg-surface px-3 py-2 text-[11.5px] font-medium text-ink-soft transition-colors hover:bg-raise hover:text-ink">
+              查看原作品与官方来源：{insight.source.title}
+              <ExternalLink className="size-3" strokeWidth={1.9} />
+            </a>
           </ExpandablePart>
         </div>
       </article>
@@ -103,11 +186,34 @@ export function WinningWorkStory({ insight }: { insight: WinningWorkInsight }) {
 }
 
 function ExpandablePart({ icon, title, subtitle, defaultOpen = false, children }: { icon: React.ReactNode; title: string; subtitle: string; defaultOpen?: boolean; children: React.ReactNode }) {
-  return <details open={defaultOpen || undefined} className="group px-6 py-6 sm:px-8"><summary className="flex cursor-pointer list-none items-start justify-between gap-4"><span className="flex gap-3"><span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-xl bg-[#ebe8ff] text-[var(--violet)]">{icon}</span><span><strong className="block text-sm">{title}</strong><span className="mt-1 block text-xs leading-6 text-[var(--muted)]">{subtitle}</span></span></span><span className="text-xl text-[var(--muted)] transition group-open:rotate-45">＋</span></summary><div className="mt-6">{children}</div></details>;
+  return (
+    <details open={defaultOpen || undefined} className="group">
+      <summary className="flex cursor-pointer list-none items-start gap-3 px-4 py-3.5 transition-colors hover:bg-raise/60 sm:px-5">
+        <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-[7px] border border-line bg-raise text-muted">{icon}</span>
+        <span className="min-w-0 flex-1">
+          <strong className="block text-[13px] font-semibold text-ink">{title}</strong>
+          <span className="mt-0.5 block text-[11.5px] leading-5 text-muted">{subtitle}</span>
+        </span>
+        <Plus className="mt-1 size-3.5 shrink-0 text-faint transition-transform group-open:rotate-45" strokeWidth={2} />
+      </summary>
+      <div className="px-4 pb-5 sm:px-5">{children}</div>
+    </details>
+  );
 }
 
 function NavButton({ label, disabled, onClick, children }: { label: string; disabled: boolean; onClick: () => void; children: React.ReactNode }) {
-  return <button type="button" aria-label={label} title={label} disabled={disabled} onClick={onClick} className="grid size-10 place-items-center rounded-xl border border-white/15 bg-white/10 disabled:opacity-30">{children}</button>;
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      disabled={disabled}
+      onClick={onClick}
+      className="grid size-8 place-items-center rounded-[7px] border border-line text-muted transition-colors hover:bg-raise hover:text-ink disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted"
+    >
+      {children}
+    </button>
+  );
 }
 
 function selectDomains(heading: string, body: string, domains: WinningWorkInsight["knowledgeDomains"], sectionIndex: number) {

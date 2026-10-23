@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bell, Search, Check } from "lucide-react";
+import { Bell, Check, Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { Notification, SessionUser } from "@/lib/types";
 
@@ -41,7 +41,7 @@ export function HeaderActions() {
 
   const loadNotifications = () => {
     fetch("/api/notifications")
-      .then((r) => r.ok ? r.json() : null)
+      .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (!d) return;
         setNotifications(d.notifications ?? []);
@@ -57,25 +57,18 @@ export function HeaderActions() {
     return () => clearInterval(interval);
   }, [user]);
 
-  // 点击外部关闭
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) setOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
-  function handleBellClick() {
-    setOpen((v) => !v);
-  }
-
   async function markRead(id: string) {
     await fetch(`/api/notifications/${id}`, { method: "PATCH" });
-    setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, read: true } : n));
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
     setUnreadCount((c) => Math.max(0, c - 1));
   }
 
@@ -94,61 +87,59 @@ export function HeaderActions() {
   const initial = user?.name?.charAt(0) ?? "?";
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex shrink-0 items-center gap-0.5">
       <button
-        aria-label="搜索"
+        type="button"
+        aria-label="搜索比赛与队伍"
         onClick={() => router.push("/opportunities")}
-        className="grid size-10 place-items-center rounded-full border border-black/5 bg-white text-[var(--muted)] shadow-sm hover:text-[var(--ink)] transition"
+        className="grid size-8 place-items-center rounded-md text-muted transition-colors hover:bg-raise hover:text-ink"
       >
-        <Search className="size-4" />
+        <Search className="size-[15px]" strokeWidth={1.9} />
       </button>
 
-      {/* 铃铛 + 通知 Popover */}
       <div className="relative" ref={popoverRef}>
         <button
+          type="button"
           aria-label="通知"
-          onClick={handleBellClick}
-          className="relative grid size-10 place-items-center rounded-full border border-black/5 bg-white text-[var(--muted)] shadow-sm hover:text-[var(--ink)] transition"
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+          className={`relative grid size-8 place-items-center rounded-md transition-colors hover:bg-raise hover:text-ink ${open ? "bg-raise text-ink" : "text-muted"}`}
         >
-          <Bell className="size-4" />
+          <Bell className="size-[15px]" strokeWidth={1.9} />
           {unreadCount > 0 && (
-            <span className="absolute right-2 top-2 flex size-4 items-center justify-center rounded-full bg-[var(--coral)] text-[9px] font-bold text-white leading-none">
+            <span className="absolute right-1 top-1 grid min-w-[13px] place-items-center rounded-full bg-clay px-[3px] text-[9px] font-semibold leading-[13px] text-white">
               {unreadCount > 9 ? "9+" : unreadCount}
             </span>
           )}
         </button>
 
         {open && (
-          <div className="absolute right-0 top-12 z-50 w-80 rounded-2xl border border-black/5 bg-white shadow-xl">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-black/[0.055]">
-              <span className="text-sm font-bold">通知</span>
+          <div className="absolute right-0 top-10 z-50 w-[308px] overflow-hidden rounded-xl border border-line bg-surface shadow-[0_16px_44px_-16px_rgba(30,29,26,0.3)]">
+            <div className="flex items-center justify-between border-b border-line px-3 py-2.5">
+              <span className="text-[12.5px] font-semibold text-ink">通知</span>
               {unreadCount > 0 && (
-                <button
-                  onClick={markAllRead}
-                  className="flex items-center gap-1 text-xs text-[var(--violet)] font-semibold hover:opacity-70 transition"
-                >
+                <button type="button" onClick={markAllRead} className="inline-flex items-center gap-1 text-[11px] font-medium text-brand transition hover:opacity-70">
                   <Check className="size-3" /> 全部已读
                 </button>
               )}
             </div>
 
             {notifications.length === 0 ? (
-              <p className="px-4 py-8 text-center text-sm text-[var(--muted)]">暂无通知</p>
+              <p className="px-4 py-9 text-center text-[12.5px] text-muted">暂无通知</p>
             ) : (
-              <ul className="max-h-80 overflow-y-auto divide-y divide-black/[0.04]">
+              <ul className="max-h-[320px] divide-y divide-line overflow-y-auto">
                 {notifications.map((n) => (
                   <li key={n.id}>
                     <button
+                      type="button"
                       onClick={() => handleNotificationClick(n)}
-                      className={`w-full text-left px-4 py-3 hover:bg-black/[0.025] transition ${n.read ? "opacity-60" : ""}`}
+                      className="flex w-full items-start gap-2 px-3 py-2.5 text-left transition-colors hover:bg-raise"
                     >
-                      <div className="flex items-start gap-2">
-                        {!n.read && <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-[var(--coral)]" />}
-                        <div className={!n.read ? "" : "pl-3.5"}>
-                          <p className="text-xs font-semibold text-[var(--muted)]">{TYPE_LABELS[n.type]}</p>
-                          <p className="mt-0.5 text-sm font-medium leading-snug">{n.body}</p>
-                        </div>
-                      </div>
+                      <span className={`mt-1.5 size-1.5 shrink-0 rounded-full ${n.read ? "bg-line-strong" : "bg-clay"}`} />
+                      <span className="min-w-0">
+                        <span className="block text-[10.5px] font-semibold uppercase tracking-[0.08em] text-faint">{TYPE_LABELS[n.type]}</span>
+                        <span className={`mt-0.5 block text-[12.5px] leading-snug ${n.read ? "text-muted" : "text-ink"}`}>{n.body}</span>
+                      </span>
                     </button>
                   </li>
                 ))}
@@ -158,22 +149,20 @@ export function HeaderActions() {
         )}
       </div>
 
+      <span className="mx-1.5 hidden h-4 w-px bg-line sm:block" />
+
       {user === undefined ? (
-        <div className="ml-1 size-10 animate-pulse rounded-full bg-black/[0.06]" />
+        <div className="size-7 animate-pulse rounded-full bg-raise" />
       ) : user ? (
         <Link
           href="/account"
           aria-label="打开个人主页"
-          className="ml-1 grid size-10 place-items-center rounded-full bg-gradient-to-br from-[#ff8a67] to-[#ffc15b] text-sm font-bold text-white shadow-sm"
+          className="grid size-7 place-items-center rounded-full border border-ink bg-ink text-[11px] font-semibold text-canvas transition hover:opacity-85"
         >
           {initial}
         </Link>
       ) : (
-        <Link
-          href="/login"
-          aria-label="登录"
-          className="ml-1 grid size-10 place-items-center rounded-full border border-black/10 bg-white text-[var(--muted)] shadow-sm hover:text-[var(--ink)] transition text-xs font-bold"
-        >
+        <Link href="/login" className="btn btn-secondary btn-sm">
           登录
         </Link>
       )}

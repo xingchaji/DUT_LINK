@@ -2,7 +2,24 @@
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, BadgeCheck, BriefcaseBusiness, CalendarDays, ExternalLink, LoaderCircle, MailPlus, Send, ShieldCheck, Sparkles, Trash2, UserRound, UsersRound, X } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  ArrowUpRight,
+  BadgeCheck,
+  BriefcaseBusiness,
+  ExternalLink,
+  LoaderCircle,
+  MailPlus,
+  Send,
+  Sparkles,
+  Trash2,
+  Trophy,
+  UserRound,
+  UsersRound,
+  X,
+} from "lucide-react";
+import { PageHeader } from "@/components/page-header";
 import { TagEditor } from "@/components/tag-editor";
 import type { Opportunity, PersonMatch, PersonProfile, RecruitmentPost, TeamMemberSummary } from "@/lib/types";
 
@@ -14,6 +31,28 @@ type DetailData = {
 
 type RecommendationData = { people: PersonMatch[]; mode: "ai" | "rules" | "profile-fallback"; policy: string };
 
+const VERIFICATION: Record<string, { text: string; tone: "ok" | "warn" | "bad" }> = {
+  official: { text: "官方来源已核验", tone: "ok" },
+  "campus-verified": { text: "校内来源已核验", tone: "ok" },
+  pending: { text: "校内发布 · 待核验", tone: "warn" },
+  rejected: { text: "核验未通过", tone: "bad" },
+};
+
+function verificationOf(opportunity: Opportunity) {
+  return VERIFICATION[opportunity.verification ?? "pending"] ?? VERIFICATION.pending;
+}
+
+function statusClass(tone: "ok" | "warn" | "bad") {
+  if (tone === "ok") return "status status-ok";
+  if (tone === "warn") return "status status-warn";
+  return "status status-bad";
+}
+
+function fillRatio(current: number, capacity: number) {
+  if (!capacity) return 0;
+  return Math.min(100, Math.round((current / capacity) * 100));
+}
+
 export function OpportunityDetail({ opportunityId, mode }: { opportunityId: string; mode: "overview" | "recruit" | "teams" }) {
   const [data, setData] = useState<DetailData | null>(null);
   const [error, setError] = useState("");
@@ -24,12 +63,18 @@ export function OpportunityDetail({ opportunityId, mode }: { opportunityId: stri
   const [profileLoading, setProfileLoading] = useState(false);
   const [formVersion, setFormVersion] = useState(0);
   const [recommendations, setRecommendations] = useState<RecommendationData | null>(null);
+  const [intended, setIntended] = useState(false);
 
   const load = useCallback(async () => {
     const response = await fetch(`/api/opportunities/${opportunityId}`, { cache: "no-store" });
     const payload = await response.json();
     if (!response.ok) { setError(payload.message ?? "比赛不存在"); return; }
     setData(payload);
+    const interestResponse = await fetch("/api/opportunity-interests", { cache: "no-store" });
+    if (interestResponse.ok) {
+      const interestPayload = await interestResponse.json();
+      setIntended(((interestPayload.opportunityIds ?? []) as string[]).includes(opportunityId));
+    }
     if (payload.ownedRecruitment) {
       const recommendationResponse = await fetch(`/api/recruitments/${payload.ownedRecruitment.id}/recommendations`, { cache: "no-store" });
       const recommendationPayload = await recommendationResponse.json();
@@ -98,54 +143,613 @@ export function OpportunityDetail({ opportunityId, mode }: { opportunityId: stri
     setSelectedPerson(null);
   }
 
-  if (error) return <div className="mx-auto max-w-3xl px-5 py-20 text-center"><h1 className="text-2xl font-bold">{error}</h1><Link href="/opportunities" className="mt-5 inline-block underline">返回组队中心</Link></div>;
-  if (!data) return <div className="flex min-h-[60vh] items-center justify-center gap-2 text-sm text-[var(--muted)]"><LoaderCircle className="size-4 animate-spin" /> 加载比赛空间</div>;
+  async function toggleInterest() {
+    setNotice("");
+    const next = !intended;
+    const response = await fetch("/api/opportunity-interests", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ opportunityId, intended: next }) });
+    const payload = await response.json();
+    if (!response.ok) { setNotice(payload.message ?? "标记参赛意向失败"); return; }
+    setIntended(Boolean(payload.intended));
+    setNotice(next ? "已加入参赛意向，队长推荐队友时会优先筛选你" : "已取消参赛意向");
+  }
+
+  if (error) {
+    return (
+      <div className="page-shell">
+        <PageHeader eyebrow="比赛文档" title={error} icon={<Trophy className="size-5" strokeWidth={1.8} />} />
+        <div className="mt-8">
+          <Link href="/opportunities" className="btn btn-secondary">
+            <ArrowLeft className="size-3.5" /> 返回组队中心
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="page-shell">
+        <div className="flex min-h-[40vh] items-center justify-center gap-2 text-[13px] text-muted">
+          <LoaderCircle className="size-[13px] animate-spin" /> 加载比赛文档
+        </div>
+      </div>
+    );
+  }
+
   const { opportunity, recruitments, ownedRecruitment } = data;
+  const header = mode === "recruit"
+    ? {
+      eyebrow: "队长工作台",
+      title: ownedRecruitment ? ownedRecruitment.teamName : "创建队伍并招募",
+      lede: ownedRecruitment
+        ? "推荐按当前队伍需求生成，你可以继续邀请有参赛意向的同学。"
+        : `为「${opportunity.title}」填写项目方向、技能缺口与招募要求，创建队伍后系统才会生成定向推荐。`,
+    }
+    : mode === "teams"
+      ? {
+        eyebrow: "寻找队伍",
+        title: "正在招募的队伍",
+        lede: `「${opportunity.title}」当前有 ${recruitments.length} 支有效招募，只展示尚未截止且仍有名额的队伍。`,
+      }
+      : {
+        eyebrow: "比赛文档",
+        title: opportunity.title,
+        lede: opportunity.status,
+      };
+  const icon = mode === "recruit"
+    ? <BriefcaseBusiness className="size-5" strokeWidth={1.8} />
+    : <Trophy className="size-5" strokeWidth={1.8} />;
 
   return (
-    <div className="mx-auto max-w-[1500px] px-5 py-7 sm:px-8 lg:px-10 lg:py-9 xl:px-12">
-      <Link href="/opportunities" className="inline-flex items-center gap-2 rounded-full border border-black/[0.06] bg-white/70 px-3.5 py-2 text-xs font-semibold text-[var(--muted)] shadow-sm transition hover:text-[var(--ink)]"><ArrowLeft className="size-4" /> 返回组队中心</Link>
-      <OpportunityHeader opportunity={opportunity} activeTeams={recruitments.length} />
-      {notice && <div role="status" className="mt-5 flex items-center gap-3 rounded-2xl border border-[var(--lime)] bg-[var(--lime)]/30 px-4 py-3 text-sm"><BadgeCheck className="size-4 shrink-0 text-[#57820f]" /><span>{notice}{notice.includes("登录") && <Link href={`/login?next=/opportunities/${opportunity.id}/${mode === "teams" ? "teams" : "recruit"}`} className="ml-2 font-bold underline">去登录</Link>}</span></div>}
-      {mode === "overview" && <RoleChooser opportunity={opportunity} activeTeams={recruitments.length} />}
+    <div className="page-shell">
+      <PageHeader eyebrow={header.eyebrow} title={header.title} lede={header.lede} icon={icon} />
+
+      {notice && (
+        <div role="status" className="callout mt-6 items-start">
+          <BadgeCheck className="mt-0.5 size-3.5 shrink-0 text-moss" strokeWidth={2} />
+          <span className="min-w-0">
+            {notice}
+            {notice.includes("登录") && (
+              <Link href={`/login?next=/opportunities/${opportunity.id}/${mode === "teams" ? "teams" : "recruit"}`} className="ml-2 font-medium text-brand underline decoration-brand/30 underline-offset-2">
+                去登录
+              </Link>
+            )}
+          </span>
+        </div>
+      )}
+
+      {mode === "overview" && <OverviewView opportunity={opportunity} recruitments={recruitments} intended={intended} onToggleInterest={toggleInterest} />}
       {mode === "teams" && <TeamsView recruitments={recruitments} opportunity={opportunity} onApply={apply} />}
-      {mode === "recruit" && <RecruitView key={formVersion} opportunity={opportunity} recommendations={recommendations} ownedRecruitment={ownedRecruitment} publishing={publishing} profileLoading={profileLoading} onPublish={publish} onDelete={deleteTeam} onOpenPerson={openPerson} />}
+      {mode === "recruit" && (
+        <RecruitView
+          key={formVersion}
+          opportunity={opportunity}
+          recommendations={recommendations}
+          ownedRecruitment={ownedRecruitment}
+          publishing={publishing}
+          profileLoading={profileLoading}
+          onPublish={publish}
+          onDelete={deleteTeam}
+          onOpenPerson={openPerson}
+        />
+      )}
       {selectedPerson && <PersonDialog person={selectedPerson} inviteNotice={inviteNotice} onClose={() => setSelectedPerson(null)} onInvite={() => invite(selectedPerson)} />}
     </div>
   );
 }
 
-function OpportunityHeader({ opportunity, activeTeams }: { opportunity: Opportunity; activeTeams: number }) {
-  return <section className="card mt-5 overflow-hidden"><div className="dot-grid relative overflow-hidden bg-[var(--ink)] p-7 text-white sm:p-9 lg:p-10"><div className="absolute -right-24 -top-28 size-72 rounded-full bg-[var(--violet)]/70 blur-3xl" /><div className="absolute -bottom-28 left-[40%] size-56 rounded-full bg-[var(--cyan)]/25 blur-3xl" /><div className="relative"><div className="flex flex-wrap items-center gap-2"><span className="rounded-full border border-white/10 bg-white/10 px-3 py-1.5 text-xs font-bold">{opportunity.type}</span><span className="rounded-full bg-[var(--lime)] px-3 py-1.5 text-xs font-bold text-[var(--ink)]">{opportunity.scope}</span>{opportunity.verification !== "pending" && <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1.5 text-xs text-white/60"><ShieldCheck className="size-3.5" /> 官方来源已核验</span>}</div><h1 className="mt-6 max-w-5xl font-[family-name:var(--font-display)] text-3xl font-extrabold leading-tight tracking-[-0.045em] sm:text-5xl">{opportunity.title}</h1><p className="mt-3 text-sm text-white/55">{opportunity.organizer}</p><p className="mt-5 max-w-3xl text-sm leading-7 text-white/70">{opportunity.description}</p></div></div><div className="grid gap-3 p-5 sm:grid-cols-3 sm:p-6"><Info icon={<CalendarDays className="size-4" />} label="报名时间" value={`${opportunity.registrationStart ?? "待补充"} — ${opportunity.registrationEnd ?? "待补充"}`} /><Info icon={<UsersRound className="size-4" />} label="有效招募" value={`${activeTeams} 支队伍`} /><Info icon={<ShieldCheck className="size-4" />} label="信息状态" value={opportunity.verification === "pending" ? "校内发布 · 待核验" : `来源已核验 · ${opportunity.verifiedAt}`} /></div>{opportunity.sourceUrl !== "#" && <a href={opportunity.sourceUrl} target="_blank" rel="noreferrer" className="mx-5 mb-6 inline-flex items-center gap-2 rounded-xl bg-[var(--violet)]/[0.08] px-4 py-3 text-xs font-bold text-[var(--violet)] transition hover:bg-[var(--violet)]/[0.12] sm:mx-6">查看比赛官网与原始通知 <ExternalLink className="size-3.5" /></a>}</section>;
+/* ---------------- 比赛文档 ---------------- */
+
+function OverviewView({ opportunity, recruitments, intended, onToggleInterest }: { opportunity: Opportunity; recruitments: RecruitmentPost[]; intended: boolean; onToggleInterest: () => void }) {
+  const verification = verificationOf(opportunity);
+  return (
+    <div className="mt-8 grid gap-9 xl:grid-cols-[minmax(0,1fr)_264px] xl:gap-10">
+      <div className="min-w-0 space-y-9">
+        <section className="reveal" style={{ ["--i" as string]: 0 }}>
+          <p className="section-label">Facts</p>
+          <div className="mt-2.5 overflow-hidden rounded-[14px] border border-line bg-surface">
+            <div className="grid sm:grid-cols-2 sm:divide-x sm:divide-line">
+              <dl className="divide-y divide-line">
+                <Attr label="类型">{opportunity.type}</Attr>
+                <Attr label="主办方">{opportunity.organizer}</Attr>
+                <Attr label="范围">{opportunity.scope ?? "全国"}</Attr>
+              </dl>
+              <dl className="divide-y divide-line border-t border-line sm:border-t-0">
+                <Attr label="开始报名">
+                  {opportunity.registrationStart ? <span className="num">{opportunity.registrationStart}</span> : <span className="text-faint">待补充</span>}
+                </Attr>
+                <Attr label="截止报名">
+                  {opportunity.registrationEnd ? <span className="num">{opportunity.registrationEnd}</span> : <span className="text-faint">待补充</span>}
+                </Attr>
+                <Attr label="核验状态">
+                  <span className={statusClass(verification.tone)}>{verification.text}</span>
+                  <span className="num ml-2 text-[11.5px] text-muted">{opportunity.verifiedAt}</span>
+                </Attr>
+              </dl>
+            </div>
+            <div className="flex flex-col gap-1 border-t border-line bg-raise/60 px-4 py-2.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
+              <span className="text-[11.5px] text-faint">综测政策</span>
+              <span className="text-[12.5px] leading-6 text-ink-soft">{opportunity.bonusPolicy}</span>
+            </div>
+          </div>
+        </section>
+
+        <section className="reveal" style={{ ["--i" as string]: 1 }}>
+          <h2 className="section-title">比赛说明</h2>
+          <p className="mt-2 max-w-2xl text-[13.5px] leading-[1.9] text-ink-soft">{opportunity.description}</p>
+
+          {opportunity.tags.length > 0 && (
+            <div className="mt-4 flex flex-wrap items-center gap-1.5">
+              {opportunity.tags.map((tag) => <span key={tag} className="chip chip-outline">{tag}</span>)}
+            </div>
+          )}
+
+          <dl className="mt-6 divide-y divide-line border-y border-line">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-2.5">
+              <dt className="text-[11.5px] text-faint">来源</dt>
+              <dd className="text-[12px] text-muted">{opportunity.sourceName}</dd>
+            </div>
+            {opportunity.sourceUrl !== "#" && (
+              <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-2.5">
+                <dt className="text-[11.5px] text-faint">原始通知</dt>
+                <dd>
+                  <a href={opportunity.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[12px] font-medium text-brand hover:underline">
+                    查看比赛官网与原始通知 <ExternalLink className="size-3" />
+                  </a>
+                </dd>
+              </div>
+            )}
+          </dl>
+        </section>
+
+        <section className="reveal" style={{ ["--i" as string]: 2 }}>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="section-label">Teams</p>
+              <h2 className="section-title mt-1.5">参赛队伍</h2>
+              <p className="section-desc mt-1">当前 <span className="num">{recruitments.length}</span> 支有效招募，只展示尚未截止且仍有名额的队伍。</p>
+            </div>
+            <Link href={`/opportunities/${opportunity.id}/teams`} className="btn btn-ghost btn-sm">
+              查看全部 <ArrowUpRight className="size-3.5" />
+            </Link>
+          </div>
+
+          {recruitments.length > 0 ? (
+            <div className="mt-3.5 overflow-hidden rounded-[14px] border border-line bg-surface">
+              {recruitments.slice(0, 4).map((post) => <TeamLinkRow key={post.id} post={post} opportunityId={opportunity.id} />)}
+            </div>
+          ) : (
+            <div className="mt-3.5 rounded-[14px] border border-dashed border-line-strong px-4 py-9 text-center">
+              <p className="text-[12.5px] text-muted">还没有队伍在本场发布招募。</p>
+              <Link href={`/opportunities/${opportunity.id}/recruit`} className="btn btn-secondary btn-sm mt-3">我是队长，创建队伍</Link>
+            </div>
+          )}
+
+          {recruitments.length > 4 && (
+            <p className="mt-2 text-[11px] text-faint">另有 <span className="num">{recruitments.length - 4}</span> 支队伍在招募中。</p>
+          )}
+        </section>
+      </div>
+
+      <aside className="reveal min-w-0 xl:sticky xl:top-6 xl:self-start" style={{ ["--i" as string]: 1 }}>
+        <div className="card p-4">
+          <p className="section-label">Actions</p>
+          <div className="mt-3 space-y-2">
+            <Link href={`/opportunities/${opportunity.id}/recruit`} className="btn btn-primary btn-block">
+              我是队长 <ArrowRight className="size-3.5" />
+            </Link>
+            <Link href={`/opportunities/${opportunity.id}/teams`} className="btn btn-secondary btn-block">
+              寻找队伍 <UsersRound className="size-3.5" />
+            </Link>
+            <button type="button" onClick={onToggleInterest} aria-pressed={intended} className={`btn btn-block ${intended ? "btn-marker" : "btn-secondary"}`}>
+              {intended ? "已标记参赛意向" : "标记参赛意向"}
+            </button>
+          </div>
+          <p className="mt-3.5 border-t border-line pt-3 text-[11px] leading-6 text-faint">
+            同一场比赛只能加入一支队伍。平台帮助同学组队，不替代学校或主办方的正式报名。
+          </p>
+        </div>
+
+        <div className="mt-4 rounded-[10px] border border-line bg-raise/60 px-3 py-2.5">
+          <p className="font-editorial text-[19px] leading-tight text-ink">Facts first, then the team.</p>
+          <p className="mt-1.5 text-[11px] leading-6 text-muted">报名时间与核验状态来自来源页；队伍方向与要求由队长填写。</p>
+        </div>
+
+        <Link href="/opportunities" className="link-quiet mt-4 inline-flex items-center gap-1.5 text-[11.5px]">
+          <ArrowLeft className="size-3" /> 返回组队中心
+        </Link>
+      </aside>
+    </div>
+  );
 }
 
-function RoleChooser({ opportunity, activeTeams }: { opportunity: Opportunity; activeTeams: number }) {
-  return <section className="mt-7"><div><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--violet)]">Choose your path</p><h2 className="mt-2 font-[family-name:var(--font-display)] text-2xl font-extrabold tracking-[-0.035em]">你准备以什么身份参与？</h2></div><div className="mt-5 grid gap-5 md:grid-cols-2"><Link href={`/opportunities/${opportunity.id}/recruit`} className="card interactive-card group relative overflow-hidden p-7"><span className="absolute right-6 top-5 font-[family-name:var(--font-mono)] text-5xl font-bold text-black/[0.035]">01</span><div className="grid size-12 place-items-center rounded-2xl bg-[#eeebff] text-[var(--violet)]"><BriefcaseBusiness className="size-5" /></div><p className="mt-7 text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--violet)]">我是队长</p><h3 className="mt-2 text-2xl font-extrabold tracking-[-0.025em]">创建队伍并智能招募</h3><p className="mt-3 text-sm leading-7 text-[var(--muted)]">填写项目方向与技能需求，再从有参赛意向的同学中获得可解释推荐。</p><span className="mt-6 inline-flex items-center gap-2 text-xs font-bold text-[var(--violet)]">进入队长工作台 <ArrowRight className="size-4 transition group-hover:translate-x-1" /></span></Link><Link href={`/opportunities/${opportunity.id}/teams`} className="card interactive-card group relative overflow-hidden p-7"><span className="absolute right-6 top-5 font-[family-name:var(--font-mono)] text-5xl font-bold text-black/[0.035]">02</span><div className="grid size-12 place-items-center rounded-2xl bg-[#fff0ec] text-[var(--coral)]"><UsersRound className="size-5" /></div><p className="mt-7 text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--coral)]">我是队员</p><h3 className="mt-2 text-2xl font-extrabold tracking-[-0.025em]">查看正在招募的队伍</h3><p className="mt-3 text-sm leading-7 text-[var(--muted)]">当前有 {activeTeams} 支有效招募，只展示尚未截止且仍有名额的队伍。</p><span className="mt-6 inline-flex items-center gap-2 text-xs font-bold text-[var(--coral)]">进入找队页面 <ArrowRight className="size-4 transition group-hover:translate-x-1" /></span></Link></div></section>;
+function Attr({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="grid grid-cols-[68px_minmax(0,1fr)] items-baseline gap-3 px-4 py-2.5">
+      <dt className="text-[11.5px] text-faint">{label}</dt>
+      <dd className="min-w-0 text-[12.5px] leading-6 text-ink-soft">{children}</dd>
+    </div>
+  );
 }
+
+function TeamLinkRow({ post, opportunityId }: { post: RecruitmentPost; opportunityId: string }) {
+  return (
+    <Link
+      href={`/opportunities/${opportunityId}/teams`}
+      className="row-hover group flex items-start gap-3 border-b border-line px-3 py-3.5 last:border-b-0 sm:px-4"
+    >
+      <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-[8px] bg-tea-soft text-tea">
+        <UsersRound className="size-4" strokeWidth={1.9} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="truncate text-[13.5px] font-medium text-ink decoration-line-strong underline-offset-2 group-hover:underline">{post.teamName}</span>
+          {post.projectDirection && <span className="chip chip-outline">{post.projectDirection}</span>}
+        </span>
+        <span className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11.5px] text-muted">
+          <span>队长 {post.ownerName}</span>
+          <span className="text-line-strong">·</span>
+          <span className="num">{post.currentSize}/{post.capacity} 人</span>
+          <span className="text-line-strong">·</span>
+          <span className="num">截止 {post.recruitmentDeadline}</span>
+        </span>
+      </span>
+      <ArrowUpRight className="mt-1 size-3.5 shrink-0 text-faint transition group-hover:text-ink" />
+    </Link>
+  );
+}
+
+/* ---------------- 寻找队伍 ---------------- */
 
 function TeamsView({ recruitments, opportunity, onApply }: { recruitments: RecruitmentPost[]; opportunity: Opportunity; onApply: (id: string) => void }) {
-  return <section className="mt-7"><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--coral)]">Find a team</p><h2 className="mt-2 font-[family-name:var(--font-display)] text-3xl font-extrabold tracking-[-0.04em]">正在招募的队伍</h2><p className="mt-2 text-sm text-[var(--muted)]">对照方向、技能缺口和投入时间，选择真正适合你的合作。</p></div><Link href={`/opportunities/${opportunity.id}/recruit`} className="rounded-full border border-black/[0.08] bg-white px-4 py-3 text-xs font-bold shadow-sm transition hover:border-[var(--violet)]/25 hover:text-[var(--violet)]">我是队长，创建队伍</Link></div><div className="mt-6 grid gap-5 lg:grid-cols-2">{recruitments.map((post) => <RecruitmentCard key={post.id} post={post} onApply={() => onApply(post.id)} />)}{recruitments.length === 0 && <div className="card p-12 text-center text-sm text-[var(--muted)] lg:col-span-2">目前没有仍在有效期内的队伍招募。</div>}</div></section>;
+  const totalMembers = recruitments.reduce((total, post) => total + post.currentSize, 0);
+  const remainingSeats = recruitments.reduce((total, post) => total + Math.max(0, post.capacity - post.currentSize), 0);
+
+  return (
+    <div className="mt-8 space-y-8">
+      <section className="reveal" style={{ ["--i" as string]: 0 }}>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="section-label">Open seats</p>
+            <h2 className="section-title mt-1.5">队伍列表</h2>
+            <p className="section-desc mt-1">对照方向、技能缺口和投入时间，选择真正适合你的合作。</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Link href={`/opportunities/${opportunity.id}`} className="btn btn-ghost btn-sm">
+              <ArrowLeft className="size-3.5" /> 比赛文档
+            </Link>
+            <Link href={`/opportunities/${opportunity.id}/recruit`} className="btn btn-secondary btn-sm">我是队长，创建队伍</Link>
+          </div>
+        </div>
+
+        <dl className="mt-4 grid grid-cols-3 divide-x divide-line overflow-hidden rounded-[14px] border border-line bg-surface">
+          <Stat value={recruitments.length} label="有效招募" />
+          <Stat value={totalMembers} label="在队人数" />
+          <Stat value={remainingSeats} label="剩余名额" />
+        </dl>
+
+        {recruitments.length > 0 ? (
+          <div className="mt-5 divide-y divide-line overflow-hidden rounded-[14px] border border-line bg-surface">
+            {recruitments.map((post) => <TeamRow key={post.id} post={post} onApply={() => onApply(post.id)} />)}
+          </div>
+        ) : (
+          <div className="mt-5 rounded-[14px] border border-dashed border-line-strong px-4 py-10 text-center">
+            <p className="text-[12.5px] text-muted">目前没有仍在有效期内的队伍招募。</p>
+            <Link href={`/opportunities/${opportunity.id}/recruit`} className="btn btn-secondary btn-sm mt-3">我是队长，创建队伍</Link>
+          </div>
+        )}
+      </section>
+    </div>
+  );
 }
 
-function RecruitmentCard({ post, onApply }: { post: RecruitmentPost; onApply: () => void }) {
-  return <article className="card interactive-card flex flex-col p-6"><div className="flex items-start justify-between gap-4"><div><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--violet)]">{post.projectDirection || "方向待沟通"}</p><h3 className="mt-2 text-xl font-extrabold tracking-[-0.02em]">{post.teamName}</h3><p className="mt-1 text-xs text-[var(--muted)]">队长 {post.ownerName} · {post.contact}</p></div><span className="rounded-full bg-[var(--lime)] px-3 py-1 text-[10px] font-bold">{post.currentSize}/{post.capacity} 人</span></div>{post.description && <p className="mt-4 text-sm leading-6 text-[var(--muted)]">{post.description}</p>}<div className="mt-4 rounded-2xl bg-[var(--paper)] p-4 text-xs leading-6"><p><strong>招募要求：</strong>{post.requirements}</p><div className="flex flex-wrap items-center gap-1"><strong>已有成员：</strong><MemberLinks members={post.members} /></div><p><strong>截止日期：</strong>{post.recruitmentDeadline}</p></div><div className="mt-4 flex flex-wrap gap-2">{post.neededSkills.map((skill) => <span key={skill} className="rounded-full bg-[#eeebff] px-2.5 py-1 text-[10px] font-semibold text-[var(--violet)]">需要 {skill}</span>)}</div><div className="mt-auto flex items-center justify-between border-t border-black/[0.06] pt-4"><span className="flex items-center gap-1.5 text-xs text-[var(--muted)]"><UsersRound className="size-3.5" /> {post.applicants} 人申请</span><button onClick={onApply} className="inline-flex items-center gap-2 rounded-xl bg-[var(--ink)] px-4 py-2.5 text-xs font-bold text-white transition hover:-translate-y-0.5">申请加入 <ArrowRight className="size-3.5" /></button></div></article>;
+function Stat({ value, label }: { value: number; label: string }) {
+  return (
+    <div className="px-4 py-3">
+      <dt className="text-[10.5px] text-faint">{label}</dt>
+      <dd className="num mt-1 text-[19px] font-semibold leading-none text-ink">{value}</dd>
+    </div>
+  );
 }
+
+function TeamRow({ post, onApply }: { post: RecruitmentPost; onApply: () => void }) {
+  return (
+    <article className="row-hover grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-3 px-3 py-4 sm:px-4 lg:grid-cols-[minmax(0,1fr)_104px_92px_auto] lg:items-center">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <h3 className="truncate text-[13.5px] font-medium text-ink">{post.teamName}</h3>
+          {post.projectDirection && <span className="chip">{post.projectDirection}</span>}
+          <span className="text-[11.5px] text-faint">队长 {post.ownerName}</span>
+        </div>
+        {post.description && <p className="mt-1.5 line-clamp-2 text-[12px] leading-6 text-muted">{post.description}</p>}
+        <p className="mt-1.5 line-clamp-3 text-[12px] leading-6 text-ink-soft">{post.requirements}</p>
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          {post.neededSkills.map((skill) => <span key={skill} className="chip chip-brand">需要 {skill}</span>)}
+        </div>
+        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-faint">
+          <span>已有成员</span>
+          <MemberLinks members={post.members} />
+          <span className="text-line-strong">·</span>
+          <span>联系方式 {post.contact}</span>
+          {post.expectedAvailability && <><span className="text-line-strong">·</span><span>可用时间 {post.expectedAvailability}</span></>}
+        </div>
+      </div>
+
+      <div className="shrink-0">
+        <p className="num text-[13px] font-medium text-ink">
+          {post.currentSize}<span className="text-faint">/{post.capacity}</span>
+        </p>
+        <div className="mt-1.5 h-1 w-16 overflow-hidden rounded-full bg-sink">
+          <div className="h-full rounded-full bg-ink" style={{ width: `${fillRatio(post.currentSize, post.capacity)}%` }} />
+        </div>
+        <p className="mt-1.5 text-[10.5px] text-faint"><span className="num">{post.applicants}</span> 人申请</p>
+      </div>
+
+      <p className="shrink-0 text-[10.5px] leading-5 text-faint">
+        招募截止
+        <span className="num mt-0.5 block text-[11.5px] text-muted">{post.recruitmentDeadline}</span>
+      </p>
+
+      <button type="button" onClick={onApply} className="btn btn-secondary justify-self-start lg:justify-self-end">
+        申请加入 <ArrowRight className="size-3.5" />
+      </button>
+    </article>
+  );
+}
+
+/* ---------------- 队长工作台 ---------------- */
 
 function RecruitView({ opportunity, recommendations, ownedRecruitment, publishing, profileLoading, onPublish, onDelete, onOpenPerson }: { opportunity: Opportunity; recommendations: RecommendationData | null; ownedRecruitment: RecruitmentPost | null; publishing: boolean; profileLoading: boolean; onPublish: (event: FormEvent<HTMLFormElement>) => void; onDelete: (id: string) => void; onOpenPerson: (id: string) => void }) {
   const [tags, setTags] = useState<string[]>([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const createPanel = ownedRecruitment ? <section className="card p-6 sm:p-7"><p className="text-xs font-bold text-[var(--violet)]">我的本场队伍</p><div className="mt-3 flex items-start justify-between gap-4"><div><h2 className="text-2xl font-bold">{ownedRecruitment.teamName}</h2><p className="mt-2 text-sm text-[var(--muted)]">{ownedRecruitment.projectDirection || "尚未填写项目方向"}</p></div><span className="rounded-full bg-[var(--lime)] px-3 py-1 text-xs font-bold">{ownedRecruitment.currentSize}/{ownedRecruitment.capacity} 人</span></div><div className="mt-5 rounded-2xl bg-[var(--paper)] p-4 text-xs leading-6"><div className="flex flex-wrap items-center gap-1"><strong>自动成员名单：</strong><MemberLinks members={ownedRecruitment.members} /></div><p><strong>招募截止：</strong>{ownedRecruitment.recruitmentDeadline}</p><p><strong>联系方式：</strong>{ownedRecruitment.contact}</p></div><p className="mt-5 text-xs leading-6 text-[var(--muted)]">同一比赛只能创建一支队伍。删除后，本队申请和邀请记录也会清理。</p>{confirmDelete ? <div className="mt-5 grid grid-cols-2 gap-2"><button type="button" onClick={() => onDelete(ownedRecruitment.id)} className="flex items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-xs font-bold text-white"><Trash2 className="size-4" /> 确认删除</button><button type="button" onClick={() => setConfirmDelete(false)} className="rounded-xl border border-black/10 px-4 py-3 text-xs font-bold">取消</button></div> : <button type="button" onClick={() => setConfirmDelete(true)} className="mt-5 flex items-center justify-center gap-2 rounded-xl border border-red-200 px-4 py-3 text-xs font-bold text-red-600"><Trash2 className="size-4" /> 删除本队伍</button>}</section> : <form onSubmit={onPublish} className="card grid gap-4 p-6 sm:grid-cols-2 sm:p-7"><div className="sm:col-span-2"><p className="text-xs font-bold text-[var(--violet)]">队长招募工作台</p><h2 className="mt-2 font-[family-name:var(--font-display)] text-2xl font-bold">为「{opportunity.title}」创建队伍</h2><p className="mt-2 text-xs leading-6 text-[var(--muted)]">先填写技能标签和具体招募要求，创建队伍后系统才会生成定向推荐。</p></div><Input name="teamName" label="队伍名称 *" placeholder="例如：Link Builders" required /><Input name="projectDirection" label="项目方向（选填）" placeholder="例如：AI 校园助手" /><Input name="expectedAvailability" label="期望可用时间（选填）" placeholder="例如：周末、工作日晚间" /><Input name="contact" label="队长联系方式 *" placeholder="微信、QQ 或校园邮箱" required /><TagEditor label="招募技能标签 *" tags={tags} onChange={setTags} inputName="neededSkills" maxTags={8} placeholder="输入“用户调研”后按回车" /><Input name="capacity" label="队员上限 *" placeholder="4" type="number" required min="2" max="12" /><Input name="recruitmentDeadline" label="招募截止日期 *" placeholder="" type="date" required /><label className="sm:col-span-2"><span className="mb-2 block text-xs font-bold">队伍介绍（选填）</span><textarea name="description" rows={3} placeholder="当前进度、项目想法和协作方式" className="w-full rounded-2xl border border-black/10 bg-[var(--paper)] px-4 py-3 text-sm outline-none focus:border-[var(--violet)]" /></label><label className="sm:col-span-2"><span className="mb-2 block text-xs font-bold">招募要求 *</span><textarea name="requirements" required rows={4} minLength={8} placeholder="希望队员具备什么能力、每周投入时间和具体职责" className="w-full rounded-2xl border border-black/10 bg-[var(--paper)] px-4 py-3 text-sm outline-none focus:border-[var(--violet)]" /></label><button disabled={publishing || tags.length === 0} className="sm:col-span-2 flex items-center justify-center gap-2 rounded-2xl bg-[var(--ink)] px-5 py-4 text-sm font-bold text-white disabled:opacity-50">{publishing ? <LoaderCircle className="size-4 animate-spin" /> : <Send className="size-4" />} 创建队伍并开始招募</button></form>;
   const people = recommendations?.people ?? [];
-  return <div className="mt-7 grid gap-7 xl:grid-cols-[1fr_0.72fr]">{createPanel}<aside><section className="card sticky top-6 p-6"><div className="flex items-center gap-3"><Sparkles className="size-5 text-[var(--violet)]" /><div><h2 className="font-[family-name:var(--font-display)] text-xl font-bold">智能推荐队友</h2><p className="text-xs text-[var(--muted)]">{ownedRecruitment ? recommendations?.policy ?? "正在根据队伍需求生成推荐" : "创建队伍并填写招募需求后生成"}</p></div></div>{!ownedRecruitment ? <div className="mt-5 rounded-2xl border border-dashed border-black/10 p-7 text-center text-xs leading-6 text-[var(--muted)]">推荐不会提前展示。请先补全技能标签和招募要求，系统将据此匹配有参赛意向的同学。</div> : <div className="mt-5 space-y-4">{recommendations && <span className="inline-flex rounded-full bg-[var(--lime)]/55 px-2.5 py-1 text-[10px] font-bold">{recommendations.mode === "ai" ? "AI 匹配" : recommendations.mode === "rules" ? "可解释规则匹配" : "能力画像降级匹配"}</span>}{people.map((person) => <article key={person.id} className="rounded-2xl border border-black/[0.06] p-4"><button type="button" onClick={() => onOpenPerson(person.id)} className="flex w-full items-center gap-3 text-left"><div className="grid size-11 place-items-center rounded-2xl bg-[#ebe8ff] text-sm font-bold text-[var(--violet)]">{person.avatar}</div><div className="min-w-0 flex-1"><div className="flex items-center gap-2"><strong className="text-sm">{person.name}</strong><span className="rounded-full bg-[var(--lime)] px-2 py-0.5 text-[9px] font-bold">{person.match}%</span></div><p className="text-[10px] text-[var(--muted)]">{person.major} · {person.grade}</p></div><UserRound className="size-4 text-[var(--muted)]" /></button><div className="mt-3 flex gap-2"><BadgeCheck className="mt-0.5 size-3.5 shrink-0 text-[var(--violet)]" /><p className="text-xs leading-5 text-[var(--muted)]">{person.reason}</p></div></article>)}{recommendations && people.length === 0 && <div className="rounded-2xl border border-dashed border-black/10 p-7 text-center text-xs leading-6 text-[var(--muted)]">当前暂无可推荐同学，等待意向池或能力资料更新。</div>}</div>}{profileLoading && <p className="mt-4 flex items-center gap-2 text-xs text-[var(--muted)]"><LoaderCircle className="size-3.5 animate-spin" /> 加载用户主页</p>}</section></aside></div>;
+  const modeLabel = recommendations?.mode === "ai" ? "AI 匹配" : recommendations?.mode === "rules" ? "可解释规则匹配" : "能力画像降级匹配";
+
+  return (
+    <div className="mt-8 grid gap-9 xl:grid-cols-[minmax(0,1fr)_320px] xl:gap-10">
+      <div className="min-w-0 space-y-3">
+        <div className="flex flex-wrap items-center gap-1.5 text-[11.5px]">
+          <Link href={`/opportunities/${opportunity.id}`} className="inline-flex items-center gap-1 rounded px-1.5 py-1 text-muted transition hover:bg-raise hover:text-ink">
+            <ArrowLeft className="size-3" /> 比赛文档
+          </Link>
+          <span className="text-line-strong">/</span>
+          <span className="px-1.5 py-1 text-faint">队长工作台</span>
+        </div>
+
+        {ownedRecruitment ? (
+          <section className="reveal card p-5 sm:p-6" style={{ ["--i" as string]: 0 }}>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[11.5px] text-faint">我的本场队伍</p>
+                <h2 className="section-title mt-1.5 truncate">{ownedRecruitment.teamName}</h2>
+                <p className="section-desc mt-1">{ownedRecruitment.projectDirection || "尚未填写项目方向"}</p>
+              </div>
+              <div className="shrink-0">
+                <p className="num text-[15px] font-semibold text-ink">
+                  {ownedRecruitment.currentSize}<span className="text-faint">/{ownedRecruitment.capacity}</span>
+                </p>
+                <div className="mt-1.5 h-1 w-20 overflow-hidden rounded-full bg-sink">
+                  <div className="h-full rounded-full bg-moss" style={{ width: `${fillRatio(ownedRecruitment.currentSize, ownedRecruitment.capacity)}%` }} />
+                </div>
+                <p className="mt-1 text-[10.5px] text-faint">队员人数</p>
+              </div>
+            </div>
+
+            <dl className="mt-5 divide-y divide-line border-y border-line">
+              <div className="grid grid-cols-[68px_minmax(0,1fr)] items-baseline gap-3 py-2.5">
+                <dt className="text-[11.5px] text-faint">成员名单</dt>
+                <dd className="min-w-0 self-baseline"><MemberLinks members={ownedRecruitment.members} /></dd>
+              </div>
+              <div className="grid grid-cols-[68px_minmax(0,1fr)] items-baseline gap-3 py-2.5">
+                <dt className="text-[11.5px] text-faint">招募截止</dt>
+                <dd className="num text-[12.5px] text-ink-soft">{ownedRecruitment.recruitmentDeadline}</dd>
+              </div>
+              <div className="grid grid-cols-[68px_minmax(0,1fr)] items-baseline gap-3 py-2.5">
+                <dt className="text-[11.5px] text-faint">联系方式</dt>
+                <dd className="break-words text-[12.5px] text-ink-soft">{ownedRecruitment.contact}</dd>
+              </div>
+              <div className="grid grid-cols-[68px_minmax(0,1fr)] items-baseline gap-3 py-2.5">
+                <dt className="text-[11.5px] text-faint">招募要求</dt>
+                <dd className="text-[12.5px] leading-6 text-ink-soft">{ownedRecruitment.requirements}</dd>
+              </div>
+            </dl>
+
+            <p className="mt-4 text-[11.5px] leading-6 text-muted">同一比赛只能创建一支队伍。删除后，本队申请和邀请记录也会清理。</p>
+
+            {confirmDelete ? (
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button type="button" onClick={() => onDelete(ownedRecruitment.id)} className="btn border-clay bg-clay text-white">
+                  <Trash2 className="size-3.5" /> 确认删除
+                </button>
+                <button type="button" onClick={() => setConfirmDelete(false)} className="btn btn-secondary">取消</button>
+              </div>
+            ) : (
+              <button type="button" onClick={() => setConfirmDelete(true)} className="btn btn-secondary mt-4 text-clay">
+                <Trash2 className="size-3.5" /> 删除本队伍
+              </button>
+            )}
+          </section>
+        ) : (
+          <form onSubmit={onPublish} className="reveal max-w-[720px]" style={{ ["--i" as string]: 0 }}>
+            <h2 className="section-title">创建队伍</h2>
+            <p className="section-desc mt-1.5">先填写技能标签和具体招募要求，创建队伍后系统才会生成定向推荐。</p>
+
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <Field name="teamName" label="队伍名称 *" placeholder="例如：Link Builders" required />
+              <Field name="projectDirection" label="项目方向（选填）" placeholder="例如：AI 校园助手" />
+              <Field name="expectedAvailability" label="期望可用时间（选填）" placeholder="例如：周末、工作日晚间" />
+              <Field name="contact" label="队长联系方式 *" placeholder="微信、QQ 或校园邮箱" required />
+              <TagEditor
+                className="min-w-0 sm:col-span-2"
+                label="招募技能标签 *"
+                tags={tags}
+                onChange={setTags}
+                inputName="neededSkills"
+                placeholder="输入“用户调研”后按回车"
+                maxTags={8}
+              />
+              <Field name="capacity" label="队员上限 *" placeholder="4" type="number" required min="2" max="12" hint="2 至 12 人，包含队长本人。" />
+              <Field name="recruitmentDeadline" label="招募截止日期 *" placeholder="" type="date" required />
+              <label className="block sm:col-span-2">
+                <span className="field-label">队伍介绍（选填）</span>
+                <textarea name="description" rows={3} placeholder="当前进度、项目想法和协作方式" className="field" />
+              </label>
+              <label className="block sm:col-span-2">
+                <span className="field-label">招募要求 *</span>
+                <textarea name="requirements" required rows={4} minLength={8} placeholder="希望队员具备什么能力、每周投入时间和具体职责" className="field" />
+                <span className="field-hint">至少 8 个字，写清能力要求、每周投入与具体职责。</span>
+              </label>
+            </div>
+
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
+              <p className="max-w-[19rem] text-[11px] leading-6 text-faint">同一场比赛只能加入一支队伍，创建后不可与其它队伍并行。</p>
+              <button disabled={publishing || tags.length === 0} className="btn btn-primary px-4">
+                {publishing ? <LoaderCircle className="size-3.5 animate-spin" /> : <Send className="size-3.5" />} 创建队伍并开始招募
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+
+      <aside className="reveal min-w-0" style={{ ["--i" as string]: 1 }}>
+        <section className="card p-4 xl:sticky xl:top-6">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-center gap-1.5">
+              <Sparkles className="size-3.5 text-brand" strokeWidth={2} />
+              <h2 className="section-title text-[14px]">推荐队友</h2>
+            </div>
+            {recommendations && ownedRecruitment && <span className="chip">{modeLabel}</span>}
+          </div>
+          <p className="mt-1.5 text-[11px] leading-6 text-faint">
+            {ownedRecruitment ? recommendations?.policy ?? "正在根据队伍需求生成推荐" : "创建队伍并填写招募需求后生成"}
+          </p>
+
+          {!ownedRecruitment ? (
+            <p className="mt-4 rounded-[10px] border border-dashed border-line-strong px-3 py-5 text-center text-[11.5px] leading-6 text-muted">
+              推荐不会提前展示。请先补全技能标签和招募要求，系统将据此匹配有参赛意向的同学。
+            </p>
+          ) : (
+            <ul className="mt-2 divide-y divide-line">
+              {people.map((person) => (
+                <li key={person.id}>
+                  <button type="button" onClick={() => onOpenPerson(person.id)} className="row-hover -mx-2 flex w-full items-start gap-2.5 rounded-[6px] px-2 py-2.5 text-left">
+                    <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-brand-soft text-[10.5px] font-semibold text-brand">{person.avatar}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-baseline gap-1.5">
+                        <span className="truncate text-[12.5px] font-medium text-ink">{person.name}</span>
+                        <span className="num shrink-0 text-[11px] text-muted">{person.match}%</span>
+                      </span>
+                      <span className="mt-0.5 block truncate text-[10.5px] text-faint">{person.major} · {person.grade}</span>
+                      <span className="mt-1 block text-[11px] leading-5 text-muted">{person.reason}</span>
+                    </span>
+                    <UserRound className="mt-0.5 size-3.5 shrink-0 text-faint" />
+                  </button>
+                </li>
+              ))}
+              {recommendations && people.length === 0 && (
+                <li className="rounded-[10px] border border-dashed border-line-strong px-3 py-5 text-center text-[11.5px] leading-6 text-muted">
+                  当前暂无可推荐同学，等待意向池或能力资料更新。
+                </li>
+              )}
+            </ul>
+          )}
+
+          {profileLoading && (
+            <p className="mt-3 flex items-center gap-1.5 text-[11px] text-muted">
+              <LoaderCircle className="size-3 animate-spin" /> 加载用户主页
+            </p>
+          )}
+        </section>
+      </aside>
+    </div>
+  );
 }
 
+function Field({ name, label, placeholder, type = "text", required = false, min, max, hint }: { name: string; label: string; placeholder?: string; type?: string; required?: boolean; min?: string; max?: string; hint?: string }) {
+  return (
+    <label className="block">
+      <span className="field-label">{label}</span>
+      <input name={name} type={type} required={required} min={min} max={max} placeholder={placeholder} className="field" />
+      {hint && <span className="field-hint">{hint}</span>}
+    </label>
+  );
+}
+
+/* ---------------- 用户主页 ---------------- */
+
 function PersonDialog({ person, inviteNotice, onClose, onInvite }: { person: PersonProfile; inviteNotice: string; onClose: () => void; onInvite: () => void }) {
-  return <div className="fixed inset-0 z-50 grid place-items-center bg-black/45 p-5" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><section role="dialog" aria-modal="true" aria-label={`${person.name}的用户主页`} className="card w-full max-w-lg p-6 sm:p-8"><div className="flex items-start justify-between"><div className="flex items-center gap-4"><div className="grid size-16 place-items-center rounded-3xl bg-[#ebe8ff] text-xl font-bold text-[var(--violet)]">{person.avatar}</div><div><p className="text-xs text-[var(--violet)]">用户主页</p><h2 className="mt-1 text-2xl font-bold">{person.name}</h2><p className="text-xs text-[var(--muted)]">{person.major} · {person.grade}</p></div></div><button onClick={onClose} aria-label="关闭用户主页" className="rounded-xl p-2 hover:bg-black/5"><X className="size-5" /></button></div><p className="mt-6 text-sm leading-7 text-[var(--muted)]">{person.bio}</p><div className="mt-5 grid gap-3 rounded-2xl bg-[var(--paper)] p-4 text-xs sm:grid-cols-2"><p><strong>联系方式</strong><br />{person.contact}</p><p><strong>可投入时间</strong><br />{person.availability}</p></div><div className="mt-5 flex flex-wrap gap-2">{person.tags.map((tag) => <span key={tag} className="rounded-full bg-[#ebe8ff] px-3 py-1.5 text-xs font-semibold text-[var(--violet)]">{tag}</span>)}</div>{inviteNotice && <p role="alert" className="mt-5 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-xs font-semibold text-red-600">{inviteNotice}</p>}<div className="mt-6 grid grid-cols-2 gap-2"><Link href={`/people/${person.id}`} className="flex items-center justify-center rounded-2xl border border-black/10 px-4 py-3 text-xs font-bold">打开完整主页</Link><button onClick={onInvite} className="flex items-center justify-center gap-2 rounded-2xl bg-[var(--ink)] px-4 py-3 text-xs font-bold text-white"><MailPlus className="size-4 text-[var(--lime)]" /> 发送邀请</button></div></section></div>;
+  return (
+    <div
+      className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-ink/30 p-4 sm:p-6"
+      role="presentation"
+      onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}
+    >
+      <section role="dialog" aria-modal="true" aria-label={`${person.name}的用户主页`} className="card w-full max-w-lg p-5 sm:p-6">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="grid size-11 shrink-0 place-items-center rounded-full bg-brand-soft text-[13px] font-semibold text-brand">{person.avatar}</span>
+            <div className="min-w-0">
+              <p className="text-[11px] text-faint">用户主页</p>
+              <h2 className="section-title mt-0.5 truncate">{person.name}</h2>
+              <p className="mt-0.5 text-[11.5px] text-muted">{person.major} · {person.grade}</p>
+            </div>
+          </div>
+          <button onClick={onClose} aria-label="关闭用户主页" className="grid size-8 shrink-0 place-items-center rounded-[8px] text-faint transition hover:bg-raise hover:text-ink">
+            <X className="size-4" />
+          </button>
+        </div>
+
+        <p className="mt-4 text-[12.5px] leading-7 text-ink-soft">{person.bio}</p>
+
+        <dl className="mt-4 divide-y divide-line border-y border-line">
+          <div className="grid grid-cols-[68px_minmax(0,1fr)] items-baseline gap-3 py-2.5">
+            <dt className="text-[11.5px] text-faint">联系方式</dt>
+            <dd className="text-[12.5px] text-ink-soft">{person.contact}</dd>
+          </div>
+          <div className="grid grid-cols-[68px_minmax(0,1fr)] items-baseline gap-3 py-2.5">
+            <dt className="text-[11.5px] text-faint">可投入时间</dt>
+            <dd className="text-[12.5px] text-ink-soft">{person.availability}</dd>
+          </div>
+        </dl>
+
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {person.tags.map((tag) => <span key={tag} className="chip chip-outline">{tag}</span>)}
+        </div>
+
+        {inviteNotice && (
+          <p role="alert" className="mt-4 rounded-[10px] bg-clay-soft px-3 py-2 text-[11.5px] leading-6 text-clay">{inviteNotice}</p>
+        )}
+
+        <div className="mt-5 grid grid-cols-2 gap-2">
+          <Link href={`/people/${person.id}`} className="btn btn-secondary">打开完整主页</Link>
+          <button onClick={onInvite} className="btn btn-primary">
+            <MailPlus className="size-3.5" /> 发送邀请
+          </button>
+        </div>
+      </section>
+    </div>
+  );
 }
 
 function MemberLinks({ members }: { members: TeamMemberSummary[] }) {
-  return <span className="inline-flex flex-wrap gap-x-2 gap-y-1">{members.map((member) => <span key={member.userId} className="group relative"><Link href={`/people/${member.userId}`} className="font-semibold text-[var(--violet)] underline decoration-[var(--violet)]/25 underline-offset-2">{member.name}</Link><span className="pointer-events-none invisible absolute bottom-full left-1/2 z-20 mb-2 w-56 -translate-x-1/2 rounded-2xl bg-[var(--ink)] p-3 text-left text-white opacity-0 shadow-xl transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100"><strong className="block text-xs">{member.name}</strong><span className="mt-1 block text-[10px] text-white/60">{member.major} · {member.grade}</span><span className="mt-2 flex flex-wrap gap-1">{member.skills.length ? member.skills.slice(0, 4).map((skill) => <span key={skill} className="rounded-full bg-white/10 px-2 py-0.5 text-[9px]">{skill}</span>) : <span className="text-[9px] text-white/50">技能标签待补充</span>}</span></span></span>)}</span>;
+  return (
+    <span className="inline-flex flex-wrap gap-x-2 gap-y-1">
+      {members.map((member) => (
+        <span key={member.userId} className="group relative">
+          <Link href={`/people/${member.userId}`} className="text-[11.5px] font-medium text-brand underline decoration-brand/25 underline-offset-2 hover:decoration-brand">
+            {member.name}
+          </Link>
+          <span className="pointer-events-none invisible absolute bottom-full left-1/2 z-20 mb-2 w-52 -translate-x-1/2 rounded-[10px] border border-line bg-surface p-2.5 text-left opacity-0 shadow-[0_1px_2px_rgba(30,29,26,0.06),0_10px_24px_-14px_rgba(30,29,26,0.35)] transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
+            <span className="block text-[11.5px] font-medium text-ink">{member.name}</span>
+            <span className="mt-0.5 block text-[10.5px] text-muted">{member.major} · {member.grade}</span>
+            <span className="mt-1.5 flex flex-wrap gap-1">
+              {member.skills.length
+                ? member.skills.slice(0, 4).map((skill) => <span key={skill} className="chip">{skill}</span>)
+                : <span className="text-[10.5px] text-faint">技能标签待补充</span>}
+            </span>
+          </span>
+        </span>
+      ))}
+    </span>
+  );
 }
-
-function Info({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) { return <div className="rounded-2xl bg-[var(--paper)] p-4"><div className="flex items-center gap-2 text-[var(--muted)]">{icon}<p className="text-[10px] font-bold uppercase tracking-[0.12em]">{label}</p></div><p className="mt-2 text-sm font-semibold">{value}</p></div>; }
-function Input({ name, label, placeholder, type = "text", required = false, min, max }: { name: string; label: string; placeholder: string; type?: string; required?: boolean; min?: string; max?: string }) { return <label><span className="mb-2 block text-xs font-bold">{label}</span><input name={name} required={required} type={type} min={min} max={max} placeholder={placeholder} className="w-full rounded-2xl border border-black/10 bg-[var(--paper)] px-4 py-3 text-sm outline-none focus:border-[var(--violet)]" /></label>; }

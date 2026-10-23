@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { Check, CheckCircle2, Clock3, Inbox, LoaderCircle, MailPlus, Send, UsersRound, X } from "lucide-react";
+import { ArrowUpRight, Check, CheckCircle2, ChevronDown, Inbox, LoaderCircle, MailOpen, MailPlus, Send, X } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import type { RecruitmentApplication, TeamInvitation } from "@/lib/types";
 
 type ApplicationView = RecruitmentApplication & { teamName: string; opportunityTitle: string };
 type InvitationView = TeamInvitation & { teamName: string; opportunityTitle: string };
+type Decision = "accepted" | "rejected";
 
 export default function ApplicationsPage() {
   const [sent, setSent] = useState<ApplicationView[]>([]);
@@ -26,14 +27,14 @@ export default function ApplicationsPage() {
 
   useEffect(() => { void Promise.resolve().then(load); }, [load]);
 
-  async function decideApplication(id: string, status: "accepted" | "rejected") {
+  async function decideApplication(id: string, status: Decision) {
     const response = await fetch(`/api/applications/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
     const data = await response.json();
     setNotice(response.ok ? (status === "accepted" ? "已接受申请，队伍人数已更新" : "已拒绝申请") : data.message);
     if (response.ok) await load();
   }
 
-  async function decideInvitation(id: string, status: "accepted" | "rejected") {
+  async function decideInvitation(id: string, status: Decision) {
     const response = await fetch(`/api/invitations/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
     const data = await response.json();
     setNotice(response.ok ? (status === "accepted" ? "已接受邀请并加入队伍" : "已拒绝邀请") : data.message);
@@ -45,47 +46,323 @@ export default function ApplicationsPage() {
   const pendingTotal = pendingApplications + pendingInvitations;
   const activityTotal = sent.length + received.length + sentInvitations.length + receivedInvitations.length;
 
-  return <div className="mx-auto max-w-[1500px] px-5 py-7 sm:px-8 lg:px-10 lg:py-9 xl:px-12">
-    <PageHeader eyebrow="Application Center" title="让每一次组队意向都有结果" />
-    <div className="mt-4 flex max-w-4xl items-start gap-3 text-sm leading-7 text-[var(--muted)]"><span className="mt-3 size-1.5 shrink-0 rounded-full bg-[var(--coral)]" /><p>集中处理申请与邀请。接受后，系统会更新队伍成员，并自动关闭同场比赛的其他待处理意向。</p></div>
+  return (
+    <div className="page-shell">
+      <PageHeader
+        eyebrow="申请管理"
+        title="组队申请与邀请"
+        lede="集中处理申请与邀请。接受后，系统会更新队伍成员，并自动关闭同场比赛的其他待处理意向。"
+        icon={<Inbox className="size-5" strokeWidth={1.8} />}
+      />
 
-    <section className="relative mt-7 overflow-hidden rounded-[28px] bg-[var(--ink)] p-5 text-white shadow-[0_24px_60px_rgba(23,32,51,0.14)] sm:p-6"><div className="absolute -right-16 -top-20 size-56 rounded-full bg-[var(--violet)]/55 blur-3xl" /><div className="relative grid gap-3 sm:grid-cols-3"><SummaryStat value={pendingTotal} label="等待你处理" accent /><SummaryStat value={received.length + receivedInvitations.length} label="收到的意向" /><SummaryStat value={activityTotal} label="全部协作记录" /></div></section>
+      <dl className="mt-8 grid grid-cols-3 divide-x divide-line overflow-hidden rounded-[14px] border border-line bg-surface">
+        <div className="px-4 py-3.5">
+          <dt className="text-[10.5px] text-faint">等待你处理</dt>
+          <dd className="num mt-1 text-[22px] font-semibold leading-none text-ink">{pendingTotal}</dd>
+        </div>
+        <div className="px-4 py-3.5">
+          <dt className="text-[10.5px] text-faint">收到的意向</dt>
+          <dd className="num mt-1 text-[22px] font-semibold leading-none text-ink">{received.length + receivedInvitations.length}</dd>
+        </div>
+        <div className="px-4 py-3.5">
+          <dt className="text-[10.5px] text-faint">全部协作记录</dt>
+          <dd className="num mt-1 text-[22px] font-semibold leading-none text-ink">{activityTotal}</dd>
+        </div>
+      </dl>
 
-    {notice && <div role="status" className="mt-5 flex items-center gap-3 rounded-2xl border border-[var(--lime)] bg-[var(--lime)]/30 px-4 py-3 text-sm"><CheckCircle2 className="size-4 shrink-0 text-[#57820f]" /><span>{notice}{notice.includes("登录") && <Link href="/login?next=/applications" className="ml-2 font-bold underline">去登录</Link>}</span></div>}
-    {loading ? <div className="flex items-center justify-center gap-2 py-20 text-sm text-[var(--muted)]"><LoaderCircle className="size-4 animate-spin" /> 加载申请与邀请</div> : <>
-      <div className="mt-7 grid gap-5 lg:grid-cols-2">
-        <ItemSection title="收到的申请" subtitle={`你发布的队伍收到 ${received.length} 条申请`} icon={<Inbox className="size-5 text-[var(--coral)]" />} items={received} empty="还没有收到申请" render={(item) => <ApplicationCard item={item} received onDecide={decideApplication} />} />
-        <ItemSection title="我发出的申请" subtitle="查看队长的处理结果" icon={<Send className="size-5 text-[var(--violet)]" />} items={sent} empty="你还没有申请任何队伍" render={(item) => <ApplicationCard item={item} />} />
+      {notice && (
+        <div role="status" className="callout callout-marker mt-5 items-center">
+          <CheckCircle2 className="size-4 shrink-0 text-ochre" strokeWidth={1.9} />
+          <span>
+            {notice}
+            {notice.includes("登录") && (
+              <Link href="/login?next=/applications" className="ml-2 font-medium text-ink underline decoration-line-strong underline-offset-2 hover:decoration-ink">
+                去登录
+              </Link>
+            )}
+          </span>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="mt-10 flex items-center justify-center gap-2 py-16 text-[12.5px] text-muted">
+          <LoaderCircle className="size-3.5 animate-spin" strokeWidth={2} /> 加载申请与邀请
+        </div>
+      ) : (
+        <div className="mt-9 grid gap-x-6 gap-y-9 lg:grid-cols-2">
+          <ListSection
+            index={0}
+            label="Applications in"
+            title="收到的申请"
+            desc="你发布的队伍收到的申请"
+            count={received.length}
+            icon={<Inbox className="size-3.5" strokeWidth={1.9} />}
+            items={received}
+            empty="还没有收到申请，发布招募后申请会出现在这里。"
+            action={{ href: "/opportunities", label: "去组队中心" }}
+            render={(item) => <ApplicationRow key={item.id} item={item} received onDecide={decideApplication} />}
+          />
+          <ListSection
+            index={1}
+            label="Applications out"
+            title="我发出的申请"
+            desc="查看队长的处理结果"
+            count={sent.length}
+            icon={<Send className="size-3.5" strokeWidth={1.9} />}
+            items={sent}
+            empty="你还没有申请任何队伍。"
+            action={{ href: "/opportunities", label: "查看正在招募的队伍" }}
+            render={(item) => <ApplicationRow key={item.id} item={item} />}
+          />
+          <ListSection
+            index={2}
+            label="Invitations in"
+            title="收到的组队邀请"
+            desc="接受后将直接加入对应比赛队伍"
+            count={receivedInvitations.length}
+            icon={<MailOpen className="size-3.5" strokeWidth={1.9} />}
+            items={receivedInvitations}
+            empty="你还没有收到组队邀请。"
+            render={(item) => <InvitationRow key={item.id} item={item} received onDecide={decideInvitation} />}
+          />
+          <ListSection
+            index={3}
+            label="Invitations out"
+            title="我发出的组队邀请"
+            desc="查看候选人的回应结果"
+            count={sentInvitations.length}
+            icon={<MailPlus className="size-3.5" strokeWidth={1.9} />}
+            items={sentInvitations}
+            empty="你还没有发送组队邀请。"
+            action={{ href: "/explore", label: "浏览值得认识的人" }}
+            render={(item) => <InvitationRow key={item.id} item={item} />}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ListSection<T extends { id: string }>({
+  index,
+  label,
+  title,
+  desc,
+  count,
+  icon,
+  items,
+  empty,
+  action,
+  render,
+}: {
+  index: number;
+  label: string;
+  title: string;
+  desc: string;
+  count: number;
+  icon: ReactNode;
+  items: T[];
+  empty: string;
+  action?: { href: string; label: string };
+  render: (item: T) => ReactNode;
+}) {
+  return (
+    <section className="reveal min-w-0" style={{ ["--i" as string]: index }}>
+      <div className="flex items-end justify-between gap-3">
+        <div className="min-w-0">
+          <p className="section-label flex items-center gap-1.5">
+            {icon}
+            {label}
+          </p>
+          <h2 className="section-title mt-1.5">{title}</h2>
+          <p className="section-desc mt-1">{desc}</p>
+        </div>
+        <span className="chip num shrink-0">{count}</span>
       </div>
-      <div className="mt-5 grid gap-5 lg:grid-cols-2">
-        <ItemSection title="收到的组队邀请" subtitle="接受后将直接加入对应比赛队伍" icon={<MailPlus className="size-5 text-[var(--cyan)]" />} items={receivedInvitations} empty="你还没有收到组队邀请" render={(item) => <InvitationCard item={item} received onDecide={decideInvitation} />} />
-        <ItemSection title="我发出的组队邀请" subtitle="查看候选人的回应结果" icon={<Send className="size-5 text-[var(--cyan)]" />} items={sentInvitations} empty="你还没有发送组队邀请" render={(item) => <InvitationCard item={item} />} />
+
+      {items.length === 0 ? (
+        <div className="mt-3.5 rounded-[14px] border border-dashed border-line-strong px-4 py-7 text-center">
+          <p className="text-[12.5px] leading-6 text-muted">{empty}</p>
+          {action && (
+            <Link href={action.href} className="mt-2 inline-flex items-center gap-1 text-[11.5px] font-medium text-brand hover:underline">
+              {action.label} <ArrowUpRight className="size-3" strokeWidth={1.9} />
+            </Link>
+          )}
+        </div>
+      ) : (
+        <ul className="mt-3.5 overflow-hidden rounded-[14px] border border-line bg-surface">{items.map((item) => render(item))}</ul>
+      )}
+    </section>
+  );
+}
+
+function ApplicationRow({
+  item,
+  received = false,
+  onDecide,
+}: {
+  item: ApplicationView;
+  received?: boolean;
+  onDecide?: (id: string, status: Decision) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const panelId = `application-message-${item.id}`;
+  const title = received ? item.applicantName : item.teamName;
+  const canDecide = received && item.status === "pending" && Boolean(onDecide);
+
+  return (
+    <li className="border-b border-line last:border-b-0">
+      <div className="row-hover px-3 py-3.5 sm:px-4">
+        <div className="flex items-start gap-3">
+          <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-raise text-[11px] font-semibold text-ink-soft">
+            {title.slice(0, 1)}
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span className="truncate text-[13.5px] font-medium text-ink">{title}</span>
+              {received && <span className="text-[11.5px] text-muted">{item.applicantMajor}</span>}
+              <StatusChip value={item.status} />
+            </div>
+            <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11.5px] text-muted">
+              <span className="truncate">{item.opportunityTitle}</span>
+              <span aria-hidden="true" className="text-line-strong">·</span>
+              {received && (
+                <>
+                  <span className="truncate">申请加入 {item.teamName}</span>
+                  <span aria-hidden="true" className="text-line-strong">·</span>
+                </>
+              )}
+              <span className="num text-[11px] text-faint">{formatDate(item.createdAt)}</span>
+            </p>
+
+            <MessageBlock id={panelId} open={open} message={item.message} />
+
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <MessageToggle open={open} onToggle={() => setOpen((current) => !current)} controls={panelId} />
+              {canDecide && onDecide && (
+                <>
+                  <span aria-hidden="true" className="h-3 w-px bg-line" />
+                  <DecisionButtons onAccept={() => onDecide(item.id, "accepted")} onReject={() => onDecide(item.id, "rejected")} />
+                </>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
-    </>}
-  </div>;
+    </li>
+  );
 }
 
-function ItemSection<T extends { id: string }>({ title, subtitle, icon, items, empty, render }: { title: string; subtitle: string; icon: ReactNode; items: T[]; empty: string; render: (item: T) => ReactNode }) {
-  return <section className="card p-5 sm:p-6"><div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-2xl bg-[var(--paper)]">{icon}</span><div className="min-w-0 flex-1"><h2 className="font-[family-name:var(--font-display)] text-lg font-extrabold tracking-[-0.02em]">{title}</h2><p className="text-xs text-[var(--muted)]">{subtitle}</p></div><span className="grid size-7 place-items-center rounded-full bg-black/[0.04] text-[10px] font-bold text-[var(--muted)]">{items.length}</span></div><div className="mt-5 space-y-3">{items.map((item) => <div key={item.id}>{render(item)}</div>)}{items.length === 0 && <Empty text={empty} />}</div></section>;
+function InvitationRow({
+  item,
+  received = false,
+  onDecide,
+}: {
+  item: InvitationView;
+  received?: boolean;
+  onDecide?: (id: string, status: Decision) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const panelId = `invitation-message-${item.id}`;
+  const title = received ? `${item.senderName} 邀请你` : `邀请 ${item.recipientName}`;
+  const canDecide = received && item.status === "pending" && Boolean(onDecide);
+
+  return (
+    <li className="border-b border-line last:border-b-0">
+      <div className="row-hover px-3 py-3.5 sm:px-4">
+        <div className="flex items-start gap-3">
+          <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-raise text-[11px] font-semibold text-ink-soft">
+            {(received ? item.senderName : item.recipientName).slice(0, 1)}
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span className="truncate text-[13.5px] font-medium text-ink">{title}</span>
+              <StatusChip value={item.status} />
+            </div>
+            <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11.5px] text-muted">
+              <span className="truncate">{item.opportunityTitle}</span>
+              <span aria-hidden="true" className="text-line-strong">·</span>
+              <span className="truncate">加入 {item.teamName}</span>
+              <span aria-hidden="true" className="text-line-strong">·</span>
+              <span className="num text-[11px] text-faint">{formatDate(item.createdAt)}</span>
+            </p>
+
+            <MessageBlock id={panelId} open={open} message={item.message} />
+
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <MessageToggle open={open} onToggle={() => setOpen((current) => !current)} controls={panelId} />
+              {canDecide && onDecide && (
+                <>
+                  <span aria-hidden="true" className="h-3 w-px bg-line" />
+                  <DecisionButtons onAccept={() => onDecide(item.id, "accepted")} onReject={() => onDecide(item.id, "rejected")} />
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </li>
+  );
 }
 
-function ApplicationCard({ item, received = false, onDecide }: { item: ApplicationView; received?: boolean; onDecide?: (id: string, status: "accepted" | "rejected") => void }) {
-  return <article className="rounded-[20px] border border-black/[0.06] bg-white p-4 transition hover:border-[var(--violet)]/15 hover:shadow-md"><div className="flex items-start justify-between gap-4"><div><p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--violet)]">{item.opportunityTitle}</p><h3 className="mt-2 font-bold">{received ? `${item.applicantName} · ${item.applicantMajor}` : item.teamName}</h3>{received && <p className="mt-1 text-xs text-[var(--muted)]">申请加入 {item.teamName}</p>}</div><Status value={item.status} /></div><p className="mt-4 rounded-2xl bg-[var(--paper)] p-4 text-sm leading-6 text-[var(--muted)]">{item.message}</p>{received && item.status === "pending" && onDecide && <DecisionButtons onAccept={() => onDecide(item.id, "accepted")} onReject={() => onDecide(item.id, "rejected")} />}</article>;
+function MessageBlock({ id, open, message }: { id: string; open: boolean; message: string }) {
+  return (
+    <>
+      <p hidden={open} className="mt-1.5 truncate text-[11.5px] leading-5 text-faint">
+        {message}
+      </p>
+      <div id={id} hidden={!open} className="panel mt-2.5 px-3 py-2.5 text-[12.5px] leading-6 text-ink-soft">
+        {message}
+      </div>
+    </>
+  );
 }
 
-function InvitationCard({ item, received = false, onDecide }: { item: InvitationView; received?: boolean; onDecide?: (id: string, status: "accepted" | "rejected") => void }) {
-  return <article className="rounded-[20px] border border-black/[0.06] bg-white p-4 transition hover:border-[var(--cyan)]/20 hover:shadow-md"><p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--violet)]">{item.opportunityTitle}</p><div className="mt-2 flex items-start justify-between gap-3"><div><h3 className="font-bold">{received ? `${item.senderName} 邀请你` : `邀请 ${item.recipientName}`}</h3><p className="mt-1 text-xs text-[var(--muted)]">加入 {item.teamName}</p></div><Status value={item.status} /></div><p className="mt-4 text-sm leading-6 text-[var(--muted)]">{item.message}</p>{received && item.status === "pending" && onDecide && <DecisionButtons onAccept={() => onDecide(item.id, "accepted")} onReject={() => onDecide(item.id, "rejected")} />}</article>;
+function MessageToggle({ open, onToggle, controls }: { open: boolean; onToggle: () => void; controls: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={open}
+      aria-controls={controls}
+      className="inline-flex h-8 items-center gap-1 rounded-[6px] px-1.5 text-[11.5px] text-muted transition hover:bg-raise hover:text-ink"
+    >
+      {open ? "收起留言" : "展开留言"}
+      <ChevronDown className={`size-3 transition ${open ? "rotate-180" : ""}`} strokeWidth={2} />
+    </button>
+  );
 }
 
 function DecisionButtons({ onAccept, onReject }: { onAccept: () => void; onReject: () => void }) {
-  return <div className="mt-4 grid grid-cols-2 gap-2"><button onClick={onAccept} className="flex items-center justify-center gap-2 rounded-xl bg-[var(--ink)] px-4 py-3 text-xs font-bold text-white transition hover:-translate-y-0.5"><Check className="size-4 text-[var(--lime)]" /> 接受</button><button onClick={onReject} className="flex items-center justify-center gap-2 rounded-xl border border-black/[0.08] px-4 py-3 text-xs font-bold transition hover:border-red-200 hover:text-red-600"><X className="size-4" /> 拒绝</button></div>;
+  return (
+    <>
+      <button type="button" onClick={onAccept} className="btn btn-primary btn-sm min-h-8">
+        <Check className="size-3" strokeWidth={2.4} /> 接受
+      </button>
+      <button type="button" onClick={onReject} className="btn btn-secondary btn-sm min-h-8">
+        <X className="size-3" strokeWidth={2.4} /> 拒绝
+      </button>
+    </>
+  );
 }
 
-function Status({ value }: { value: "pending" | "accepted" | "rejected" }) {
-  const labels = { pending: "待处理", accepted: "已接受", rejected: "已拒绝" };
-  return <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold ${value === "accepted" ? "bg-emerald-50 text-emerald-700" : value === "rejected" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"}`}><Clock3 className="size-3" /> {labels[value]}</span>;
+const STATUS_STYLES: Record<"pending" | "accepted" | "rejected", { label: string; className: string }> = {
+  pending: { label: "待处理", className: "chip-ochre" },
+  accepted: { label: "已接受", className: "chip-moss" },
+  rejected: { label: "已拒绝", className: "chip-clay" },
+};
+
+function StatusChip({ value }: { value: "pending" | "accepted" | "rejected" }) {
+  const status = STATUS_STYLES[value];
+  return (
+    <span className={`chip ${status.className}`}>
+      <span aria-hidden="true" className="size-1 rounded-full bg-current" />
+      {status.label}
+    </span>
+  );
 }
 
-function Empty({ text }: { text: string }) { return <div className="rounded-[20px] border border-dashed border-black/10 bg-[var(--paper)]/50 p-8 text-center"><UsersRound className="mx-auto size-5 text-[var(--muted)]" /><p className="mt-3 text-sm text-[var(--muted)]">{text}</p></div>; }
-
-function SummaryStat({ value, label, accent = false }: { value: number; label: string; accent?: boolean }) { return <div className={`rounded-2xl border p-4 ${accent ? "border-[var(--lime)]/25 bg-[var(--lime)]/10" : "border-white/8 bg-white/[0.065]"}`}><p className={`font-[family-name:var(--font-display)] text-3xl font-extrabold tracking-[-0.05em] ${accent ? "text-[var(--lime)]" : ""}`}>{value}</p><p className="mt-1 text-[10px] text-white/45">{label}</p></div>; }
+function formatDate(value?: string) {
+  const text = String(value ?? "").slice(0, 10);
+  return text.length === 10 ? text.replaceAll("-", ".") : "—";
+}

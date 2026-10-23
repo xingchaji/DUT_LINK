@@ -4,7 +4,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "DUT Link · 遇见新的可能",
-  description: "AI 驱动的校园探索与连接平台",
+  description: "AI 驱动的校园探索与连接平台：能力画像、比赛组队与跨域灵感，都在同一张工作台里。",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -12,7 +12,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="zh-CN" data-scroll-behavior="smooth">
       <body>
         <Navigation />
-        <main className="min-h-screen pb-28 lg:ml-72 lg:pb-0">{children}</main>
+        <main className="relative z-10 min-h-screen pb-28 lg:ml-[264px] lg:pb-0">{children}</main>
       </body>
     </html>
   );

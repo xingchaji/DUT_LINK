@@ -2,15 +2,15 @@ import { Sparkles } from "lucide-react";
 
 export function Logo({ compact = false }: { compact?: boolean }) {
   return (
-    <div className="flex items-center gap-3">
-      <div className="relative grid size-10 place-items-center overflow-hidden rounded-[15px] bg-[var(--ink)] text-white shadow-[0_10px_28px_rgba(22,31,49,0.2)]">
-        <div className="absolute -right-2 -top-2 size-6 rounded-full bg-[var(--violet)] blur-sm" />
-        <Sparkles className="relative size-[18px]" strokeWidth={1.9} />
+    <div className="flex items-center gap-2.5">
+      <div className="relative grid size-8 shrink-0 place-items-center rounded-[9px] bg-ink text-canvas shadow-[0_1px_2px_rgba(30,29,26,0.25)]">
+        <Sparkles className="size-[15px]" strokeWidth={2} />
+        <span className="absolute -bottom-0.5 -right-0.5 size-2 rounded-full border border-sidebar bg-gold" />
       </div>
       {!compact && (
-        <div>
-          <div className="font-[family-name:var(--font-display)] text-lg font-extrabold leading-none tracking-[-0.035em]">DUT Link</div>
-          <div className="mt-1.5 text-[9px] font-bold uppercase tracking-[0.28em] text-[var(--muted)]">Meet possibilities</div>
+        <div className="leading-none">
+          <div className="text-[15px] font-semibold tracking-[-0.02em] text-ink">DUT Link</div>
+          <div className="mt-1 font-mono text-[8.5px] uppercase tracking-[0.22em] text-faint">Campus workspace</div>
         </div>
       )}
     </div>

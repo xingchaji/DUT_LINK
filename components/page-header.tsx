@@ -1,16 +1,45 @@
+import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { HeaderActions } from "@/components/header-actions";
 
-export function PageHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
+export function PageHeader({
+  eyebrow,
+  title,
+  lede,
+  icon,
+  children,
+}: {
+  eyebrow: string;
+  title: string;
+  lede?: string;
+  icon?: React.ReactNode;
+  children?: React.ReactNode;
+}) {
   return (
-    <header className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <p className="inline-flex items-center gap-2 rounded-full border border-black/[0.06] bg-white/65 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--muted)] shadow-sm">
-          <span className="size-1.5 rounded-full bg-[var(--coral)]" />
-          {eyebrow}
-        </p>
-        <h1 className="mt-3 font-[family-name:var(--font-display)] text-3xl font-bold tracking-[-0.045em] sm:text-[2.65rem] sm:leading-none">{title}</h1>
+    <header>
+      <div className="flex items-center justify-between gap-4">
+        <nav aria-label="面包屑" className="flex min-w-0 items-center gap-1 text-[11px] text-faint">
+          <Link href="/" className="rounded px-1 py-0.5 transition hover:bg-raise hover:text-muted">
+            工作台
+          </Link>
+          <ChevronRight className="size-3 shrink-0 opacity-60" />
+          <span className="truncate px-1 text-muted">{eyebrow}</span>
+        </nav>
+        <HeaderActions />
       </div>
-      <HeaderActions />
+
+      <div className="mt-6 flex items-start gap-4">
+        {icon && (
+          <span className="mt-1 grid size-11 shrink-0 place-items-center rounded-[11px] border border-line bg-surface text-brand shadow-[0_1px_2px_rgba(30,29,26,0.05)]">
+            {icon}
+          </span>
+        )}
+        <div className="min-w-0 flex-1">
+          <h1 className="page-title">{title}</h1>
+          {lede && <p className="page-lede mt-3">{lede}</p>}
+          {children}
+        </div>
+      </div>
     </header>
   );
 }

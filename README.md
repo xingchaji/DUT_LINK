@@ -45,6 +45,15 @@ npm run db:local:start  # 启动本机免安装 PostgreSQL
 
 安装依赖请优先使用 `npm ci`。它严格按照已经提交的 `package-lock.json` 安装，团队成员会得到相同版本；只有主动升级依赖时才使用 `npm install` 并提交更新后的锁文件。
 
+## 界面与设计规范
+
+前端统一采用「纸感工作台」视觉：暖白纸底、发丝线分隔、等宽数字、衬线斜体英文短句作为唯一装饰签名。
+
+- 设计契约（tokens、组件类、页面骨架、禁用项）：[`design/CONTRACT.md`](design/CONTRACT.md)
+- 视觉系统实现：`app/globals.css`（Tailwind v4 `@theme` tokens + `.card` / `.btn` / `.chip` / `.callout` / `.field` 等组件类）
+- 字体：`public/fonts` 内自托管 Inter / Instrument Serif / IBM Plex Mono，离线可用
+- 新增页面先读契约，复用组件类，不要再引入渐变光斑、玻璃拟态或超大圆角阴影
+
 ## 当前实现
 
 - 个人主页统一承载账户资料、Enter 创建的技能标签、竞赛能力画像和个人 AI 设置，旧 `/profile` 自动跳转
