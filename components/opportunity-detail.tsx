@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -67,6 +67,12 @@ export function OpportunityDetail({ opportunityId, mode }: { opportunityId: stri
   const [formVersion, setFormVersion] = useState(0);
   const [recommendations, setRecommendations] = useState<RecommendationData | null>(null);
   const [intended, setIntended] = useState(false);
+  const noticeRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!notice) return;
+    noticeRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [notice]);
 
   const load = useCallback(async () => {
     const response = await fetch(`/api/opportunities/${opportunityId}`, { cache: "no-store" });
@@ -208,7 +214,7 @@ export function OpportunityDetail({ opportunityId, mode }: { opportunityId: stri
       <PageHeader eyebrow={header.eyebrow} title={header.title} lede={header.lede} icon={icon} />
 
       {notice && (
-        <div role="status" className="callout mt-6 items-start">
+        <div ref={noticeRef} role="status" className="callout mt-6 scroll-mt-24 items-start">
           <BadgeCheck className="mt-0.5 size-3.5 shrink-0 text-moss" strokeWidth={2} />
           <span className="min-w-0">
             {notice}
@@ -612,9 +618,14 @@ function RecruitView({ opportunity, recommendations, ownedRecruitment, publishin
 
             <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
               <p className="max-w-[19rem] text-[11px] leading-6 text-faint">同一场比赛只能加入一支队伍，创建后不可与其它队伍并行。</p>
-              <button disabled={publishing || tags.length === 0} className="btn btn-primary pressable px-4">
-                {publishing ? <LoaderCircle className="size-3.5 animate-spin" /> : <Send className="size-3.5" />} 创建队伍并开始招募
-              </button>
+              <div className="flex items-center gap-2.5">
+                {tags.length === 0 && (
+                  <span role="status" className="text-[11px] text-faint">先添加至少 1 个技能标签</span>
+                )}
+                <button disabled={publishing || tags.length === 0} className="btn btn-primary pressable px-4">
+                  {publishing ? <LoaderCircle className="size-3.5 animate-spin" /> : <Send className="size-3.5" />} 创建队伍并开始招募
+                </button>
+              </div>
             </div>
           </Reveal>
         )}

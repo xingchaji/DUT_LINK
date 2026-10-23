@@ -135,12 +135,22 @@ body::before {
 }
 
 button,
-a {
+a,
+label,
+summary,
+[role="button"],
+[role="switch"] {
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 button {
   cursor: pointer;
+}
+
+/* 未分层声明优先级高于 @layer，禁用态的可点性提示需在这里覆盖 */
+button:disabled {
+  cursor: not-allowed;
 }
 
 :focus-visible {
@@ -545,12 +555,24 @@ button {
     box-shadow: inset 0 1px 2px rgba(120, 90, 20, 0.18);
   }
 
+  /* 禁用态必须一眼可辨：中性底色 + 无阴影 + 无 hover 反馈 */
   .btn:disabled,
   .btn[disabled] {
-    opacity: 0.55;
+    opacity: 1;
     cursor: not-allowed;
     transform: none;
+    background: var(--color-raise);
+    border-color: var(--color-line);
+    border-top-color: var(--color-line);
+    border-bottom-color: var(--color-line);
+    color: var(--color-faint);
     box-shadow: none;
+  }
+
+  .btn-primary:disabled::before,
+  .btn-brand:disabled::before,
+  .btn:disabled::before {
+    display: none;
   }
 
   /* ---------------- 图标按钮 / 头像 ---------------- */
@@ -1137,6 +1159,25 @@ html.js-motion .ring.is-in .ring-bar {
 
 .pressable:active {
   transform: scale(0.97);
+}
+
+@media (hover: none) {
+  .lift:hover,
+  .interactive-card:hover,
+  .row-hover:hover,
+  .btn:hover,
+  .icon-btn:hover,
+  .seg-item:hover {
+    transform: none;
+  }
+
+  .tilt {
+    transform: none !important;
+  }
+
+  .tilt-glare {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

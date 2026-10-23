@@ -28,20 +28,33 @@ export function CountUp({
   className?: string;
 }) {
   const ref = useRef<HTMLSpanElement>(null);
+  const animated = useRef(false);
 
   useEffect(() => {
     const node = ref.current;
     if (!node) return;
-    if (!document.documentElement.classList.contains("js-motion") || prefersReduced() || typeof IntersectionObserver === "undefined") return;
 
     const format = (n: number) => `${prefix}${decimals > 0 ? n.toFixed(decimals) : Math.round(n).toString()}${suffix}`;
     const target = format(value);
+
+    if (!document.documentElement.classList.contains("js-motion") || prefersReduced() || typeof IntersectionObserver === "undefined") {
+      node.textContent = target;
+      return;
+    }
+
+    // 已经播放过一次的计数，后续变化直接落到终值，避免每次更新都从 0 重播
+    if (animated.current) {
+      node.textContent = target;
+      return;
+    }
+
     let raf = 0;
     let started = false;
 
     const run = () => {
       if (started) return;
       started = true;
+      animated.current = true;
       const start = performance.now();
       const tick = (now: number) => {
         const progress = Math.min(1, (now - start) / duration);

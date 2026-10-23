@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ArrowUpRight, Check, CheckCircle2, ChevronDown, Inbox, LoaderCircle, MailOpen, MailPlus, Send, X } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
@@ -25,6 +25,12 @@ export default function ApplicationsPage() {
   const [receivedInvitations, setReceivedInvitations] = useState<InvitationView[]>([]);
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState("");
+  const noticeRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!notice) return;
+    noticeRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [notice]);
 
   const load = useCallback(async () => {
     const [response, invitationResponse] = await Promise.all([fetch("/api/applications", { cache: "no-store" }), fetch("/api/invitations", { cache: "no-store" })]);
@@ -85,7 +91,7 @@ export default function ApplicationsPage() {
       </dl>
 
       {notice && (
-        <div role="status" className="callout callout-marker mt-5 items-center">
+        <div ref={noticeRef} role="status" className="callout callout-marker mt-5 items-center">
           <CheckCircle2 className="size-4 shrink-0 text-ochre" strokeWidth={1.9} />
           <span>
             {notice}

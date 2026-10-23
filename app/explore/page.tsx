@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Award,
@@ -43,6 +43,12 @@ export default function ExplorePage() {
   const [notice, setNotice] = useState("");
   const [workInsight, setWorkInsight] = useState<WinningWorkInsight | null>(null);
   const [workLoading, setWorkLoading] = useState(true);
+  const noticeRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!notice) return;
+    noticeRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [notice]);
 
   useEffect(() => {
     fetch("/api/articles").then((response) => response.json()).then((data) => setArticles(data.articles ?? [])).catch(() => undefined);
@@ -131,7 +137,7 @@ export default function ExplorePage() {
       </div>
 
       {notice && (
-        <div role="status" className="callout callout-clay mt-4">
+        <div ref={noticeRef} role="status" className="callout callout-clay mt-4">
           <p className="min-w-0 text-[12.5px] leading-6">
             {notice}
             {notice.includes("登录") && <Link href="/login?next=/explore" className="ml-2 font-medium underline">去登录</Link>}

@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -44,6 +44,13 @@ export function OpportunityCenter() {
   const [notice, setNotice] = useState<Notice>(null);
   const [loading, setLoading] = useState(false);
   const [intendedIds, setIntendedIds] = useState<string[]>([]);
+  const noticeRef = useRef<HTMLDivElement>(null);
+
+  // 操作反馈可能出现在视口之外，出现时滚到最近位置，避免“点了没反应”
+  useEffect(() => {
+    if (!notice) return;
+    noticeRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [notice]);
 
   const load = useCallback(async () => {
     const response = await fetch("/api/opportunities", { cache: "no-store" });
@@ -172,7 +179,7 @@ export function OpportunityCenter() {
       </div>
 
       {notice && (
-        <div role="status" className={`callout items-start ${notice.type === "success" ? "callout-moss" : "callout-clay"}`}>
+        <div ref={noticeRef} role="status" className={`callout items-start ${notice.type === "success" ? "callout-moss" : "callout-clay"}`}>
           <CheckCircle2 className={`mt-0.5 size-4 shrink-0 ${notice.type === "success" ? "text-moss" : "text-clay"}`} strokeWidth={2} />
           <span>
             {notice.text}
@@ -293,7 +300,7 @@ function OpportunityCard({
 
   return (
     <TiltCard max={5} lift={4} spotlight className="group h-full rounded-[16px]">
-      <article className="card flex h-full flex-col overflow-hidden transition-shadow duration-500 [transition-timing-function:var(--spring)] group-hover:shadow-[0_2px_6px_-2px_rgba(60,48,30,0.08),0_18px_38px_-18px_rgba(60,48,30,0.26)]">
+      <article className="card relative flex h-full flex-col overflow-hidden transition-shadow duration-500 [transition-timing-function:var(--spring)] group-hover:shadow-[0_2px_6px_-2px_rgba(60,48,30,0.08),0_18px_38px_-18px_rgba(60,48,30,0.26)]">
         {/* 脊：有厚度的强调色棱，内高光 + 底部投影，像压在纸面上的凸条 */}
         <div
           aria-hidden
@@ -315,7 +322,10 @@ function OpportunityCard({
           </div>
 
           <h3 className="mt-3 text-[15px] font-semibold leading-snug tracking-[-0.015em] text-ink">
-            <Link href={`/opportunities/${item.id}`} className="decoration-line-strong underline-offset-2 group-hover:underline">
+            <Link
+              href={`/opportunities/${item.id}`}
+              className="decoration-line-strong underline-offset-2 after:absolute after:inset-0 after:content-[''] group-hover:underline"
+            >
               {item.title}
             </Link>
           </h3>
@@ -340,8 +350,8 @@ function OpportunityCard({
             </p>
           ) : null}
 
-          <dl className="mt-3.5 grid grid-cols-[1fr_auto] items-center gap-3 border-t border-line pt-3 text-[11px]">
-            <div className="min-w-0 space-y-1">
+          <div className="mt-3.5 grid grid-cols-[1fr_auto] items-center gap-3 border-t border-line pt-3 text-[11px]">
+            <dl className="min-w-0 space-y-1">
               <div className="grid grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-2">
                 <dt className="text-faint">开始报名</dt>
                 <dd className="num truncate text-ink-soft">{item.registrationStart ?? "待补充"}</dd>
@@ -350,15 +360,19 @@ function OpportunityCard({
                 <dt className="text-faint">截止报名</dt>
                 <dd className="num truncate text-ink-soft">{item.registrationEnd ?? "待补充"}</dd>
               </div>
-            </div>
-            <div className="panel flex items-center gap-1.5 rounded-[9px] px-2.5 py-1.5">
+            </dl>
+            <Link
+              href={`/opportunities/${item.id}/teams`}
+              aria-label={`查看 ${item.title} 招募中的 ${teamCount} 支队伍`}
+              className="panel relative z-10 flex items-center gap-1.5 rounded-[9px] px-2.5 py-1.5 transition duration-300 hover:border-tea/40 hover:text-tea"
+            >
               <UsersRound className="size-3.5 text-tea" strokeWidth={1.9} />
               <span className="num text-[12px] font-semibold text-ink-soft">{teamCount}</span>
               <span className="text-[10px] text-faint">队招募中</span>
-            </div>
-          </dl>
+            </Link>
+          </div>
 
-          <div className="mt-auto pt-3.5">
+          <div className="relative z-10 mt-auto pt-3.5">
             <button
               type="button"
               onClick={onToggleInterest}

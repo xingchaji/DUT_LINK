@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowUpRight, ChevronDown, Compass, Home, Inbox, ShieldCheck, Sparkles, Trophy, UserRound } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { ArrowUpRight, Check, ChevronDown, Compass, Home, Inbox, ShieldCheck, Sparkles, Trophy, UserRound } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Logo } from "@/components/logo";
 import { AuthMenu } from "@/components/auth-menu";
 import type { SessionUser } from "@/lib/types";
@@ -19,6 +19,24 @@ const baseNav = [
 export function Navigation() {
   const pathname = usePathname();
   const [user, setUser] = useState<SessionUser | null>(null);
+  const [workspaceOpen, setWorkspaceOpen] = useState(false);
+  const workspaceRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!workspaceOpen) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (workspaceRef.current && !workspaceRef.current.contains(event.target as Node)) setWorkspaceOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setWorkspaceOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [workspaceOpen]);
 
   useEffect(() => {
     fetch("/api/auth/session")
@@ -42,14 +60,44 @@ export function Navigation() {
           </Link>
         </div>
 
-        <button
-          type="button"
-          className="relative mx-2.5 flex items-center gap-2 rounded-[9px] border border-[rgba(60,48,30,0.09)] bg-[#f5f2ea] px-2 py-1.5 text-left shadow-[inset_0_1px_2px_rgba(60,48,30,0.07),inset_0_-1px_0_rgba(255,255,255,0.75)] transition duration-300 [transition-timing-function:var(--spring)] hover:border-[rgba(60,48,30,0.14)] hover:bg-[#f7f4ed]"
-        >
-          <span className="grid size-5 shrink-0 place-items-center rounded-[6px] bg-brand-soft font-mono text-[8.5px] font-semibold tracking-tight text-brand shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">DUT</span>
-          <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-ink-soft">大连理工大学</span>
-          <ChevronDown className="size-3.5 shrink-0 text-faint" />
-        </button>
+        <div className="relative mx-2.5" ref={workspaceRef}>
+          <button
+            type="button"
+            aria-haspopup="menu"
+            aria-expanded={workspaceOpen}
+            aria-label="切换学校空间"
+            onClick={() => setWorkspaceOpen((open) => !open)}
+            className={`flex w-full items-center gap-2 rounded-[9px] border px-2 py-1.5 text-left transition duration-300 [transition-timing-function:var(--spring)] ${
+              workspaceOpen
+                ? "border-[rgba(60,48,30,0.18)] bg-[#fffefc] shadow-[0_1px_0_rgba(60,48,30,0.05),0_2px_5px_-3px_rgba(60,48,30,0.14),inset_0_1px_0_#fff]"
+                : "border-[rgba(60,48,30,0.09)] bg-[#f5f2ea] shadow-[inset_0_1px_2px_rgba(60,48,30,0.07),inset_0_-1px_0_rgba(255,255,255,0.75)] hover:border-[rgba(60,48,30,0.14)] hover:bg-[#f7f4ed]"
+            }`}
+          >
+            <span className="grid size-5 shrink-0 place-items-center rounded-[6px] bg-brand-soft font-mono text-[8.5px] font-semibold tracking-tight text-brand shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">DUT</span>
+            <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-ink-soft">大连理工大学</span>
+            <ChevronDown className={`size-3.5 shrink-0 text-faint transition-transform duration-300 ${workspaceOpen ? "rotate-180" : ""}`} />
+          </button>
+
+          {workspaceOpen && (
+            <div
+              role="menu"
+              aria-label="学校空间"
+              className="pop absolute left-0 right-0 top-[calc(100%+6px)] z-40 overflow-hidden rounded-[11px] border border-[rgba(60,48,30,0.12)] bg-[#fffefc] shadow-[0_1px_0_#fff_inset,0_10px_24px_-12px_rgba(60,48,30,0.28),0_28px_48px_-28px_rgba(60,48,30,0.3)]"
+            >
+              <div className="flex items-center gap-2 px-2.5 py-2.5">
+                <span className="grid size-6 shrink-0 place-items-center rounded-[7px] bg-brand-soft font-mono text-[9px] font-semibold text-brand shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">DUT</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[12px] font-medium text-ink">大连理工大学</span>
+                  <span className="block text-[10px] text-faint">当前空间 · 校园邮箱验证</span>
+                </span>
+                <Check className="size-3.5 shrink-0 text-moss" strokeWidth={2.4} />
+              </div>
+              <div className="border-t border-line/70 px-2.5 py-2">
+                <p className="text-[10.5px] leading-5 text-faint">更多学校空间即将开放，切换后会同步你的画像与组队记录。</p>
+              </div>
+            </div>
+          )}
+        </div>
 
         <div className="mt-6 px-4">
           <p className="section-label">你的工作台</p>

@@ -178,11 +178,18 @@ export default function OnboardingPage() {
               <button type="button" disabled={step === 0} onClick={() => setStep((current) => Math.max(0, current - 1))} className="btn btn-ghost">
                 <ChevronLeft className="size-4" /> 上一步
               </button>
-              {!isLastStep && (
-                <button type="button" disabled={!currentComplete} onClick={() => setStep((current) => Math.min(totalSteps - 1, current + 1))} className="btn btn-primary">
-                  继续下一组 <ArrowRight className="size-4" />
-                </button>
-              )}
+              <div className="flex items-center gap-2.5">
+                {!currentComplete && (
+                  <span role="status" className="hidden text-[11px] text-faint sm:inline">
+                    还差 {currentQuestions.filter((question) => !answers[question.id]).length} 题
+                  </span>
+                )}
+                {!isLastStep && (
+                  <button type="button" disabled={!currentComplete} onClick={() => setStep((current) => Math.min(totalSteps - 1, current + 1))} className="btn btn-primary">
+                    继续下一组 <ArrowRight className="size-4" />
+                  </button>
+                )}
+              </div>
             </footer>
           </section>
 
