@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { SkillBars } from "@/components/skill-bars";
-import { CountUp, Meter, Ring } from "@/components/motion/metric";
+import { CountUp, Ring } from "@/components/motion/metric";
 import { Magnetic } from "@/components/motion/magnetic";
 import { Reveal } from "@/components/motion/reveal";
 import { TiltCard } from "@/components/motion/tilt-card";
@@ -24,7 +24,6 @@ import { demoProfile } from "@/lib/mock-data";
 import { rankPeople } from "@/lib/matching";
 import { rankOpportunities } from "@/lib/opportunity-ranking";
 import { getCurrentUser } from "@/lib/auth";
-import { getDataBackendStatus } from "@/lib/db";
 import { getAbilityProfile, getAccountProfile } from "@/lib/repositories/account-repository";
 import { listOpportunities } from "@/lib/repositories/opportunity-repository";
 import { listApplications, listInvitations } from "@/lib/repositories/team-repository";
@@ -44,11 +43,6 @@ function getGreeting(hour: number) {
   return "晚上好";
 }
 
-function formatToday(date: Date) {
-  const weekdays = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
-  return `${date.getFullYear()} 年 ${date.getMonth() + 1} 月 ${date.getDate()} 日 · ${weekdays[date.getDay()]}`;
-}
-
 export default async function DashboardPage() {
   const user = await getCurrentUser();
   const [profile, abilityProfile, opportunityCatalog, collaboration] = await Promise.all([
@@ -59,7 +53,6 @@ export default async function DashboardPage() {
       ? Promise.all([listApplications(user.id), listInvitations(user.id)]).then(([applications, invitations]) => ({ applications, invitations }))
       : Promise.resolve(null),
   ]);
-  const dataMode = getDataBackendStatus();
   const displayName = profile?.nickname ?? user?.name ?? "同学";
   const hasAbilityProfile = Boolean(abilityProfile);
   const activeProfile = abilityProfile ?? demoProfile;
@@ -74,8 +67,6 @@ export default async function DashboardPage() {
   const pendingTotal = pendingApplications + pendingInvitations;
 
   const now = new Date();
-  const profileUpdatedAt = profile?.updatedAt ? new Date(profile.updatedAt) : null;
-
   return (
     <div className="page-shell">
       <PageHeader
@@ -100,8 +91,6 @@ export default async function DashboardPage() {
             <dt className="text-faint">方向</dt>
             <dd className="font-medium text-ink-soft">{activeProfile.potentialDirections.slice(0, 2).join(" · ")}</dd>
           </div>
-          <span className="h-3 w-px bg-line shadow-[1px_0_0_rgba(255,255,255,0.8)]" />
-          <span className="font-mono text-[11px] text-faint">{formatToday(now)}</span>
         </dl>
       </PageHeader>
 
@@ -124,11 +113,7 @@ export default async function DashboardPage() {
                     <span className="chip bg-surface text-ochre">
                       <Sparkles className="size-3" strokeWidth={2.2} /> 今日洞察
                     </span>
-                    <span className="text-[11px] text-faint">
-                      {hasAbilityProfile
-                        ? `基于你的能力画像与 ${opportunityCatalog.length} 个可信机会`
-                        : "尚未生成画像，下方使用演示数据"}
-                    </span>
+                    {!hasAbilityProfile && <span className="text-[11px] text-faint">尚未生成画像，下方为演示数据</span>}
                   </div>
 
                   <h2 className="mt-4 max-w-2xl text-[22px] font-semibold leading-[1.42] tracking-[-0.03em] text-ink sm:text-[26px]">
@@ -140,20 +125,18 @@ export default async function DashboardPage() {
                       : "你还没有生成竞赛能力画像。完成 16 题测评后，这里的比赛排序、推荐理由和同学匹配都会基于你的真实经历重算。"}
                   </p>
 
-                  <div className="mt-5 flex flex-wrap items-center gap-2">
+                  <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2">
                     <Magnetic>
                       <Link href="/explore" className="btn btn-primary">
                         拆开今日盲盒 <ArrowRight className="size-3.5" />
                       </Link>
                     </Magnetic>
-                    <Magnetic strength={3}>
-                      <Link href="/onboarding" className="btn btn-secondary">
-                        {hasAbilityProfile ? "更新我的经历" : "开始能力测评"}
-                      </Link>
-                    </Magnetic>
-                    <span className="ml-1 hidden items-center gap-1.5 text-[11px] text-faint sm:inline-flex">
-                      <span className="size-1.5 rounded-full bg-moss shadow-[0_0_0_3px_rgba(38,114,79,0.12)]" /> 规则可解释，AI 只做解释
-                    </span>
+                    <Link
+                      href="/onboarding"
+                      className="text-[12px] font-medium text-muted underline decoration-line-strong underline-offset-4 transition hover:text-ink"
+                    >
+                      {hasAbilityProfile ? "更新我的经历" : "开始能力测评"}
+                    </Link>
                   </div>
                 </div>
 
@@ -190,7 +173,6 @@ export default async function DashboardPage() {
               <div>
                 <p className="section-label">Focus now</p>
                 <h2 className="section-title mt-1.5 text-[17px]">优先关注的机会</h2>
-                <p className="section-desc mt-1">按能力证据、兴趣方向与赛事要求综合排序。</p>
               </div>
               <Link href="/opportunities" className="btn btn-ghost btn-sm">
                 查看全部 <ArrowUpRight className="size-3.5" />
@@ -224,9 +206,6 @@ export default async function DashboardPage() {
                       </span>
                     </span>
                     <span className="flex shrink-0 items-center gap-2.5">
-                      <span className="hidden w-16 md:block">
-                        <Meter value={item.fit} height={5} color="var(--color-brand)" delay={index * 80} />
-                      </span>
                       <span className="chip chip-brand num">{item.fit}%</span>
                       <ArrowUpRight className="hidden size-3.5 text-faint transition duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-ink sm:block" />
                     </span>
@@ -250,7 +229,6 @@ export default async function DashboardPage() {
                   完整画像
                 </Link>
               </div>
-              <p className="mt-1.5 text-[11.5px] leading-6 text-muted">用真实经历解释你的优势，而不只是一组分数。</p>
 
               <div className="mt-4">
                 <SkillBars skills={activeProfile.skills.slice(0, 4)} />
@@ -263,11 +241,7 @@ export default async function DashboardPage() {
                 <div className="min-w-0">
                   <p className="text-[11.5px] font-medium text-ink-soft">画像完成度</p>
                   <p className="mt-0.5 text-[10.5px] leading-relaxed text-faint">
-                    {!hasAbilityProfile
-                      ? "完成 16 题测评后，这里会显示你的真实完成度。"
-                      : profileCompleteness < 96
-                        ? "补充项目证据可以进一步提高推荐稳定性。"
-                        : "画像证据已较完整，保持更新即可。"}
+                    {!hasAbilityProfile ? "完成测评后显示真实完成度" : profileCompleteness < 96 ? "补充证据可提升推荐稳定性" : "证据已较完整"}
                   </p>
                 </div>
               </div>
@@ -283,9 +257,8 @@ export default async function DashboardPage() {
                 </div>
                 <span className="chip chip-tea">互补优先</span>
               </div>
-              <p className="mt-1.5 text-[11.5px] leading-6 text-muted">不是「和你一样」，而是「与你互补」。</p>
 
-              <div className="mt-2 divide-y divide-line/70">
+              <div className="mt-3 divide-y divide-line/70">
                 {people.map((person, index) => (
                   <Link key={person.id} href={`/people/${person.id}`} className="row-hover group -mx-2 flex items-center gap-3 rounded-[10px] px-2 py-3">
                     <span className={`grid size-8 shrink-0 place-items-center rounded-full text-[11.5px] font-semibold shadow-[0_1px_1px_rgba(60,48,30,0.08),0_3px_8px_-4px_rgba(60,48,30,0.3),inset_0_1px_0_rgba(255,255,255,0.9)] transition duration-500 [transition-timing-function:var(--spring)] group-hover:-translate-y-0.5 group-hover:shadow-[0_6px_14px_-6px_rgba(60,48,30,0.35),inset_0_1px_0_rgba(255,255,255,0.9)] ${AVATAR_TINTS[index % 3]}`}>
@@ -344,24 +317,6 @@ export default async function DashboardPage() {
                   <Compass className="size-3.5" strokeWidth={1.8} /> 探索 · 每日一条跨域灵感
                 </div>
               </div>
-            </Reveal>
-
-            <Reveal delay={200} className="card p-4">
-              <p className="section-label">页面信息</p>
-              <dl className="mt-3 space-y-2 text-[11.5px]">
-                <div className="flex items-center justify-between gap-2">
-                  <dt className="text-faint">数据模式</dt>
-                  <dd className="chip">{dataMode.persistent ? "PostgreSQL" : "内存演示"}</dd>
-                </div>
-                <div className="flex items-center justify-between gap-2">
-                  <dt className="text-faint">机会来源</dt>
-                  <dd className="text-muted">官方核验</dd>
-                </div>
-                <div className="flex items-center justify-between gap-2">
-                  <dt className="text-faint">资料更新</dt>
-                  <dd className="num text-muted">{profileUpdatedAt ? profileUpdatedAt.toISOString().slice(0, 10).replaceAll("-", ".") : "—"}</dd>
-                </div>
-              </dl>
             </Reveal>
           </div>
         </aside>

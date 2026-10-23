@@ -109,19 +109,12 @@ export default function OnboardingPage() {
 
       {/* 进度统计条 */}
       <Reveal delay={0} className="e1 mt-7 overflow-hidden rounded-[14px] border border-line bg-surface">
-        <dl className="grid grid-cols-3 divide-x divide-line">
+        <dl className="grid grid-cols-2 divide-x divide-line">
           <div className="px-4 py-3.5">
             <dt className="text-[10.5px] text-faint">已回答</dt>
             <dd className="mt-1 flex items-baseline gap-1">
               <CountUp value={answered} duration={480} className="num text-[22px] font-semibold leading-none text-ink" />
               <span className="num text-[11px] text-muted">/ {profileQuestions.length}</span>
-            </dd>
-          </div>
-          <div className="px-4 py-3.5">
-            <dt className="text-[10.5px] text-faint">画像进度</dt>
-            <dd className="mt-1 flex items-baseline gap-1">
-              <CountUp value={progress} duration={480} className="num text-[22px] font-semibold leading-none text-ink" />
-              <span className="text-[11px] text-muted">%</span>
             </dd>
           </div>
           <div className="px-4 py-3.5">

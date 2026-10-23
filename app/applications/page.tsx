@@ -91,21 +91,15 @@ export default function ApplicationsPage() {
       <PageHeader
         eyebrow="申请管理"
         title="组队申请与邀请"
-        lede="集中处理申请与邀请。接受后，系统会更新队伍成员，并自动关闭同场比赛的其他待处理意向。"
+        lede="接受后系统会自动更新队伍成员，并关闭同场比赛的其他待处理意向。"
         icon={<Inbox className="size-5" strokeWidth={1.8} />}
       />
 
-      <dl className="e1 mt-8 grid grid-cols-3 divide-x divide-line overflow-hidden rounded-[14px] border border-line bg-surface">
+      <dl className="e1 mt-8 grid grid-cols-2 divide-x divide-line overflow-hidden rounded-[14px] border border-line bg-surface">
         <div className="px-4 py-3.5">
           <dt className="text-[10.5px] text-faint">等待你处理</dt>
           <dd className="mt-1">
             <CountUp value={pendingTotal} className="num text-[22px] font-semibold leading-none text-ink" />
-          </dd>
-        </div>
-        <div className="px-4 py-3.5">
-          <dt className="text-[10.5px] text-faint">收到的意向</dt>
-          <dd className="mt-1">
-            <CountUp value={received.length + receivedInvitations.length} className="num text-[22px] font-semibold leading-none text-ink" />
           </dd>
         </div>
         <div className="px-4 py-3.5">
@@ -138,9 +132,7 @@ export default function ApplicationsPage() {
         <div className="mt-9 grid gap-x-6 gap-y-9 lg:grid-cols-2">
           <ListSection
             index={0}
-            label="Applications in"
             title="收到的申请"
-            desc="你发布的队伍收到的申请"
             count={received.length}
             icon={<Inbox className="size-3.5" strokeWidth={1.9} />}
             items={received}
@@ -150,9 +142,7 @@ export default function ApplicationsPage() {
           />
           <ListSection
             index={1}
-            label="Applications out"
             title="我发出的申请"
-            desc="查看队长的处理结果"
             count={sent.length}
             icon={<Send className="size-3.5" strokeWidth={1.9} />}
             items={sent}
@@ -162,9 +152,7 @@ export default function ApplicationsPage() {
           />
           <ListSection
             index={2}
-            label="Invitations in"
             title="收到的组队邀请"
-            desc="接受后将直接加入对应比赛队伍"
             count={receivedInvitations.length}
             icon={<MailOpen className="size-3.5" strokeWidth={1.9} />}
             items={receivedInvitations}
@@ -173,9 +161,7 @@ export default function ApplicationsPage() {
           />
           <ListSection
             index={3}
-            label="Invitations out"
             title="我发出的组队邀请"
-            desc="查看候选人的回应结果"
             count={sentInvitations.length}
             icon={<MailPlus className="size-3.5" strokeWidth={1.9} />}
             items={sentInvitations}
@@ -191,9 +177,7 @@ export default function ApplicationsPage() {
 
 function ListSection<T extends { id: string }>({
   index,
-  label,
   title,
-  desc,
   count,
   icon,
   items,
@@ -202,9 +186,7 @@ function ListSection<T extends { id: string }>({
   render,
 }: {
   index: number;
-  label: string;
   title: string;
-  desc: string;
   count: number;
   icon: ReactNode;
   items: T[];
@@ -214,15 +196,11 @@ function ListSection<T extends { id: string }>({
 }) {
   return (
     <Reveal as="section" delay={60 + index * 50} className="min-w-0">
-      <div className="flex items-end justify-between gap-3">
-        <div className="min-w-0">
-          <p className="section-label flex items-center gap-1.5">
-            {icon}
-            {label}
-          </p>
-          <h2 className="section-title mt-1.5">{title}</h2>
-          <p className="section-desc mt-1">{desc}</p>
-        </div>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="flex items-center gap-1.5 text-[13.5px] font-semibold text-ink">
+          <span className="text-faint">{icon}</span>
+          {title}
+        </h2>
         <span className="chip num shrink-0">{count}</span>
       </div>
 

@@ -12,26 +12,23 @@ import {
   Plus,
   Search,
   ShieldCheck,
-  SlidersHorizontal,
   Sparkles,
-  UsersRound,
   X,
 } from "lucide-react";
 import { CountUp } from "@/components/motion/metric";
 import { notify } from "@/components/feedback/toast";
 import { Magnetic } from "@/components/motion/magnetic";
 import { Reveal } from "@/components/motion/reveal";
-import { TiltCard } from "@/components/motion/tilt-card";
 import type { Opportunity } from "@/lib/types";
 
 type View = "overview" | "recommended";
 type Notice = { type: "success" | "error"; text: string } | null;
 
-const ACCENTS: Record<string, { icon: string; bar: string }> = {
-  violet: { icon: "bg-brand-soft text-brand", bar: "bg-brand" },
-  cyan: { icon: "bg-tea-soft text-tea", bar: "bg-tea" },
-  amber: { icon: "bg-ochre-soft text-ochre", bar: "bg-ochre" },
-  coral: { icon: "bg-clay-soft text-clay", bar: "bg-clay" },
+const ACCENTS: Record<string, { icon: string }> = {
+  violet: { icon: "bg-brand-soft text-brand" },
+  cyan: { icon: "bg-tea-soft text-tea" },
+  amber: { icon: "bg-ochre-soft text-ochre" },
+  coral: { icon: "bg-clay-soft text-clay" },
 };
 
 export function OpportunityCenter({ initialView = "overview", initialQuery = "", focusSearch = false }: { initialView?: View; initialQuery?: string; focusSearch?: boolean }) {
@@ -179,10 +176,9 @@ export function OpportunityCenter({ initialView = "overview", initialQuery = "",
 
   return (
     <div className="space-y-6">
-      <dl className="e1 grid grid-cols-3 divide-x divide-line overflow-hidden rounded-[14px] border border-line bg-surface">
+      <dl className="e1 grid grid-cols-2 divide-x divide-line overflow-hidden rounded-[14px] border border-line bg-surface">
         <Stat value={overview.length} label="比赛机会" hint="含校内发布" loading={!loaded} />
-        <Stat value={verifiedCount} label="来源已核验" hint="可追溯到主办方" loading={!loaded} />
-        <Stat value={recruitingTeamCount} label="队伍招募中" hint="正在寻找队友" loading={!loaded} />
+        <Stat value={recruitingTeamCount} label="队伍招募中" hint={loaded ? `${verifiedCount} 项来源已核验` : "正在寻找队友"} loading={!loaded} />
       </dl>
 
       <div>
@@ -222,17 +218,6 @@ export function OpportunityCenter({ initialView = "overview", initialQuery = "",
             </Magnetic>
           </div>
         </div>
-
-        <p className="mt-2.5 flex items-center gap-1.5 text-[11px] text-faint">
-          <SlidersHorizontal className="size-3" strokeWidth={1.9} />
-          {!loaded ? "正在读取机会目录…" : query ? `找到 ${visible.length} 项结果` : `当前展示 ${visible.length} 项机会`}
-          <span className="text-line-strong">·</span>
-          {view === "overview"
-            ? "未知报名时间的比赛排在后面，平台不会猜测日期"
-            : rankedBy === "user-profile"
-              ? "推荐分按你的能力画像排序，赛事事实仍来自官方来源"
-              : "你还没有能力画像，当前推荐基于演示画像；完成测评后会重新排序"}
-        </p>
       </div>
 
       {notice && (
@@ -304,9 +289,14 @@ export function OpportunityCenter({ initialView = "overview", initialQuery = "",
             <p className="section-label">{view === "overview" ? "Opportunity library" : "For your profile"}</p>
             <h2 className="section-title mt-1.5 text-[17px]">{view === "overview" ? "全部比赛" : "为你推荐"}</h2>
           </div>
-          <span className="text-[11px] text-faint">
-            共 <span className="num">{visible.length}</span> 场
-          </span>
+          <div className="flex items-center gap-2">
+            {view === "recommended" && (
+              <span className="chip">{rankedBy === "user-profile" ? "按你的画像排序" : "演示画像排序"}</span>
+            )}
+            <span className="text-[11px] text-faint">
+              共 <span className="num">{visible.length}</span> 场
+            </span>
+          </div>
         </div>
 
         {!loaded ? (
@@ -383,14 +373,8 @@ function OpportunityCard({
   const accent = ACCENTS[item.accent] ?? ACCENTS.violet;
 
   return (
-    <TiltCard max={5} lift={4} spotlight className="group h-full rounded-[14px]">
-      <article className="card relative flex h-full flex-col overflow-hidden transition-shadow duration-500 [transition-timing-function:var(--spring)] group-hover:shadow-[0_2px_6px_-2px_rgba(60,48,30,0.08),0_18px_38px_-18px_rgba(60,48,30,0.26)]">
-        {/* 脊：有厚度的强调色棱，内高光 + 底部投影，像压在纸面上的凸条 */}
-        <div
-          aria-hidden
-          className={`h-1 w-full rounded-t-[13px] ${accent.bar} shadow-[inset_0_1px_0_rgba(255,255,255,0.5),0_1px_2px_rgba(60,48,30,0.22)]`}
-        />
-        <div className="flex flex-1 flex-col p-4">
+    <article className="card interactive-card group relative flex h-full flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col p-4">
           <div className="flex items-start justify-between gap-2">
             <div className="flex flex-wrap items-center gap-1.5">
               <span className={`glyph size-7 shrink-0 rounded-[9px] border-0 ${accent.icon}`}>
@@ -417,10 +401,10 @@ function OpportunityCard({
             {item.organizer} · {item.scope ?? "全国"}
           </p>
 
-          <p className="mt-2.5 line-clamp-3 text-[12.5px] leading-6 text-muted">{item.description}</p>
+          <p className="mt-2 line-clamp-2 text-[12.5px] leading-6 text-muted">{item.description}</p>
 
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {item.tags.slice(0, 4).map((tag) => (
+          <div className="mt-2.5 flex flex-wrap gap-1.5">
+            {item.tags.slice(0, 3).map((tag) => (
               <span key={tag} className="chip">
                 {tag}
               </span>
@@ -428,73 +412,50 @@ function OpportunityCard({
           </div>
 
           {recommended && item.matchReasons?.length ? (
-            <p className="callout callout-brand mt-3 px-2.5 py-2 text-[11.5px] leading-5">
-              <strong className="font-semibold">推荐理由：</strong>
-              {item.matchReasons[0]}
-            </p>
+            <p className="mt-2.5 line-clamp-2 text-[11.5px] leading-5 text-brand">{item.matchReasons[0]}</p>
           ) : null}
 
-          <div className="mt-3.5 grid grid-cols-[1fr_auto] items-center gap-3 border-t border-line pt-3 text-[11px]">
-            <dl className="min-w-0 space-y-1">
-              <div className="grid grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-2">
-                <dt className="text-faint">开始报名</dt>
-                <dd className="num truncate text-ink-soft">{item.registrationStart ?? "待补充"}</dd>
-              </div>
-              <div className="grid grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-2">
-                <dt className="text-faint">截止报名</dt>
-                <dd className="num truncate text-ink-soft">{item.registrationEnd ?? "待补充"}</dd>
-              </div>
-            </dl>
-            <Link
-              href={`/opportunities/${item.id}/teams`}
-              aria-label={`查看 ${item.title} 招募中的 ${teamCount} 支队伍`}
-              className="panel relative z-10 flex items-center gap-1.5 rounded-[9px] px-2.5 py-1.5 transition duration-300 hover:border-tea/40 hover:text-tea"
-            >
-              <UsersRound className="size-3.5 text-tea" strokeWidth={1.9} />
-              <span className="num text-[12px] font-semibold text-ink-soft">{teamCount}</span>
-              <span className="text-[10px] text-faint">队招募中</span>
-            </Link>
-          </div>
+          <p className="mt-3 flex items-center gap-1.5 border-t border-line pt-2.5 text-[11px] text-faint">
+            <CalendarDays className="size-3 shrink-0" strokeWidth={1.8} />
+            <span className="num truncate">
+              {item.registrationStart ?? "待补充"} → {item.registrationEnd ?? "待补充"}
+            </span>
+          </p>
 
-          <div className="relative z-10 mt-auto pt-3.5">
-            <button
-              type="button"
-              onClick={onToggleInterest}
-              disabled={intentPending}
-              aria-pressed={intended}
-              aria-busy={intentPending}
-              className={`btn btn-secondary btn-sm btn-block gap-1.5 ${intended ? "border-transparent bg-brand-soft text-brand shadow-[inset_0_1px_2px_rgba(60,48,30,0.1)]" : ""}`}
-            >
-              {intentPending ? (
-                <LoaderCircle className="size-3.5 animate-spin" />
-              ) : (
-                <Heart className={`size-3.5 ${intended ? "fill-current" : ""}`} strokeWidth={1.9} />
-              )}
-              {intentPending ? "正在更新意向…" : intended ? "已标记参赛意向" : "标记参赛意向"}
-            </button>
-
-            <div className="mt-2 grid grid-cols-2 gap-2">
+          <div className="relative z-10 mt-auto pt-3">
+            <div className="grid grid-cols-2 gap-2">
               <Link href={`/opportunities/${item.id}/recruit`} className="btn btn-primary btn-sm group/cta">
                 我是队长
                 <ArrowRight className="size-3 transition-transform duration-300 group-hover/cta:translate-x-0.5" />
               </Link>
               <Link href={`/opportunities/${item.id}/teams`} className="btn btn-secondary btn-sm">
-                寻找队伍 <UsersRound className="size-3" />
+                寻找队伍 <span className="num">{teamCount}</span>
               </Link>
             </div>
 
             <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-line pt-2.5 text-[10.5px] text-faint">
-              <span className="min-w-0 truncate">{item.sourceName}</span>
-              {item.sourceUrl !== "#" && (
+              <button
+                type="button"
+                onClick={onToggleInterest}
+                disabled={intentPending}
+                aria-pressed={intended}
+                aria-busy={intentPending}
+                className={`inline-flex items-center gap-1 rounded-[6px] px-1.5 py-1 transition hover:bg-raise ${intended ? "text-brand" : "text-muted hover:text-ink"}`}
+              >
+                {intentPending ? <LoaderCircle className="size-3 animate-spin" /> : <Heart className={`size-3 ${intended ? "fill-current" : ""}`} strokeWidth={2} />}
+                {intentPending ? "更新中…" : intended ? "已标记意向" : "标记意向"}
+              </button>
+              {item.sourceUrl !== "#" ? (
                 <a href={item.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex shrink-0 items-center gap-1 transition hover:text-brand">
                   官方来源 <ExternalLink className="size-2.5" />
                 </a>
+              ) : (
+                <span className="min-w-0 truncate">{item.sourceName}</span>
               )}
             </div>
           </div>
-        </div>
-      </article>
-    </TiltCard>
+      </div>
+    </article>
   );
 }
 

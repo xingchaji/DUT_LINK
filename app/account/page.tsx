@@ -2,7 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { BrainCircuit, KeyRound, Layers3, LoaderCircle, Mail, Monitor, Pencil, PencilLine, Save, ShieldCheck, UserRound } from "lucide-react";
+import { ChevronDown, LoaderCircle, Mail, Monitor, Pencil, Save, ShieldCheck, UserRound } from "lucide-react";
 import { notify } from "@/components/feedback/toast";
 import { Reveal } from "@/components/motion/reveal";
 import { Spot } from "@/components/motion/tilt-card";
@@ -242,7 +242,7 @@ export default function AccountPage() {
       <PageHeader
         eyebrow="个人主页"
         title="个人主页"
-        lede="账户资料、技能标签和竞赛能力画像属于同一位用户，并在组队、推荐和探索场景中复用。"
+        lede="资料、技能标签与竞赛能力画像会在组队、推荐和探索中复用。"
         icon={<UserRound className="size-5" strokeWidth={1.8} />}
       />
 
@@ -316,11 +316,8 @@ export default function AccountPage() {
         <Reveal as="form" onSubmit={save} delay={60} className="card min-w-0">
           <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4 sm:px-6">
             <div>
-              <p className="section-label flex items-center gap-1.5">
-                <PencilLine className="size-3" strokeWidth={2} /> Public profile
-              </p>
-              <h2 className="section-title mt-1.5">编辑公开资料</h2>
-              <p className="section-desc mt-1">邮箱由登录账户确定，暂不支持修改。</p>
+              <h2 className="section-title">编辑公开资料</h2>
+              <p className="section-desc mt-1.5">邮箱由登录账户确定，暂不支持修改。</p>
             </div>
           </div>
 
@@ -367,12 +364,9 @@ export default function AccountPage() {
       {/* AI 功能设置 */}
       <Reveal as="section" delay={120} className="mt-8">
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <div className="max-w-3xl">
-            <p className="section-label flex items-center gap-1.5">
-              <KeyRound className="size-3" strokeWidth={2} /> AI settings
-            </p>
-            <h2 className="section-title mt-1.5">AI 功能设置</h2>
-            <p className="section-desc mt-1">个人密钥仅在服务端加密保存。开启后，问卷能力画像、队长智能推荐和探索内容会使用这里配置的兼容 Chat Completions 服务；关闭后全部回退到本地规则和人工策展内容。</p>
+          <div className="max-w-2xl">
+            <h2 className="section-title">AI 功能设置</h2>
+            <p className="section-desc mt-1">密钥仅在服务端加密保存；关闭后画像、组队推荐与探索统一回退到本地规则。</p>
           </div>
           <label className="pressable flex h-8 cursor-pointer items-center gap-2.5 rounded-[8px] border border-line bg-surface px-3 shadow-[0_1px_1px_rgba(60,48,30,0.05),0_3px_8px_-4px_rgba(60,48,30,0.14),inset_0_1px_0_#fff] hover:border-line-strong">
             <input
@@ -423,51 +417,32 @@ export default function AccountPage() {
 
       {/* 竞赛能力画像 */}
       <Reveal as="section" delay={180} className="mt-8">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="section-label flex items-center gap-1.5">
-              <BrainCircuit className="size-3" strokeWidth={2} /> Ability profile
-            </p>
-            <h2 className="section-title mt-1.5">竞赛能力画像</h2>
-            <p className="section-desc mt-1">标准化竞赛调查结果，分数由规则计算。</p>
-          </div>
-          <Link href="/onboarding" className="btn btn-secondary">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="section-title">竞赛能力画像</h2>
+          <Link href="/onboarding" className="btn btn-secondary btn-sm">
             <Pencil className="size-3.5" /> 重新测评
           </Link>
         </div>
 
-        <div className="card mt-3.5 px-5 py-5 sm:px-6">
-          <p className="max-w-3xl text-[13px] leading-7 text-muted">{abilityProfile.summary}</p>
-          <div className="mt-5 grid gap-6 sm:grid-cols-[minmax(0,240px)_minmax(0,1fr)] sm:gap-8">
-            <SkillBars skills={abilityProfile.skills} />
-            <div className="divide-y divide-line border-t border-line sm:border-t-0">
-              {abilityProfile.skills.map((skill) => (
-                <div key={skill.name} className="py-3 first:pt-0 last:pb-0">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-[12.5px] font-medium text-ink-soft">{skill.name}</span>
-                    {typeof skill.confidence === "number" && <span className="num text-[11px] text-faint">置信度 {skill.confidence}%</span>}
+        <div className="card mt-3 divide-y divide-line">
+          <div className="px-5 py-5 sm:px-6">
+            <p className="max-w-3xl text-[13px] leading-7 text-muted">{abilityProfile.summary}</p>
+            <div className="mt-5 grid gap-6 sm:grid-cols-[minmax(0,240px)_minmax(0,1fr)] sm:gap-8">
+              <SkillBars skills={abilityProfile.skills} />
+              <div className="divide-y divide-line border-t border-line sm:border-t-0">
+                {abilityProfile.skills.map((skill) => (
+                  <div key={skill.name} className="py-3 first:pt-0 last:pb-0">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-[12.5px] font-medium text-ink-soft">{skill.name}</span>
+                      {typeof skill.confidence === "number" && <span className="num text-[11px] text-faint">置信度 {skill.confidence}%</span>}
+                    </div>
+                    <p className="mt-1 text-[11.5px] leading-6 text-muted">依据：{skill.evidence?.join("；") ?? "暂无补充证据"}</p>
                   </div>
-                  <p className="mt-1 text-[11.5px] leading-6 text-muted">依据：{skill.evidence?.join("；") ?? "暂无补充证据"}</p>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-      </Reveal>
 
-      {/* 兴趣与潜在方向 */}
-      <Reveal as="section" delay={240} className="mt-8">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="section-label flex items-center gap-1.5">
-              <Layers3 className="size-3" strokeWidth={2} /> Interests
-            </p>
-            <h2 className="section-title mt-1.5">兴趣与潜在方向</h2>
-            <p className="section-desc mt-1">兴趣与能力综合，不是职业定论。</p>
-          </div>
-        </div>
-
-        <div className="card mt-3.5 divide-y divide-line">
           <div className="px-5 py-4 sm:px-6">
             <p className="text-[11px] text-faint">兴趣标签</p>
             <div className="mt-2 flex flex-wrap gap-1.5">
@@ -480,33 +455,32 @@ export default function AccountPage() {
               )}
             </div>
           </div>
+
           <div className="px-5 py-4 sm:px-6">
             <p className="text-[11px] text-faint">潜在方向</p>
-            <ol className="mt-1.5 divide-y divide-line">
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5">
               {abilityProfile.potentialDirections.map((item, index) => (
-                <li key={item} className="flex items-center gap-3 py-2.5 text-[13px] text-ink-soft last:pb-0">
-                  <span className="num shrink-0 text-[10.5px] text-faint">{String(index + 1).padStart(2, "0")}</span>
-                  <span className="min-w-0">{item}</span>
-                </li>
+                <span key={item} className="flex items-center gap-1.5 text-[12.5px] text-ink-soft">
+                  <span className="num text-[10.5px] text-faint">{String(index + 1).padStart(2, "0")}</span>
+                  {item}
+                </span>
               ))}
-            </ol>
+            </div>
           </div>
         </div>
       </Reveal>
 
       {/* 登录设备 */}
       <Reveal as="section" delay={300} className="mt-8">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="section-label flex items-center gap-1.5">
-              <Monitor className="size-3" strokeWidth={2} /> Sessions
-            </p>
-            <h2 className="section-title mt-1.5">登录设备</h2>
-            <p className="section-desc mt-1">当前账号的登录会话。</p>
-          </div>
-        </div>
+        <details className="group">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-2">
+            <span className="flex items-center gap-1.5 text-[13px] font-semibold text-ink">
+              <Monitor className="size-3.5 text-muted" strokeWidth={2} /> 登录设备
+            </span>
+            <ChevronDown className="size-3.5 text-faint transition group-open:rotate-180" strokeWidth={2} />
+          </summary>
 
-        <div className="card mt-3.5">
+          <div className="card mt-3">
           {!sessionsLoaded ? (
             <p className="flex items-center gap-1.5 px-5 py-4 text-[12px] text-muted">
               <LoaderCircle className="size-3.5 animate-spin" /> 正在加载登录会话…
@@ -536,6 +510,7 @@ export default function AccountPage() {
             </ul>
           )}
         </div>
+        </details>
       </Reveal>
     </div>
   );

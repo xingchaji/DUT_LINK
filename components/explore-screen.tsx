@@ -148,8 +148,6 @@ export function ExploreScreen({ initialView, initialDiscovery }: { initialView: 
     }
   }
 
-  const currentView = VIEWS.find((item) => item.id === view) ?? VIEWS[0];
-
   return (
     <div className="page-shell">
       <PageHeader
@@ -180,7 +178,6 @@ export function ExploreScreen({ initialView, initialDiscovery }: { initialView: 
             );
           })}
         </nav>
-        <p className="text-[11.5px] leading-6 text-muted">{currentView.description}</p>
       </div>
 
       {notice && (
@@ -239,20 +236,19 @@ function InspirationHub({ discovery, articles, people, loading, publishing, onRa
             <dl className="relative mt-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 border-t border-line pt-3 text-[10.5px] text-faint">
               <div className="flex items-center gap-1.5">
                 <Clock className="size-3" strokeWidth={1.9} />
-                <dt>阅读时长</dt>
+                <dt>阅读</dt>
                 <dd className="num text-muted">{discovery.readTime}</dd>
-              </div>
-              <span className="h-3 w-px bg-line" />
-              <div className="flex items-center gap-1.5">
-                <BadgeCheck className="size-3 text-moss" strokeWidth={2} />
-                <dt>内容模式</dt>
-                <dd className="text-muted">{discovery.generationMode === "ai" ? "AI 个性化生成" : "可信内容整理"}</dd>
               </div>
               <span className="h-3 w-px bg-line" />
               <div className="flex items-center gap-1.5">
                 <BookOpen className="size-3" strokeWidth={1.9} />
                 <dt>来源</dt>
                 <dd className="num text-muted">{discovery.sources.length} 条</dd>
+              </div>
+              <span className="h-3 w-px bg-line" />
+              <div className="flex items-center gap-1.5">
+                <BadgeCheck className="size-3 text-moss" strokeWidth={2} />
+                <dd className="text-muted">{discovery.generationMode === "ai" ? "AI 生成" : "人工整理"}</dd>
               </div>
             </dl>
           </header>
@@ -418,7 +414,6 @@ function WinningWorkHub({ insight, loading, onRefresh }: { insight: WinningWorkI
             <Award className="size-3" strokeWidth={2} /> Winning work review
           </p>
           <h2 className="section-title mt-1.5">获奖作品专业解读</h2>
-          <p className="section-desc mt-1 max-w-2xl">从作品设计思路、跨学科接口和验证方法中提炼可复用的参赛经验。</p>
         </div>
         <button type="button" onClick={onRefresh} disabled={loading} className="btn btn-secondary shrink-0 active:scale-[0.97]">
           {loading ? <LoaderCircle className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />} 换一件作品

@@ -177,9 +177,7 @@ export default function AdminPage() {
         <section className="reveal" style={{ ["--i" as string]: 0 }}>
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div className="min-w-0">
-              <p className="section-label">Pending</p>
-              <h2 className="section-title mt-1.5">待审核</h2>
-              <p className="section-desc mt-1">通过后进入公开目录，驳回后不对普通用户展示。</p>
+              <h2 className="section-title">待审核</h2>
             </div>
             <span className="chip num shrink-0">{queueCount}</span>
           </div>
@@ -231,9 +229,7 @@ export default function AdminPage() {
         <section className="reveal" style={{ ["--i" as string]: 1 }}>
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div className="min-w-0">
-              <p className="section-label">Reviewed</p>
-              <h2 className="section-title mt-1.5">已处理</h2>
-              <p className="section-desc mt-1">本次打开页面后完成的审核结果。</p>
+              <h2 className="section-title">已处理</h2>
             </div>
             <span className="chip num shrink-0">{reviewed.length}</span>
           </div>
