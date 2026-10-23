@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { CountUp } from "@/components/motion/metric";
+import { notify } from "@/components/feedback/toast";
 import { Magnetic } from "@/components/motion/magnetic";
 import { Reveal } from "@/components/motion/reveal";
 import { TiltCard } from "@/components/motion/tilt-card";
@@ -44,31 +45,31 @@ export function OpportunityCenter() {
   const [notice, setNotice] = useState<Notice>(null);
   const [loading, setLoading] = useState(false);
   const [intendedIds, setIntendedIds] = useState<string[]>([]);
-  const noticeRef = useRef<HTMLDivElement>(null);
-
-  // 操作反馈可能出现在视口之外，出现时滚到最近位置，避免“点了没反应”
-  useEffect(() => {
-    if (!notice) return;
-    noticeRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-  }, [notice]);
+  const [pendingIntentIds, setPendingIntentIds] = useState<string[]>([]);
 
   const load = useCallback(async () => {
-    const response = await fetch("/api/opportunities", { cache: "no-store" });
-    const data = await response.json();
-    setOverview(data.overview ?? []);
-    setRecommended(data.recommended ?? []);
-    setCounts(data.recruitmentCounts ?? {});
-    setIntendedIds(data.intendedOpportunityIds ?? []);
+    try {
+      const response = await fetch("/api/opportunities", { cache: "no-store" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message ?? "无法加载比赛列表");
+      setOverview(data.overview ?? []);
+      setRecommended(data.recommended ?? []);
+      setCounts(data.recruitmentCounts ?? {});
+      setIntendedIds(data.intendedOpportunityIds ?? []);
 
-    const stored = localStorage.getItem("dut-link-profile");
-    if (stored) {
-      const ranked = await fetch("/api/opportunities/recommend", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profile: JSON.parse(stored) }),
-      });
-      const rankedData = await ranked.json();
-      if (rankedData.opportunities) setRecommended(rankedData.opportunities);
+      const stored = localStorage.getItem("dut-link-profile");
+      if (stored) {
+        const ranked = await fetch("/api/opportunities/recommend", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ profile: JSON.parse(stored) }),
+        });
+        const rankedData = await ranked.json();
+        if (rankedData.opportunities) setRecommended(rankedData.opportunities);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "无法加载比赛列表";
+      setNotice({ type: "error", text: message });
     }
   }, []);
 
@@ -92,47 +93,72 @@ export function OpportunityCenter() {
     setNotice(null);
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
-    const response = await fetch("/api/opportunities", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: form.get("title"),
-        organizer: form.get("organizer"),
-        type: form.get("type"),
-        registrationStart: form.get("registrationStart"),
-        registrationEnd: form.get("registrationEnd") || null,
-        eventDate: form.get("eventDate") || null,
-        description: form.get("description"),
-        tags: String(form.get("tags") ?? "").split(/[，,、]/),
-      }),
-    });
-    const data = await response.json();
-    setLoading(false);
-    if (!response.ok) {
-      setNotice({ type: "error", text: data.message });
-      return;
+    try {
+      const response = await fetch("/api/opportunities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: form.get("title"),
+          organizer: form.get("organizer"),
+          type: form.get("type"),
+          registrationStart: form.get("registrationStart"),
+          registrationEnd: form.get("registrationEnd") || null,
+          eventDate: form.get("eventDate") || null,
+          description: form.get("description"),
+          tags: String(form.get("tags") ?? "").split(/[，,、]/),
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const message = data.message ?? "发布失败，请稍后重试";
+        setNotice({ type: "error", text: message });
+        notify(message, "error");
+        return;
+      }
+      const message = "校内比赛已发布，核验前会显示「待核验」";
+      setNotice({ type: "success", text: message });
+      notify(message);
+      setShowPublish(false);
+      formElement.reset();
+      await load();
+      setView("overview");
+    } catch {
+      const message = "无法连接服务器，比赛未发布";
+      setNotice({ type: "error", text: message });
+      notify(message, "error");
+    } finally {
+      setLoading(false);
     }
-    setNotice({ type: "success", text: "校内比赛已发布，核验前会显示「待核验」" });
-    setShowPublish(false);
-    formElement.reset();
-    await load();
-    setView("overview");
   }
 
   async function toggleInterest(opportunityId: string) {
+    if (pendingIntentIds.includes(opportunityId)) return;
     const intended = !intendedIds.includes(opportunityId);
-    const response = await fetch("/api/opportunity-interests", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ opportunityId, intended }),
-    });
-    const data = await response.json();
-    if (!response.ok) {
-      setNotice({ type: "error", text: data.message });
-      return;
+    setPendingIntentIds((current) => [...current, opportunityId]);
+    try {
+      const response = await fetch("/api/opportunity-interests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ opportunityId, intended }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const message = data.message ?? "标记参赛意向失败";
+        setNotice({ type: "error", text: message });
+        notify(message, "error");
+        return;
+      }
+      setIntendedIds((current) => (intended ? [...current, opportunityId] : current.filter((id) => id !== opportunityId)));
+      const message = intended ? "已加入参赛意向，队长推荐队友时会优先筛选你" : "已取消参赛意向";
+      setNotice({ type: "success", text: message });
+      notify(message);
+    } catch {
+      const message = "网络异常，参赛意向未更新";
+      setNotice({ type: "error", text: message });
+      notify(message, "error");
+    } finally {
+      setPendingIntentIds((current) => current.filter((id) => id !== opportunityId));
     }
-    setIntendedIds((current) => (intended ? [...current, opportunityId] : current.filter((id) => id !== opportunityId)));
-    setNotice({ type: "success", text: intended ? "已加入参赛意向，队长推荐队友时会优先筛选你" : "已取消参赛意向" });
   }
 
   return (
@@ -179,7 +205,7 @@ export function OpportunityCenter() {
       </div>
 
       {notice && (
-        <div ref={noticeRef} role="status" className={`callout items-start ${notice.type === "success" ? "callout-moss" : "callout-clay"}`}>
+        <div role="status" className={`callout items-start ${notice.type === "success" ? "callout-moss" : "callout-clay"}`}>
           <CheckCircle2 className={`mt-0.5 size-4 shrink-0 ${notice.type === "success" ? "text-moss" : "text-clay"}`} strokeWidth={2} />
           <span>
             {notice.text}
@@ -261,6 +287,7 @@ export function OpportunityCenter() {
                   recommended={view === "recommended"}
                   teamCount={counts[item.id] ?? 0}
                   intended={intendedIds.includes(item.id)}
+                  intentPending={pendingIntentIds.includes(item.id)}
                   onToggleInterest={() => toggleInterest(item.id)}
                 />
               </Reveal>
@@ -288,12 +315,14 @@ function OpportunityCard({
   recommended,
   teamCount,
   intended,
+  intentPending,
   onToggleInterest,
 }: {
   item: Opportunity;
   recommended: boolean;
   teamCount: number;
   intended: boolean;
+  intentPending: boolean;
   onToggleInterest: () => void;
 }) {
   const accent = ACCENTS[item.accent] ?? ACCENTS.violet;
@@ -376,11 +405,17 @@ function OpportunityCard({
             <button
               type="button"
               onClick={onToggleInterest}
+              disabled={intentPending}
               aria-pressed={intended}
+              aria-busy={intentPending}
               className={`btn btn-secondary btn-sm btn-block gap-1.5 ${intended ? "border-transparent bg-brand-soft text-brand shadow-[inset_0_1px_2px_rgba(60,48,30,0.1)]" : ""}`}
             >
-              <Heart className={`size-3.5 ${intended ? "fill-current" : ""}`} strokeWidth={1.9} />
-              {intended ? "已标记参赛意向" : "标记参赛意向"}
+              {intentPending ? (
+                <LoaderCircle className="size-3.5 animate-spin" />
+              ) : (
+                <Heart className={`size-3.5 ${intended ? "fill-current" : ""}`} strokeWidth={1.9} />
+              )}
+              {intentPending ? "正在更新意向…" : intended ? "已标记参赛意向" : "标记参赛意向"}
             </button>
 
             <div className="mt-2 grid grid-cols-2 gap-2">

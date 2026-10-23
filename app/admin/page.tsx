@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Check, FileText, LoaderCircle, ShieldAlert, ShieldCheck, Trophy, X } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { notify } from "@/components/feedback/toast";
 import { CountUp } from "@/components/motion/metric";
 import type { CommunityArticle, Opportunity } from "@/lib/types";
 
@@ -29,40 +30,70 @@ export default function AdminPage() {
   const [reviewed, setReviewed] = useState<ReviewedEntry[]>([]);
 
   const load = useCallback(async () => {
-    const response = await fetch("/api/admin/review", { cache: "no-store" });
-    if (response.status === 401 || response.status === 403) { setForbidden(true); setLoading(false); return; }
-    const data = await response.json();
-    setOpportunities(data.pendingOpportunities ?? []);
-    setArticles(data.pendingArticles ?? []);
-    setLoading(false);
+    try {
+      const response = await fetch("/api/admin/review", { cache: "no-store" });
+      if (response.status === 401 || response.status === 403) { setForbidden(true); return; }
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) { notify(data.message ?? "无法加载待审内容", "error"); return; }
+      setOpportunities(data.pendingOpportunities ?? []);
+      setArticles(data.pendingArticles ?? []);
+    } catch {
+      notify("网络异常，无法加载待审内容", "error");
+    } finally {
+      setLoading(false);
+    }
   }, []);
   useEffect(() => { void Promise.resolve().then(load); }, [load]);
 
   async function reviewOpportunity(id: string, decision: "approved" | "rejected") {
+    if (busyId) return;
     setBusyId(`opportunity-${id}`);
     const target = opportunities.find((item) => item.id === id);
-    const response = await fetch(`/api/admin/opportunities/${id}/review`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ decision }) });
-    setBusyId("");
-    setOpportunities((current) => current.filter((item) => item.id !== id));
-    if (response.ok && target) {
-      setReviewed((current) => [
-        { key: `opportunity-${id}`, kind: "比赛", title: target.title, meta: `${target.organizer} · ${target.type}`, decision },
-        ...current,
-      ]);
+    try {
+      const response = await fetch(`/api/admin/opportunities/${id}/review`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ decision }) });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        notify(data.message ?? "审核失败，请重试", "error");
+        return;
+      }
+      setOpportunities((current) => current.filter((item) => item.id !== id));
+      if (target) {
+        setReviewed((current) => [
+          { key: `opportunity-${id}`, kind: "比赛", title: target.title, meta: `${target.organizer} · ${target.type}`, decision },
+          ...current,
+        ]);
+      }
+      notify(decision === "approved" ? `已通过：${target?.title ?? "比赛"}` : `已驳回：${target?.title ?? "比赛"}`);
+    } catch {
+      notify("网络异常，审核未提交", "error");
+    } finally {
+      setBusyId("");
     }
   }
 
   async function reviewArticle(id: string, decision: "approved" | "rejected") {
+    if (busyId) return;
     setBusyId(`article-${id}`);
     const target = articles.find((item) => item.id === id);
-    const response = await fetch(`/api/admin/articles/${id}/review`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ decision }) });
-    setBusyId("");
-    setArticles((current) => current.filter((item) => item.id !== id));
-    if (response.ok && target) {
-      setReviewed((current) => [
-        { key: `article-${id}`, kind: "文章", title: target.title, meta: `${target.authorName} · ${target.authorMajor}`, decision },
-        ...current,
-      ]);
+    try {
+      const response = await fetch(`/api/admin/articles/${id}/review`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ decision }) });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        notify(data.message ?? "审核失败，请重试", "error");
+        return;
+      }
+      setArticles((current) => current.filter((item) => item.id !== id));
+      if (target) {
+        setReviewed((current) => [
+          { key: `article-${id}`, kind: "文章", title: target.title, meta: `${target.authorName} · ${target.authorMajor}`, decision },
+          ...current,
+        ]);
+      }
+      notify(decision === "approved" ? `已通过：${target?.title ?? "文章"}` : `已驳回：${target?.title ?? "文章"}`);
+    } catch {
+      notify("网络异常，审核未提交", "error");
+    } finally {
+      setBusyId("");
     }
   }
 

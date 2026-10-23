@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { TagEditor } from "@/components/tag-editor";
+import { notify } from "@/components/feedback/toast";
 import { Magnetic } from "@/components/motion/magnetic";
 import { CountUp, Meter } from "@/components/motion/metric";
 import { Reveal } from "@/components/motion/reveal";
@@ -67,29 +68,28 @@ export function OpportunityDetail({ opportunityId, mode }: { opportunityId: stri
   const [formVersion, setFormVersion] = useState(0);
   const [recommendations, setRecommendations] = useState<RecommendationData | null>(null);
   const [intended, setIntended] = useState(false);
-  const noticeRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!notice) return;
-    noticeRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-  }, [notice]);
+  const [pendingAction, setPendingAction] = useState("");
 
   const load = useCallback(async () => {
-    const response = await fetch(`/api/opportunities/${opportunityId}`, { cache: "no-store" });
-    const payload = await response.json();
-    if (!response.ok) { setError(payload.message ?? "比赛不存在"); return; }
-    setData(payload);
-    const interestResponse = await fetch("/api/opportunity-interests", { cache: "no-store" });
-    if (interestResponse.ok) {
-      const interestPayload = await interestResponse.json();
-      setIntended(((interestPayload.opportunityIds ?? []) as string[]).includes(opportunityId));
-    }
-    if (payload.ownedRecruitment) {
-      const recommendationResponse = await fetch(`/api/recruitments/${payload.ownedRecruitment.id}/recommendations`, { cache: "no-store" });
-      const recommendationPayload = await recommendationResponse.json();
-      setRecommendations(recommendationResponse.ok ? recommendationPayload : null);
-    } else {
-      setRecommendations(null);
+    try {
+      const response = await fetch(`/api/opportunities/${opportunityId}`, { cache: "no-store" });
+      const payload = await response.json();
+      if (!response.ok) { setError(payload.message ?? "比赛不存在"); return; }
+      setData(payload);
+      const interestResponse = await fetch("/api/opportunity-interests", { cache: "no-store" });
+      if (interestResponse.ok) {
+        const interestPayload = await interestResponse.json();
+        setIntended(((interestPayload.opportunityIds ?? []) as string[]).includes(opportunityId));
+      }
+      if (payload.ownedRecruitment) {
+        const recommendationResponse = await fetch(`/api/recruitments/${payload.ownedRecruitment.id}/recommendations`, { cache: "no-store" });
+        const recommendationPayload = await recommendationResponse.json();
+        setRecommendations(recommendationResponse.ok ? recommendationPayload : null);
+      } else {
+        setRecommendations(null);
+      }
+    } catch {
+      setError("无法连接服务器，请稍后重新加载");
     }
   }, [opportunityId]);
 
@@ -101,65 +101,153 @@ export function OpportunityDetail({ opportunityId, mode }: { opportunityId: stri
     setPublishing(true); setNotice("");
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
-    const response = await fetch("/api/recruitments", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        opportunityId: data.opportunity.id, opportunityTitle: data.opportunity.title,
-        teamName: form.get("teamName"), projectDirection: form.get("projectDirection"),
-        expectedAvailability: form.get("expectedAvailability"),
-        contact: form.get("contact"), description: form.get("description"), requirements: form.get("requirements"),
-        neededSkills: String(form.get("neededSkills") ?? "").split(/[，,、]/),
-        capacity: Number(form.get("capacity")),
-        recruitmentDeadline: form.get("recruitmentDeadline"),
-      }),
-    });
-    const payload = await response.json(); setPublishing(false);
-    if (!response.ok) { setNotice(payload.message); return; }
-    setNotice("队伍已创建，推荐人选现在可以收到你的邀请"); formElement.reset(); setFormVersion((value) => value + 1); await load();
+    try {
+      const response = await fetch("/api/recruitments", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          opportunityId: data.opportunity.id, opportunityTitle: data.opportunity.title,
+          teamName: form.get("teamName"), projectDirection: form.get("projectDirection"),
+          expectedAvailability: form.get("expectedAvailability"),
+          contact: form.get("contact"), description: form.get("description"), requirements: form.get("requirements"),
+          neededSkills: String(form.get("neededSkills") ?? "").split(/[，,、]/),
+          capacity: Number(form.get("capacity")),
+          recruitmentDeadline: form.get("recruitmentDeadline"),
+        }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const message = payload.message ?? "创建队伍失败，请稍后重试";
+        setNotice(message);
+        notify(message, "error");
+        return;
+      }
+      const message = "队伍已创建，推荐人选现在可以收到你的邀请";
+      setNotice(message);
+      notify(message);
+      formElement.reset();
+      setFormVersion((value) => value + 1);
+      await load();
+    } catch {
+      const message = "无法连接服务器，队伍未创建";
+      setNotice(message);
+      notify(message, "error");
+    } finally {
+      setPublishing(false);
+    }
   }
 
   async function deleteTeam(recruitmentId: string) {
-    const response = await fetch(`/api/recruitments/${recruitmentId}`, { method: "DELETE" });
-    const payload = await response.json();
-    setNotice(response.ok ? "队伍及其未完成的申请、邀请已删除" : payload.message);
-    if (response.ok) await load();
+    setPendingAction("delete");
+    setNotice("");
+    try {
+      const response = await fetch(`/api/recruitments/${recruitmentId}`, { method: "DELETE" });
+      const payload = await response.json().catch(() => ({}));
+      const message = response.ok ? "队伍及其未完成的申请、邀请已删除" : payload.message ?? "删除失败，请稍后重试";
+      setNotice(message);
+      notify(message, response.ok ? "success" : "error");
+      if (response.ok) await load();
+    } catch {
+      const message = "无法连接服务器，队伍未删除";
+      setNotice(message);
+      notify(message, "error");
+    } finally {
+      setPendingAction("");
+    }
   }
 
   async function apply(recruitmentId: string) {
+    if (pendingAction) return;
+    setPendingAction(recruitmentId);
     setNotice("");
-    const response = await fetch(`/api/recruitments/${recruitmentId}/apply`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: "我的画像与队伍需求匹配，希望和队长进一步沟通。" }) });
-    const payload = await response.json();
-    setNotice(response.ok ? "申请已提交，可在“申请管理”中查看处理状态" : payload.message);
-    if (response.ok) await load();
+    try {
+      const response = await fetch(`/api/recruitments/${recruitmentId}/apply`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: "我的画像与队伍需求匹配，希望和队长进一步沟通。" }) });
+      const payload = await response.json().catch(() => ({}));
+      const message = response.ok ? "申请已提交，可在“申请管理”中查看处理状态" : payload.message ?? "申请提交失败";
+      setNotice(message);
+      notify(message, response.ok ? "success" : "error");
+      if (response.ok) await load();
+    } catch {
+      const message = "网络异常，申请未提交";
+      setNotice(message);
+      notify(message, "error");
+    } finally {
+      setPendingAction("");
+    }
   }
 
   async function openPerson(id: string) {
     setInviteNotice("");
     setProfileLoading(true);
-    const response = await fetch(`/api/people/${id}`);
-    const payload = await response.json(); setProfileLoading(false);
-    if (!response.ok) { setNotice(payload.message); return; }
-    setSelectedPerson(payload.person);
+    try {
+      const response = await fetch(`/api/people/${id}`);
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const message = payload.message ?? "无法打开该用户主页";
+        setNotice(message);
+        notify(message, "error");
+        return;
+      }
+      setSelectedPerson(payload.person);
+    } catch {
+      const message = "网络异常，无法打开用户主页";
+      setNotice(message);
+      notify(message, "error");
+    } finally {
+      setProfileLoading(false);
+    }
   }
 
   async function invite(person: PersonProfile) {
-    if (!data) return;
+    if (!data || pendingAction) return;
+    setPendingAction("invite");
     setInviteNotice("");
-    const response = await fetch("/api/invitations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recipientId: person.id, opportunityId: data.opportunity.id }) });
-    const payload = await response.json();
-    if (!response.ok) { setInviteNotice(payload.message ?? "邀请发送失败"); return; }
-    setNotice(`已向 ${person.name} 发送组队邀请`);
-    setSelectedPerson(null);
+    try {
+      const response = await fetch("/api/invitations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recipientId: person.id, opportunityId: data.opportunity.id }) });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const message = payload.message ?? "邀请发送失败";
+        setInviteNotice(message);
+        notify(message, "error");
+        return;
+      }
+      const message = `已向 ${person.name} 发送组队邀请`;
+      setNotice(message);
+      notify(message);
+      setSelectedPerson(null);
+    } catch {
+      const message = "网络异常，邀请未发送";
+      setInviteNotice(message);
+      notify(message, "error");
+    } finally {
+      setPendingAction("");
+    }
   }
 
   async function toggleInterest() {
+    if (pendingAction) return;
+    setPendingAction("interest");
     setNotice("");
     const next = !intended;
-    const response = await fetch("/api/opportunity-interests", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ opportunityId, intended: next }) });
-    const payload = await response.json();
-    if (!response.ok) { setNotice(payload.message ?? "标记参赛意向失败"); return; }
-    setIntended(Boolean(payload.intended));
-    setNotice(next ? "已加入参赛意向，队长推荐队友时会优先筛选你" : "已取消参赛意向");
+    try {
+      const response = await fetch("/api/opportunity-interests", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ opportunityId, intended: next }) });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const message = payload.message ?? "标记参赛意向失败";
+        setNotice(message);
+        notify(message, "error");
+        return;
+      }
+      setIntended(Boolean(payload.intended));
+      const message = next ? "已加入参赛意向，队长推荐队友时会优先筛选你" : "已取消参赛意向";
+      setNotice(message);
+      notify(message);
+    } catch {
+      const message = "网络异常，参赛意向未更新";
+      setNotice(message);
+      notify(message, "error");
+    } finally {
+      setPendingAction("");
+    }
   }
 
   if (error) {
@@ -214,7 +302,7 @@ export function OpportunityDetail({ opportunityId, mode }: { opportunityId: stri
       <PageHeader eyebrow={header.eyebrow} title={header.title} lede={header.lede} icon={icon} />
 
       {notice && (
-        <div ref={noticeRef} role="status" className="callout mt-6 scroll-mt-24 items-start">
+        <div role="status" className="callout mt-6 items-start">
           <BadgeCheck className="mt-0.5 size-3.5 shrink-0 text-moss" strokeWidth={2} />
           <span className="min-w-0">
             {notice}
@@ -227,8 +315,16 @@ export function OpportunityDetail({ opportunityId, mode }: { opportunityId: stri
         </div>
       )}
 
-      {mode === "overview" && <OverviewView opportunity={opportunity} recruitments={recruitments} intended={intended} onToggleInterest={toggleInterest} />}
-      {mode === "teams" && <TeamsView recruitments={recruitments} opportunity={opportunity} onApply={apply} />}
+      {mode === "overview" && (
+        <OverviewView
+          opportunity={opportunity}
+          recruitments={recruitments}
+          intended={intended}
+          intentPending={pendingAction === "interest"}
+          onToggleInterest={toggleInterest}
+        />
+      )}
+      {mode === "teams" && <TeamsView recruitments={recruitments} opportunity={opportunity} applyingId={pendingAction} onApply={apply} />}
       {mode === "recruit" && (
         <RecruitView
           key={formVersion}
@@ -236,20 +332,29 @@ export function OpportunityDetail({ opportunityId, mode }: { opportunityId: stri
           recommendations={recommendations}
           ownedRecruitment={ownedRecruitment}
           publishing={publishing}
+          deleting={pendingAction === "delete"}
           profileLoading={profileLoading}
           onPublish={publish}
           onDelete={deleteTeam}
           onOpenPerson={openPerson}
         />
       )}
-      {selectedPerson && <PersonDialog person={selectedPerson} inviteNotice={inviteNotice} onClose={() => setSelectedPerson(null)} onInvite={() => invite(selectedPerson)} />}
+      {selectedPerson && (
+        <PersonDialog
+          person={selectedPerson}
+          inviteNotice={inviteNotice}
+          inviting={pendingAction === "invite"}
+          onClose={() => setSelectedPerson(null)}
+          onInvite={() => invite(selectedPerson)}
+        />
+      )}
     </div>
   );
 }
 
 /* ---------------- 比赛文档 ---------------- */
 
-function OverviewView({ opportunity, recruitments, intended, onToggleInterest }: { opportunity: Opportunity; recruitments: RecruitmentPost[]; intended: boolean; onToggleInterest: () => void }) {
+function OverviewView({ opportunity, recruitments, intended, intentPending, onToggleInterest }: { opportunity: Opportunity; recruitments: RecruitmentPost[]; intended: boolean; intentPending: boolean; onToggleInterest: () => void }) {
   const verification = verificationOf(opportunity);
   return (
     <div className="mt-8 grid gap-9 xl:grid-cols-[minmax(0,1fr)_264px] xl:gap-10">
@@ -352,8 +457,9 @@ function OverviewView({ opportunity, recruitments, intended, onToggleInterest }:
             <Link href={`/opportunities/${opportunity.id}/teams`} className="btn btn-secondary btn-block">
               寻找队伍 <UsersRound className="size-3.5" />
             </Link>
-            <button type="button" onClick={onToggleInterest} aria-pressed={intended} className={`btn btn-block pressable ${intended ? "btn-marker" : "btn-secondary"}`}>
-              {intended ? "已标记参赛意向" : "标记参赛意向"}
+            <button type="button" onClick={onToggleInterest} disabled={intentPending} aria-pressed={intended} aria-busy={intentPending} className={`btn btn-block pressable ${intended ? "btn-marker" : "btn-secondary"}`}>
+              {intentPending ? <LoaderCircle className="size-3.5 animate-spin" /> : null}
+              {intentPending ? "正在更新意向…" : intended ? "已标记参赛意向" : "标记参赛意向"}
             </button>
           </div>
           <p className="mt-3.5 border-t border-line pt-3 text-[11px] leading-6 text-faint">
@@ -412,7 +518,7 @@ function TeamLinkRow({ post, opportunityId }: { post: RecruitmentPost; opportuni
 
 /* ---------------- 寻找队伍 ---------------- */
 
-function TeamsView({ recruitments, opportunity, onApply }: { recruitments: RecruitmentPost[]; opportunity: Opportunity; onApply: (id: string) => void }) {
+function TeamsView({ recruitments, opportunity, applyingId, onApply }: { recruitments: RecruitmentPost[]; opportunity: Opportunity; applyingId: string; onApply: (id: string) => void }) {
   const totalMembers = recruitments.reduce((total, post) => total + post.currentSize, 0);
   const remainingSeats = recruitments.reduce((total, post) => total + Math.max(0, post.capacity - post.currentSize), 0);
 
@@ -442,7 +548,7 @@ function TeamsView({ recruitments, opportunity, onApply }: { recruitments: Recru
         {recruitments.length > 0 ? (
           <div className="mt-5 space-y-2.5">
             {recruitments.map((post, index) => (
-              <TeamRow key={post.id} post={post} index={index} onApply={() => onApply(post.id)} />
+              <TeamRow key={post.id} post={post} index={index} applying={applyingId === post.id} onApply={() => onApply(post.id)} />
             ))}
           </div>
         ) : (
@@ -467,7 +573,7 @@ function Stat({ value, label }: { value: number; label: string }) {
   );
 }
 
-function TeamRow({ post, index, onApply }: { post: RecruitmentPost; index: number; onApply: () => void }) {
+function TeamRow({ post, index, applying, onApply }: { post: RecruitmentPost; index: number; applying: boolean; onApply: () => void }) {
   return (
     <article className="card interactive-card group grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-3 p-3.5 sm:px-4 lg:grid-cols-[minmax(0,1fr)_104px_92px_auto] lg:items-center">
       <div className="min-w-0">
@@ -505,8 +611,9 @@ function TeamRow({ post, index, onApply }: { post: RecruitmentPost; index: numbe
         <span className="num mt-0.5 block text-[11.5px] text-muted">{post.recruitmentDeadline}</span>
       </p>
 
-      <button type="button" onClick={onApply} className="btn btn-secondary pressable justify-self-start lg:justify-self-end">
-        申请加入 <ArrowRight className="size-3.5" />
+      <button type="button" onClick={onApply} disabled={applying} aria-busy={applying} className="btn btn-secondary pressable justify-self-start lg:justify-self-end">
+        {applying ? <LoaderCircle className="size-3.5 animate-spin" /> : null}
+        {applying ? "提交中…" : "申请加入"} {!applying && <ArrowRight className="size-3.5" />}
       </button>
     </article>
   );
@@ -514,7 +621,7 @@ function TeamRow({ post, index, onApply }: { post: RecruitmentPost; index: numbe
 
 /* ---------------- 队长工作台 ---------------- */
 
-function RecruitView({ opportunity, recommendations, ownedRecruitment, publishing, profileLoading, onPublish, onDelete, onOpenPerson }: { opportunity: Opportunity; recommendations: RecommendationData | null; ownedRecruitment: RecruitmentPost | null; publishing: boolean; profileLoading: boolean; onPublish: (event: FormEvent<HTMLFormElement>) => void; onDelete: (id: string) => void; onOpenPerson: (id: string) => void }) {
+function RecruitView({ opportunity, recommendations, ownedRecruitment, publishing, deleting, profileLoading, onPublish, onDelete, onOpenPerson }: { opportunity: Opportunity; recommendations: RecommendationData | null; ownedRecruitment: RecruitmentPost | null; publishing: boolean; deleting: boolean; profileLoading: boolean; onPublish: (event: FormEvent<HTMLFormElement>) => void; onDelete: (id: string) => void; onOpenPerson: (id: string) => void }) {
   const [tags, setTags] = useState<string[]>([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const people = recommendations?.people ?? [];
@@ -573,13 +680,13 @@ function RecruitView({ opportunity, recommendations, ownedRecruitment, publishin
 
             {confirmDelete ? (
               <div className="mt-4 flex flex-wrap gap-2">
-                <button type="button" onClick={() => onDelete(ownedRecruitment.id)} className="btn border-clay bg-clay text-white">
-                  <Trash2 className="size-3.5" /> 确认删除
+                <button type="button" onClick={() => onDelete(ownedRecruitment.id)} disabled={deleting} aria-busy={deleting} className="btn border-clay bg-clay text-white">
+                  {deleting ? <LoaderCircle className="size-3.5 animate-spin" /> : <Trash2 className="size-3.5" />} {deleting ? "删除中…" : "确认删除"}
                 </button>
-                <button type="button" onClick={() => setConfirmDelete(false)} className="btn btn-secondary">取消</button>
+                <button type="button" onClick={() => setConfirmDelete(false)} disabled={deleting} className="btn btn-secondary">取消</button>
               </div>
             ) : (
-              <button type="button" onClick={() => setConfirmDelete(true)} className="btn btn-secondary mt-4 text-clay">
+              <button type="button" onClick={() => setConfirmDelete(true)} disabled={deleting} className="btn btn-secondary mt-4 text-clay">
                 <Trash2 className="size-3.5" /> 删除本队伍
               </button>
             )}
@@ -622,7 +729,11 @@ function RecruitView({ opportunity, recommendations, ownedRecruitment, publishin
                 {tags.length === 0 && (
                   <span role="status" className="text-[11px] text-faint">先添加至少 1 个技能标签</span>
                 )}
-                <button disabled={publishing || tags.length === 0} className="btn btn-primary pressable px-4">
+                <button
+                  disabled={publishing || tags.length === 0}
+                  title={tags.length === 0 ? "先添加至少 1 个招募技能标签" : undefined}
+                  className="btn btn-primary pressable px-4"
+                >
                   {publishing ? <LoaderCircle className="size-3.5 animate-spin" /> : <Send className="size-3.5" />} 创建队伍并开始招募
                 </button>
               </div>
@@ -697,7 +808,7 @@ function Field({ name, label, placeholder, type = "text", required = false, min,
 
 /* ---------------- 用户主页 ---------------- */
 
-function PersonDialog({ person, inviteNotice, onClose, onInvite }: { person: PersonProfile; inviteNotice: string; onClose: () => void; onInvite: () => void }) {
+function PersonDialog({ person, inviteNotice, inviting, onClose, onInvite }: { person: PersonProfile; inviteNotice: string; inviting: boolean; onClose: () => void; onInvite: () => void }) {
   return (
     <div
       className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-ink/30 p-4 sm:p-6"
@@ -742,8 +853,8 @@ function PersonDialog({ person, inviteNotice, onClose, onInvite }: { person: Per
 
         <div className="mt-5 grid grid-cols-2 gap-2">
           <Link href={`/people/${person.id}`} className="btn btn-secondary">打开完整主页</Link>
-          <button onClick={onInvite} className="btn btn-primary">
-            <MailPlus className="size-3.5" /> 发送邀请
+          <button type="button" onClick={onInvite} disabled={inviting} aria-busy={inviting} className="btn btn-primary">
+            {inviting ? <LoaderCircle className="size-3.5 animate-spin" /> : <MailPlus className="size-3.5" />} {inviting ? "发送中…" : "发送邀请"}
           </button>
         </div>
       </section>

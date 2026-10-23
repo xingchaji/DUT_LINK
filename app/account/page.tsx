@@ -3,6 +3,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { BrainCircuit, KeyRound, Layers3, LoaderCircle, Mail, Monitor, Pencil, PencilLine, Save, ShieldCheck, UserRound } from "lucide-react";
+import { notify } from "@/components/feedback/toast";
 import { Reveal } from "@/components/motion/reveal";
 import { TiltCard } from "@/components/motion/tilt-card";
 import { PageHeader } from "@/components/page-header";
@@ -36,60 +37,136 @@ export default function AccountPage() {
   }, [serverAbilityProfile, storedAbilityProfile]);
 
   const load = useCallback(async () => {
-    const [response, aiResponse] = await Promise.all([
-      fetch("/api/account", { cache: "no-store" }),
-      fetch("/api/account/ai-settings", { cache: "no-store" }),
-    ]);
-    const [data, aiData] = await Promise.all([response.json(), aiResponse.json()]);
-    if (!response.ok) { setNotice(data.message); setLoading(false); return; }
-    if (aiResponse.ok) setAISettings(aiData.settings);
-    setProfile(data.profile); setServerAbilityProfile(data.abilityProfile ?? null); setLoading(false);
+    try {
+      const [response, aiResponse] = await Promise.all([
+        fetch("/api/account", { cache: "no-store" }),
+        fetch("/api/account/ai-settings", { cache: "no-store" }),
+      ]);
+      const [data, aiData] = await Promise.all([response.json(), aiResponse.json()]);
+      if (!response.ok) { setNotice(data.message ?? "无法读取个人资料"); return; }
+      if (aiResponse.ok) setAISettings(aiData.settings);
+      setProfile(data.profile); setServerAbilityProfile(data.abilityProfile ?? null);
+    } catch {
+      setNotice("无法连接服务器，请刷新页面重试");
+    } finally {
+      setLoading(false);
+    }
   }, []);
   useEffect(() => { void Promise.resolve().then(load); }, [load]);
 
   async function loadSessions() {
-    const response = await fetch("/api/auth/sessions", { cache: "no-store" });
-    const data = await response.json();
-    if (response.ok) setSessions(data.sessions ?? []);
-    setSessionsLoaded(true);
+    try {
+      const response = await fetch("/api/auth/sessions", { cache: "no-store" });
+      const data = await response.json().catch(() => ({}));
+      if (response.ok) setSessions(data.sessions ?? []);
+    } catch {
+      // 会话列表是辅助信息，加载失败不阻断个人主页
+    } finally {
+      setSessionsLoaded(true);
+    }
   }
   useEffect(() => { void Promise.resolve().then(loadSessions); }, []);
 
   async function revokeSession(id: string) {
-    const response = await fetch(`/api/auth/sessions/${id}`, { method: "DELETE" });
-    if (response.ok) setSessions((current) => current.filter((session) => session.id !== id));
+    try {
+      const response = await fetch(`/api/auth/sessions/${id}`, { method: "DELETE" });
+      if (response.ok) {
+        setSessions((current) => current.filter((session) => session.id !== id));
+        notify("已注销该登录设备");
+      } else {
+        const data = await response.json().catch(() => ({}));
+        notify(data.message ?? "注销失败，请稍后重试", "error");
+      }
+    } catch {
+      notify("网络异常，注销失败", "error");
+    }
   }
 
   async function save(event: FormEvent) {
-    event.preventDefault(); setSaving(true); setNotice("");
-    const response = await fetch("/api/account", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(profile) });
-    const data = await response.json(); setSaving(false);
-    if (!response.ok) { setNotice(data.message); return; }
-    setProfile(data.profile); window.dispatchEvent(new Event("dut-link-account-updated")); setNotice("个人主页已更新，队伍成员资料也已同步");
+    event.preventDefault();
+    setSaving(true);
+    setNotice("");
+    try {
+      const response = await fetch("/api/account", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(profile) });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const message = data.message ?? "保存失败，请稍后重试";
+        setNotice(message);
+        notify(message, "error");
+        return;
+      }
+      setProfile(data.profile);
+      window.dispatchEvent(new Event("dut-link-account-updated"));
+      const message = "个人主页已更新，队伍成员资料也已同步";
+      setNotice(message);
+      notify(message);
+    } catch {
+      const message = "网络异常，个人资料未保存";
+      setNotice(message);
+      notify(message, "error");
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function saveAISettings(event: FormEvent) {
-    event.preventDefault(); setAISaving(true); setAINotice("");
-    const response = await fetch("/api/account/ai-settings", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...aiSettings, apiKey }),
-    });
-    const data = await response.json(); setAISaving(false);
-    if (!response.ok) { setAINotice(data.message); return; }
-    setAISettings(data.settings); setApiKey(""); setAINotice(data.message);
+    event.preventDefault();
+    setAISaving(true);
+    setAINotice("");
+    try {
+      const response = await fetch("/api/account/ai-settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...aiSettings, apiKey }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const message = data.message ?? "AI 设置保存失败";
+        setAINotice(message);
+        notify(message, "error");
+        return;
+      }
+      setAISettings(data.settings);
+      setApiKey("");
+      setAINotice(data.message);
+      notify(data.message ?? "AI 设置已保存");
+    } catch {
+      const message = "网络异常，AI 设置未保存";
+      setAINotice(message);
+      notify(message, "error");
+    } finally {
+      setAISaving(false);
+    }
   }
 
   async function clearAIKey() {
-    setAISaving(true); setAINotice("");
-    const response = await fetch("/api/account/ai-settings", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...aiSettings, enabled: false, clearApiKey: true }),
-    });
-    const data = await response.json(); setAISaving(false);
-    if (!response.ok) { setAINotice(data.message); return; }
-    setAISettings(data.settings); setApiKey(""); setAINotice("API Key 已清除，AI 功能已关闭");
+    setAISaving(true);
+    setAINotice("");
+    try {
+      const response = await fetch("/api/account/ai-settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...aiSettings, enabled: false, clearApiKey: true }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const message = data.message ?? "清除密钥失败";
+        setAINotice(message);
+        notify(message, "error");
+        return;
+      }
+      setAISettings(data.settings);
+      setApiKey("");
+      const message = "API Key 已清除，AI 功能已关闭";
+      setAINotice(message);
+      notify(message);
+    } catch {
+      const message = "网络异常，密钥未清除";
+      setAINotice(message);
+      notify(message, "error");
+    } finally {
+      setAISaving(false);
+    }
   }
 
   if (loading) {

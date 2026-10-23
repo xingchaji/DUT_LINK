@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Award,
@@ -21,6 +21,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { notify } from "@/components/feedback/toast";
 import { WinningWorkStory } from "@/components/winning-work-story";
 import { Reveal } from "@/components/motion/reveal";
 import { Spot } from "@/components/motion/tilt-card";
@@ -43,12 +44,6 @@ export default function ExplorePage() {
   const [notice, setNotice] = useState("");
   const [workInsight, setWorkInsight] = useState<WinningWorkInsight | null>(null);
   const [workLoading, setWorkLoading] = useState(true);
-  const noticeRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!notice) return;
-    noticeRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-  }, [notice]);
 
   useEffect(() => {
     fetch("/api/articles").then((response) => response.json()).then((data) => setArticles(data.articles ?? [])).catch(() => undefined);
@@ -63,10 +58,19 @@ export default function ExplorePage() {
     setLoading(true); setNotice("");
     try {
       const response = await fetch(`/api/discoveries/random?exclude=${discovery.id}`, { cache: "no-store" });
-      const data = await response.json();
-      if (response.ok && data.discovery) setDiscovery(data.discovery); else setNotice(data.message ?? "暂时无法生成新的跨域灵感");
+      const data = await response.json().catch(() => ({}));
+      if (response.ok && data.discovery) {
+        setDiscovery(data.discovery);
+        notify("已换一条跨域灵感");
+      } else {
+        const message = data.message ?? "暂时无法生成新的跨域灵感";
+        setNotice(message);
+        notify(message, "error");
+      }
     } catch {
-      setNotice("暂时无法生成新的跨域灵感");
+      const message = "网络异常，暂时无法生成新的跨域灵感";
+      setNotice(message);
+      notify(message, "error");
     } finally {
       setLoading(false);
     }
@@ -78,11 +82,22 @@ export default function ExplorePage() {
     const form = new FormData(formElement);
     try {
       const response = await fetch("/api/articles", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: form.get("title"), summary: form.get("summary"), bridge: form.get("bridge") }) });
-      const data = await response.json();
-      if (!response.ok) { setNotice(data.message ?? "投稿失败"); return; }
-      setArticles((current) => [data.article, ...current]); setNotice("投稿已加入社区探索池"); formElement.reset();
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const message = data.message ?? "投稿失败";
+        setNotice(message);
+        notify(message, "error");
+        return;
+      }
+      setArticles((current) => [data.article, ...current]);
+      const message = "投稿已加入社区探索池";
+      setNotice(message);
+      notify(message);
+      formElement.reset();
     } catch {
-      setNotice("投稿失败，请稍后重试");
+      const message = "网络异常，投稿失败";
+      setNotice(message);
+      notify(message, "error");
     } finally {
       setPublishing(false);
     }
@@ -92,10 +107,19 @@ export default function ExplorePage() {
     setWorkLoading(true); setNotice("");
     try {
       const response = await fetch(`/api/discoveries/winning-work${workInsight ? `?exclude=${workInsight.id}` : ""}`, { cache: "no-store" });
-      const data = await response.json();
-      if (response.ok && data.insight) setWorkInsight(data.insight); else setNotice(data.message ?? "暂时无法读取获奖作品资料");
+      const data = await response.json().catch(() => ({}));
+      if (response.ok && data.insight) {
+        setWorkInsight(data.insight);
+        notify("已换一件获奖作品");
+      } else {
+        const message = data.message ?? "暂时无法读取获奖作品资料";
+        setNotice(message);
+        notify(message, "error");
+      }
     } catch {
-      setNotice("暂时无法读取获奖作品资料");
+      const message = "网络异常，暂时无法读取获奖作品资料";
+      setNotice(message);
+      notify(message, "error");
     } finally {
       setWorkLoading(false);
     }
@@ -137,7 +161,7 @@ export default function ExplorePage() {
       </div>
 
       {notice && (
-        <div ref={noticeRef} role="status" className="callout callout-clay mt-4">
+        <div role="status" className="callout callout-clay mt-4">
           <p className="min-w-0 text-[12.5px] leading-6">
             {notice}
             {notice.includes("登录") && <Link href="/login?next=/explore" className="ml-2 font-medium underline">去登录</Link>}

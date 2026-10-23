@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ArrowUpRight, Check, CheckCircle2, ChevronDown, Inbox, LoaderCircle, MailOpen, MailPlus, Send, X } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { notify } from "@/components/feedback/toast";
 import { CountUp } from "@/components/motion/metric";
 import { Reveal } from "@/components/motion/reveal";
 import type { RecruitmentApplication, TeamInvitation } from "@/lib/types";
@@ -25,34 +26,59 @@ export default function ApplicationsPage() {
   const [receivedInvitations, setReceivedInvitations] = useState<InvitationView[]>([]);
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState("");
-  const noticeRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!notice) return;
-    noticeRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-  }, [notice]);
+  const [busyId, setBusyId] = useState("");
 
   const load = useCallback(async () => {
-    const [response, invitationResponse] = await Promise.all([fetch("/api/applications", { cache: "no-store" }), fetch("/api/invitations", { cache: "no-store" })]);
-    const [data, invitationData] = await Promise.all([response.json(), invitationResponse.json()]);
-    if (!response.ok || !invitationResponse.ok) { setNotice(data.message ?? invitationData.message ?? "加载失败"); setLoading(false); return; }
-    setSent(data.sent ?? []); setReceived(data.received ?? []); setSentInvitations(invitationData.sent ?? []); setReceivedInvitations(invitationData.received ?? []); setLoading(false);
+    try {
+      const [response, invitationResponse] = await Promise.all([fetch("/api/applications", { cache: "no-store" }), fetch("/api/invitations", { cache: "no-store" })]);
+      const [data, invitationData] = await Promise.all([response.json(), invitationResponse.json()]);
+      if (!response.ok || !invitationResponse.ok) { setNotice(data.message ?? invitationData.message ?? "加载失败"); return; }
+      setSent(data.sent ?? []); setReceived(data.received ?? []); setSentInvitations(invitationData.sent ?? []); setReceivedInvitations(invitationData.received ?? []);
+    } catch {
+      setNotice("无法连接服务器，请稍后重试");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { void Promise.resolve().then(load); }, [load]);
 
   async function decideApplication(id: string, status: Decision) {
-    const response = await fetch(`/api/applications/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
-    const data = await response.json();
-    setNotice(response.ok ? (status === "accepted" ? "已接受申请，队伍人数已更新" : "已拒绝申请") : data.message);
-    if (response.ok) await load();
+    if (busyId) return;
+    setBusyId(id);
+    try {
+      const response = await fetch(`/api/applications/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
+      const data = await response.json().catch(() => ({}));
+      const message = response.ok ? (status === "accepted" ? "已接受申请，队伍人数已更新" : "已拒绝申请") : data.message ?? "操作失败，请稍后重试";
+      setNotice(message);
+      notify(message, response.ok ? "success" : "error");
+      if (response.ok) await load();
+    } catch {
+      const message = "网络异常，申请状态未更新";
+      setNotice(message);
+      notify(message, "error");
+    } finally {
+      setBusyId("");
+    }
   }
 
   async function decideInvitation(id: string, status: Decision) {
-    const response = await fetch(`/api/invitations/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
-    const data = await response.json();
-    setNotice(response.ok ? (status === "accepted" ? "已接受邀请并加入队伍" : "已拒绝邀请") : data.message);
-    if (response.ok) await load();
+    if (busyId) return;
+    setBusyId(id);
+    try {
+      const response = await fetch(`/api/invitations/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
+      const data = await response.json().catch(() => ({}));
+      const message = response.ok ? (status === "accepted" ? "已接受邀请并加入队伍" : "已拒绝邀请") : data.message ?? "操作失败，请稍后重试";
+      setNotice(message);
+      notify(message, response.ok ? "success" : "error");
+      if (response.ok) await load();
+    } catch {
+      const message = "网络异常，邀请状态未更新";
+      setNotice(message);
+      notify(message, "error");
+    } finally {
+      setBusyId("");
+    }
   }
 
   const pendingApplications = received.filter((item) => item.status === "pending").length;
@@ -91,7 +117,7 @@ export default function ApplicationsPage() {
       </dl>
 
       {notice && (
-        <div ref={noticeRef} role="status" className="callout callout-marker mt-5 items-center">
+        <div role="status" className="callout callout-marker mt-5 items-center">
           <CheckCircle2 className="size-4 shrink-0 text-ochre" strokeWidth={1.9} />
           <span>
             {notice}
@@ -120,7 +146,7 @@ export default function ApplicationsPage() {
             items={received}
             empty="还没有收到申请，发布招募后申请会出现在这里。"
             action={{ href: "/opportunities", label: "去组队中心" }}
-            render={(item) => <ApplicationRow key={item.id} item={item} received onDecide={decideApplication} />}
+            render={(item) => <ApplicationRow key={item.id} item={item} received busy={busyId === item.id} onDecide={decideApplication} />}
           />
           <ListSection
             index={1}
@@ -143,7 +169,7 @@ export default function ApplicationsPage() {
             icon={<MailOpen className="size-3.5" strokeWidth={1.9} />}
             items={receivedInvitations}
             empty="你还没有收到组队邀请。"
-            render={(item) => <InvitationRow key={item.id} item={item} received onDecide={decideInvitation} />}
+            render={(item) => <InvitationRow key={item.id} item={item} received busy={busyId === item.id} onDecide={decideInvitation} />}
           />
           <ListSection
             index={3}
@@ -219,10 +245,12 @@ function ListSection<T extends { id: string }>({
 function ApplicationRow({
   item,
   received = false,
+  busy = false,
   onDecide,
 }: {
   item: ApplicationView;
   received?: boolean;
+  busy?: boolean;
   onDecide?: (id: string, status: Decision) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -232,7 +260,13 @@ function ApplicationRow({
 
   return (
     <li className="border-b border-line last:border-b-0">
-      <div className={ROW_SURFACE}>
+      <div
+        className={`${ROW_SURFACE} cursor-pointer`}
+        onClick={(event) => {
+          if ((event.target as HTMLElement).closest("button, a, [data-row-static]")) return;
+          setOpen((current) => !current);
+        }}
+      >
         <span aria-hidden="true" className={ROW_HIGHLIGHT} />
         <div className="relative flex items-start gap-3">
           <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-raise text-[11px] font-semibold text-ink-soft shadow-[0_1px_1px_rgba(60,48,30,0.06),0_3px_7px_-4px_rgba(60,48,30,0.28),inset_0_1px_0_rgba(255,255,255,0.9)]">
@@ -263,7 +297,7 @@ function ApplicationRow({
               {canDecide && onDecide && (
                 <>
                   <span aria-hidden="true" className="h-3 w-px bg-line" />
-                  <DecisionButtons onAccept={() => onDecide(item.id, "accepted")} onReject={() => onDecide(item.id, "rejected")} />
+                  <DecisionButtons busy={busy} onAccept={() => onDecide(item.id, "accepted")} onReject={() => onDecide(item.id, "rejected")} />
                 </>
               )}
             </div>
@@ -277,10 +311,12 @@ function ApplicationRow({
 function InvitationRow({
   item,
   received = false,
+  busy = false,
   onDecide,
 }: {
   item: InvitationView;
   received?: boolean;
+  busy?: boolean;
   onDecide?: (id: string, status: Decision) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -290,7 +326,13 @@ function InvitationRow({
 
   return (
     <li className="border-b border-line last:border-b-0">
-      <div className={ROW_SURFACE}>
+      <div
+        className={`${ROW_SURFACE} cursor-pointer`}
+        onClick={(event) => {
+          if ((event.target as HTMLElement).closest("button, a, [data-row-static]")) return;
+          setOpen((current) => !current);
+        }}
+      >
         <span aria-hidden="true" className={ROW_HIGHLIGHT} />
         <div className="relative flex items-start gap-3">
           <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-raise text-[11px] font-semibold text-ink-soft shadow-[0_1px_1px_rgba(60,48,30,0.06),0_3px_7px_-4px_rgba(60,48,30,0.28),inset_0_1px_0_rgba(255,255,255,0.9)]">
@@ -316,7 +358,7 @@ function InvitationRow({
               {canDecide && onDecide && (
                 <>
                   <span aria-hidden="true" className="h-3 w-px bg-line" />
-                  <DecisionButtons onAccept={() => onDecide(item.id, "accepted")} onReject={() => onDecide(item.id, "rejected")} />
+                  <DecisionButtons busy={busy} onAccept={() => onDecide(item.id, "accepted")} onReject={() => onDecide(item.id, "rejected")} />
                 </>
               )}
             </div>
@@ -330,10 +372,10 @@ function InvitationRow({
 function MessageBlock({ id, open, message }: { id: string; open: boolean; message: string }) {
   return (
     <>
-      <p hidden={open} className="mt-1.5 truncate text-[11.5px] leading-5 text-faint">
+      <p hidden={open} data-row-static className="mt-1.5 truncate text-[11.5px] leading-5 text-faint">
         {message}
       </p>
-      <div id={id} hidden={!open} className="pop panel mt-2.5 px-3 py-2.5 text-[12.5px] leading-6 text-ink-soft">
+      <div id={id} hidden={!open} data-row-static className="pop panel mt-2.5 px-3 py-2.5 text-[12.5px] leading-6 text-ink-soft">
         {message}
       </div>
     </>
@@ -355,15 +397,16 @@ function MessageToggle({ open, onToggle, controls }: { open: boolean; onToggle: 
   );
 }
 
-function DecisionButtons({ onAccept, onReject }: { onAccept: () => void; onReject: () => void }) {
+function DecisionButtons({ busy = false, onAccept, onReject }: { busy?: boolean; onAccept: () => void; onReject: () => void }) {
   return (
     <>
-      <button type="button" onClick={onAccept} className="btn btn-primary btn-sm min-h-8 active:brightness-[0.96]">
-        <Check className="size-3" strokeWidth={2.4} /> 接受
+      <button type="button" onClick={onAccept} disabled={busy} aria-busy={busy} className="btn btn-primary btn-sm min-h-8 active:brightness-[0.96]">
+        {busy ? <LoaderCircle className="size-3 animate-spin" /> : <Check className="size-3" strokeWidth={2.4} />} 接受
       </button>
-      <button type="button" onClick={onReject} className="btn btn-secondary btn-sm min-h-8 active:brightness-[0.97]">
+      <button type="button" onClick={onReject} disabled={busy} aria-busy={busy} className="btn btn-secondary btn-sm min-h-8 active:brightness-[0.97]">
         <X className="size-3" strokeWidth={2.4} /> 拒绝
       </button>
+      {busy && <span role="status" className="text-[11px] text-faint">处理中…</span>}
     </>
   );
 }

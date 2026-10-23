@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, BrainCircuit, Check, CheckCircle2, ChevronLeft, ClipboardCheck, LoaderCircle, Sparkles, Target } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { notify } from "@/components/feedback/toast";
 import { CountUp, Meter } from "@/components/motion/metric";
 import { Reveal } from "@/components/motion/reveal";
 import { SkillBars } from "@/components/skill-bars";
@@ -30,15 +31,16 @@ export default function OnboardingPage() {
   const currentQuestions = profileQuestions.slice(step * QUESTIONS_PER_STEP, (step + 1) * QUESTIONS_PER_STEP);
   const currentComplete = currentQuestions.every((question) => answers[question.id]);
   const isLastStep = step === totalSteps - 1;
+  const stepHasAnswers = (index: number) => profileQuestions.slice(index * QUESTIONS_PER_STEP, (index + 1) * QUESTIONS_PER_STEP).every((question) => answers[question.id]);
 
   useEffect(() => {
     fetch("/api/account", { cache: "no-store" })
-      .then(async (response) => ({ response, data: await response.json() }))
+      .then(async (response) => ({ response, data: await response.json().catch(() => ({})) }))
       .then(({ response, data }) => {
         if (response.ok) setAccountProfile(data.profile);
         else setError(data.message ?? "无法读取个人主页资料");
       })
-      .catch(() => setError("无法读取个人主页资料"))
+      .catch(() => setError("无法连接服务器，暂时无法读取个人资料"))
       .finally(() => setIdentityLoading(false));
   }, []);
 
@@ -50,17 +52,30 @@ export default function OnboardingPage() {
     event.preventDefault();
     setLoading(true);
     setError("");
-    const response = await fetch("/api/profile", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mode: "questionnaire", answers, interests, evidence }),
-    });
-    const data = await response.json();
-    setLoading(false);
-    if (!response.ok) { setError(data.message); return; }
-    localStorage.setItem("dut-link-profile", JSON.stringify(data));
-    window.dispatchEvent(new Event("storage"));
-    setResult(data);
+    try {
+      const response = await fetch("/api/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "questionnaire", answers, interests, evidence }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const message = data.message ?? "生成画像失败，请稍后重试";
+        setError(message);
+        notify(message, "error");
+        return;
+      }
+      localStorage.setItem("dut-link-profile", JSON.stringify(data));
+      window.dispatchEvent(new Event("storage"));
+      setResult(data);
+      notify("竞赛能力画像已生成");
+    } catch {
+      const message = "网络异常，画像未生成";
+      setError(message);
+      notify(message, "error");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -114,6 +129,17 @@ export default function OnboardingPage() {
 
       <div className="mt-7 grid gap-6 xl:grid-cols-[minmax(0,1fr)_300px] xl:gap-8">
         <form onSubmit={submit} className="min-w-0 space-y-4">
+          {!identityLoading && !accountProfile && (
+            <div role="alert" className="callout callout-clay items-center">
+              <span className="min-w-0">
+                需要先登录校园账号才能保存能力画像。
+                <Link href="/login?next=/onboarding" className="ml-2 font-semibold underline underline-offset-2">
+                  去登录
+                </Link>
+              </span>
+            </div>
+          )}
+
           {/* 身份信息 */}
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-line bg-surface px-4 py-3">
             <div className="flex min-w-0 items-center gap-2.5">
@@ -180,12 +206,18 @@ export default function OnboardingPage() {
               </button>
               <div className="flex items-center gap-2.5">
                 {!currentComplete && (
-                  <span role="status" className="hidden text-[11px] text-faint sm:inline">
+                  <span role="status" className="text-[11px] text-faint">
                     还差 {currentQuestions.filter((question) => !answers[question.id]).length} 题
                   </span>
                 )}
                 {!isLastStep && (
-                  <button type="button" disabled={!currentComplete} onClick={() => setStep((current) => Math.min(totalSteps - 1, current + 1))} className="btn btn-primary">
+                  <button
+                    type="button"
+                    disabled={!currentComplete}
+                    title={currentComplete ? undefined : "请先完成本组 4 道题"}
+                    onClick={() => setStep((current) => Math.min(totalSteps - 1, current + 1))}
+                    className="btn btn-primary"
+                  >
                     继续下一组 <ArrowRight className="size-4" />
                   </button>
                 )}
@@ -228,10 +260,35 @@ export default function OnboardingPage() {
           {error && <p role="alert" className="callout callout-clay px-4 py-3 text-[12.5px] text-clay">{error}</p>}
 
           {isLastStep && (
-            <button disabled={loading || identityLoading || !accountProfile || answered !== profileQuestions.length} className="btn btn-primary btn-block h-10">
-              {loading ? <LoaderCircle className="size-4 animate-spin" /> : <ClipboardCheck className="size-4" />}
-              {loading ? "正在计算竞赛能力…" : "生成竞赛能力画像"}
-            </button>
+            <div className="space-y-2">
+              <button
+                disabled={loading || identityLoading || !accountProfile || answered !== profileQuestions.length}
+                aria-busy={loading}
+                title={
+                  loading || identityLoading
+                    ? "正在处理…"
+                    : !accountProfile
+                      ? "请先登录校园账号"
+                      : answered !== profileQuestions.length
+                        ? `还有 ${profileQuestions.length - answered} 题未回答`
+                        : undefined
+                }
+                className="btn btn-primary btn-block h-10"
+              >
+                {loading ? <LoaderCircle className="size-4 animate-spin" /> : <ClipboardCheck className="size-4" />}
+                {loading ? "正在计算竞赛能力…" : "生成竞赛能力画像"}
+              </button>
+              {!loading && answered !== profileQuestions.length && (
+                <p role="status" className="text-center text-[11px] text-faint">
+                  还有 {profileQuestions.length - answered} 题未回答，完成后即可生成画像。
+                </p>
+              )}
+              {!loading && answered === profileQuestions.length && !accountProfile && !identityLoading && (
+                <p role="status" className="text-center text-[11px] text-clay">
+                  <Link href="/login?next=/onboarding" className="font-medium underline underline-offset-2">登录校园账号</Link> 后即可保存画像。
+                </p>
+              )}
+            </div>
           )}
         </form>
 
@@ -264,24 +321,30 @@ export default function OnboardingPage() {
               <ol className="mt-4 space-y-1 border-t border-line pt-3">
                 {STEP_LABELS.map((label, index) => {
                   const isCurrent = index === step;
+                  const complete = stepHasAnswers(index);
                   return (
-                    <li
-                      key={label}
-                      className={`flex items-center gap-2.5 rounded-[9px] px-2 py-2 transition-[transform,box-shadow,background-color] duration-300 [transition-timing-function:var(--spring)] ${
-                        isCurrent ? "-translate-y-px bg-surface shadow-[0_1px_1px_rgba(60,48,30,0.05),0_6px_14px_-8px_rgba(60,48,30,0.3),inset_0_1px_0_#fff]" : ""
-                      }`}
-                    >
-                      <span
-                        className={`grid size-6 shrink-0 place-items-center rounded-full border text-[10.5px] ${index < step
-                          ? "border-ink bg-ink text-canvas shadow-[0_1px_2px_rgba(60,48,30,0.24),inset_0_1px_0_rgba(255,255,255,0.22)]"
-                          : isCurrent
-                            ? "border-ink bg-surface text-ink shadow-[0_1px_2px_rgba(60,48,30,0.16),inset_0_1px_0_#fff]"
-                            : "border-line text-faint"
-                          }`}
+                    <li key={label}>
+                      <button
+                        type="button"
+                        onClick={() => setStep(index)}
+                        aria-current={isCurrent ? "step" : undefined}
+                        aria-label={`跳到第 ${index + 1} 组：${label}${complete ? "（已完成）" : ""}`}
+                        className={`flex w-full items-center gap-2.5 rounded-[9px] px-2 py-2 text-left transition-[transform,box-shadow,background-color] duration-300 [transition-timing-function:var(--spring)] hover:bg-surface/70 focus-visible:bg-surface/70 ${
+                          isCurrent ? "-translate-y-px bg-surface shadow-[0_1px_1px_rgba(60,48,30,0.05),0_6px_14px_-8px_rgba(60,48,30,0.3),inset_0_1px_0_#fff]" : ""
+                        }`}
                       >
-                        {index < step ? <Check className="size-3" strokeWidth={3} /> : <span className="num">{index + 1}</span>}
-                      </span>
-                      <span className={`text-[12.5px] ${isCurrent ? "font-medium text-ink" : "text-muted"}`}>{label}</span>
+                        <span
+                          className={`grid size-6 shrink-0 place-items-center rounded-full border text-[10.5px] ${complete
+                            ? "border-ink bg-ink text-canvas shadow-[0_1px_2px_rgba(60,48,30,0.24),inset_0_1px_0_rgba(255,255,255,0.22)]"
+                            : isCurrent
+                              ? "border-ink bg-surface text-ink shadow-[0_1px_2px_rgba(60,48,30,0.16),inset_0_1px_0_#fff]"
+                              : "border-line text-faint"
+                            }`}
+                        >
+                          {complete ? <Check className="size-3" strokeWidth={3} /> : <span className="num">{index + 1}</span>}
+                        </span>
+                        <span className={`text-[12.5px] ${isCurrent ? "font-medium text-ink" : "text-muted"}`}>{label}</span>
+                      </button>
                     </li>
                   );
                 })}

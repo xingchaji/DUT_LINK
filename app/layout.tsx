@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Navigation } from "@/components/navigation";
+import { Toaster } from "@/components/feedback/toast";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -19,6 +20,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         />
         <Navigation />
         <main className="relative z-10 min-h-screen pb-28 lg:ml-[276px] lg:pb-0">{children}</main>
+        <Toaster />
       </body>
     </html>
   );

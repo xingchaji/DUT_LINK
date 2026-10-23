@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LogIn, LogOut } from "lucide-react";
+import { LoaderCircle, LogIn, LogOut } from "lucide-react";
 import { useEffect, useState } from "react";
+import { notify } from "@/components/feedback/toast";
 import type { SessionUser } from "@/lib/types";
 
 export function AuthMenu() {
   const router = useRouter();
   const [user, setUser] = useState<SessionUser | null | undefined>(undefined);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
     const load = () => {
@@ -23,10 +25,23 @@ export function AuthMenu() {
   }, []);
 
   async function logout() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    setUser(null);
-    router.push("/");
-    router.refresh();
+    if (loggingOut) return;
+    setLoggingOut(true);
+    try {
+      const response = await fetch("/api/auth/logout", { method: "POST" });
+      if (!response.ok) {
+        notify("退出登录失败，请稍后重试", "error");
+        return;
+      }
+      setUser(null);
+      notify("已退出当前账号");
+      router.push("/");
+      router.refresh();
+    } catch {
+      notify("网络异常，退出登录失败", "error");
+    } finally {
+      setLoggingOut(false);
+    }
   }
 
   if (user === undefined) return <div className="h-9 animate-pulse rounded-lg bg-sink" />;
@@ -55,10 +70,11 @@ export function AuthMenu() {
       <button
         type="button"
         onClick={logout}
+        disabled={loggingOut}
         aria-label="退出登录"
-        className="grid size-7 shrink-0 place-items-center rounded-[7px] text-faint opacity-0 transition hover:bg-white hover:text-clay hover:shadow-[0_1px_2px_rgba(60,48,30,0.1)] group-hover:opacity-100 focus-visible:opacity-100"
+        className="grid size-7 shrink-0 place-items-center rounded-[7px] text-faint opacity-0 transition hover:bg-white hover:text-clay hover:shadow-[0_1px_2px_rgba(60,48,30,0.1)] group-hover:opacity-100 focus-visible:opacity-100 disabled:opacity-60 [@media(hover:none)]:opacity-100"
       >
-        <LogOut className="size-[14px]" />
+        {loggingOut ? <LoaderCircle className="size-[14px] animate-spin" /> : <LogOut className="size-[14px]" />}
       </button>
     </div>
   );

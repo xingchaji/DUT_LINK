@@ -16,6 +16,7 @@ import {
   UsersRound,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { notify } from "@/components/feedback/toast";
 import { Magnetic } from "@/components/motion/magnetic";
 import { Reveal } from "@/components/motion/reveal";
 
@@ -83,32 +84,42 @@ export default function LoginPage() {
         const response = await fetch("/api/auth/forgot-password", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) });
         const data = await readResponse(response);
         setLoading(false);
-        if (!response.ok) { setError(data.message ?? "提交失败"); return; }
-        if (data.resetToken) { setResetToken(data.resetToken); setNotice("已生成重置令牌，请输入新密码完成重置。"); }
-        else setNotice(data.message ?? "如果该邮箱已注册，重置链接已发送。");
+        if (!response.ok) { const message = data.message ?? "提交失败"; setError(message); notify(message, "error"); return; }
+        if (data.resetToken) { setResetToken(data.resetToken); setNotice("已生成重置令牌，请输入新密码完成重置。"); notify("已生成重置令牌"); }
+        else { const message = data.message ?? "如果该邮箱已注册，重置链接已发送。"; setNotice(message); notify(message, "info"); }
         return;
       }
       const response = await fetch("/api/auth/reset-password", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: resetToken, password }) });
       const data = await readResponse(response);
       setLoading(false);
-      if (!response.ok) { setError(data.message ?? "重置失败"); return; }
+      if (!response.ok) { const message = data.message ?? "重置失败"; setError(message); notify(message, "error"); return; }
       setResetToken("");
       setEmail("");
       setPassword("");
       setMode("login");
       setNotice("密码已重置，请使用新密码登录。");
+      notify("密码已重置");
       return;
     }
 
     const endpoint = mode === "login" ? "/api/auth/login" : "/api/auth/register";
     const response = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(mode === "login" ? { email, password } : { email, password, name, major, grade }) });
     const data = await readResponse(response);
-    if (!response.ok) { setError(data.message ?? (mode === "login" ? "登录失败" : "注册失败")); setLoading(false); return; }
+    if (!response.ok) {
+      const message = data.message ?? (mode === "login" ? "登录失败" : "注册失败");
+      setError(message);
+      notify(message, "error");
+      setLoading(false);
+      return;
+    }
+    notify(mode === "login" ? "登录成功" : "账号创建成功");
     const requestedTarget = new URLSearchParams(window.location.search).get("next");
     const target = requestedTarget?.startsWith("/") && !requestedTarget.startsWith("//") ? requestedTarget : mode === "register" ? "/account" : "/";
     window.location.href = target;
     } catch {
-      setError("无法连接登录服务，请确认开发服务已启动后重试");
+      const message = "无法连接登录服务，请确认开发服务已启动后重试";
+      setError(message);
+      notify(message, "error");
       setLoading(false);
     }
   }

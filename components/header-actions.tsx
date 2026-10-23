@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bell, Check, Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { notify } from "@/components/feedback/toast";
 import type { Notification, SessionUser } from "@/lib/types";
 
 const TYPE_LABELS: Record<Notification["type"], string> = {
@@ -69,19 +70,33 @@ export function HeaderActions() {
   }, [open]);
 
   async function markRead(id: string) {
-    await fetch(`/api/notifications/${id}`, { method: "PATCH" });
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
-    setUnreadCount((c) => Math.max(0, c - 1));
+    try {
+      await fetch(`/api/notifications/${id}`, { method: "PATCH" });
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+      setUnreadCount((c) => Math.max(0, c - 1));
+    } catch {
+      notify("网络异常，通知状态未更新", "error");
+    }
   }
 
   async function markAllRead() {
-    await fetch("/api/notifications", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ all: true }) });
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    setUnreadCount(0);
+    try {
+      const response = await fetch("/api/notifications", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ all: true }) });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        notify(data.message ?? "全部已读失败", "error");
+        return;
+      }
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      setUnreadCount(0);
+      notify("所有通知已标为已读");
+    } catch {
+      notify("网络异常，通知状态未更新", "error");
+    }
   }
 
   function handleNotificationClick(n: Notification) {
-    if (!n.read) markRead(n.id);
+    if (!n.read) void markRead(n.id);
     setOpen(false);
     router.push("/applications");
   }

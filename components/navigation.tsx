@@ -63,9 +63,10 @@ export function Navigation() {
         <div className="relative mx-2.5" ref={workspaceRef}>
           <button
             type="button"
-            aria-haspopup="menu"
+            aria-haspopup="dialog"
             aria-expanded={workspaceOpen}
-            aria-label="切换学校空间"
+            aria-controls="workspace-panel"
+            aria-label="查看学校空间"
             onClick={() => setWorkspaceOpen((open) => !open)}
             className={`flex w-full items-center gap-2 rounded-[9px] border px-2 py-1.5 text-left transition duration-300 [transition-timing-function:var(--spring)] ${
               workspaceOpen
@@ -80,20 +81,26 @@ export function Navigation() {
 
           {workspaceOpen && (
             <div
-              role="menu"
+              id="workspace-panel"
+              role="dialog"
               aria-label="学校空间"
               className="pop absolute left-0 right-0 top-[calc(100%+6px)] z-40 overflow-hidden rounded-[11px] border border-[rgba(60,48,30,0.12)] bg-[#fffefc] shadow-[0_1px_0_#fff_inset,0_10px_24px_-12px_rgba(60,48,30,0.28),0_28px_48px_-28px_rgba(60,48,30,0.3)]"
             >
-              <div className="flex items-center gap-2 px-2.5 py-2.5">
+              <button
+                type="button"
+                onClick={() => setWorkspaceOpen(false)}
+                className="flex w-full items-center gap-2 px-2.5 py-2.5 text-left transition hover:bg-raise/70 focus-visible:bg-raise/70"
+              >
                 <span className="grid size-6 shrink-0 place-items-center rounded-[7px] bg-brand-soft font-mono text-[9px] font-semibold text-brand shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">DUT</span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[12px] font-medium text-ink">大连理工大学</span>
                   <span className="block text-[10px] text-faint">当前空间 · 校园邮箱验证</span>
                 </span>
                 <Check className="size-3.5 shrink-0 text-moss" strokeWidth={2.4} />
-              </div>
-              <div className="border-t border-line/70 px-2.5 py-2">
-                <p className="text-[10.5px] leading-5 text-faint">更多学校空间即将开放，切换后会同步你的画像与组队记录。</p>
+              </button>
+              <div aria-disabled="true" className="flex items-start gap-1.5 border-t border-line/70 px-2.5 py-2 text-[10.5px] leading-5 text-faint">
+                <span className="mt-px rounded-[4px] border border-line px-1 text-[9px] leading-4">即将开放</span>
+                <span className="min-w-0">更多学校空间还在接入，开放后会同步你的画像与组队记录。</span>
               </div>
             </div>
           )}
