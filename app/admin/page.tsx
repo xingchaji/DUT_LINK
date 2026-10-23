@@ -26,7 +26,7 @@ export default function AdminPage() {
   const [forbidden, setForbidden] = useState(false);
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [articles, setArticles] = useState<CommunityArticle[]>([]);
-  const [busyId, setBusyId] = useState("");
+  const [busyIds, setBusyIds] = useState<string[]>([]);
   const [reviewed, setReviewed] = useState<ReviewedEntry[]>([]);
 
   const load = useCallback(async () => {
@@ -46,8 +46,9 @@ export default function AdminPage() {
   useEffect(() => { void Promise.resolve().then(load); }, [load]);
 
   async function reviewOpportunity(id: string, decision: "approved" | "rejected") {
-    if (busyId) return;
-    setBusyId(`opportunity-${id}`);
+    const key = `opportunity-${id}`;
+    if (busyIds.includes(key)) return;
+    setBusyIds((current) => [...current, key]);
     const target = opportunities.find((item) => item.id === id);
     try {
       const response = await fetch(`/api/admin/opportunities/${id}/review`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ decision }) });
@@ -67,13 +68,14 @@ export default function AdminPage() {
     } catch {
       notify("网络异常，审核未提交", "error");
     } finally {
-      setBusyId("");
+      setBusyIds((current) => current.filter((value) => value !== key));
     }
   }
 
   async function reviewArticle(id: string, decision: "approved" | "rejected") {
-    if (busyId) return;
-    setBusyId(`article-${id}`);
+    const key = `article-${id}`;
+    if (busyIds.includes(key)) return;
+    setBusyIds((current) => [...current, key]);
     const target = articles.find((item) => item.id === id);
     try {
       const response = await fetch(`/api/admin/articles/${id}/review`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ decision }) });
@@ -93,7 +95,7 @@ export default function AdminPage() {
     } catch {
       notify("网络异常，审核未提交", "error");
     } finally {
-      setBusyId("");
+      setBusyIds((current) => current.filter((value) => value !== key));
     }
   }
 
@@ -203,7 +205,7 @@ export default function AdminPage() {
                   kind={item.type}
                   source={item.organizer}
                   extra={`发布者 ${item.publisherName ?? "未知"}`}
-                  busy={busyId === `opportunity-${item.id}`}
+                  busy={busyIds.includes(`opportunity-${item.id}`)}
                   onApprove={() => reviewOpportunity(item.id, "approved")}
                   onReject={() => reviewOpportunity(item.id, "rejected")}
                 />
@@ -217,7 +219,7 @@ export default function AdminPage() {
                   kind="文章"
                   source={`${item.authorName} · ${item.authorMajor}`}
                   extra={item.bridge}
-                  busy={busyId === `article-${item.id}`}
+                  busy={busyIds.includes(`article-${item.id}`)}
                   onApprove={() => reviewArticle(item.id, "approved")}
                   onReject={() => reviewArticle(item.id, "rejected")}
                 />

@@ -35,13 +35,16 @@ export async function PUT(request: Request) {
     if (apiKey && apiKey.length < 8) return NextResponse.json({ message: "API Key 长度不正确" }, { status: 400 });
     if (body.enabled && ((!apiKey && !current.hasApiKey) || clearApiKey)) return NextResponse.json({ message: "开启 AI 前请先填写 API Key" }, { status: 400 });
     const model = typeof body.model === "string" ? body.model.trim() : "";
-    if (!model || model.length > 120) return NextResponse.json({ message: "请填写有效的模型名称" }, { status: 400 });
+    if (body.enabled && (!model || model.length > 120)) return NextResponse.json({ message: "请填写有效的模型名称" }, { status: 400 });
+    const rawBaseUrl = typeof body.baseUrl === "string" ? body.baseUrl.trim() : "";
+    // 关闭开关时允许不带地址与模型：只切状态，保留已配置内容
+    const baseUrl = body.enabled || rawBaseUrl ? normalizeBaseUrl(rawBaseUrl) : "";
     const settings = await saveAISettings(user, {
       enabled: body.enabled,
       apiKey: apiKey || undefined,
       clearApiKey,
-      baseUrl: normalizeBaseUrl(body.baseUrl),
-      model,
+      baseUrl: baseUrl || current.baseUrl,
+      model: model || current.model,
     });
     return NextResponse.json({ settings, message: body.enabled ? "AI 功能已开启" : "AI 功能已关闭" });
   } catch (error) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -68,7 +68,10 @@ export function OpportunityDetail({ opportunityId, mode }: { opportunityId: stri
   const [formVersion, setFormVersion] = useState(0);
   const [recommendations, setRecommendations] = useState<RecommendationData | null>(null);
   const [intended, setIntended] = useState(false);
-  const [pendingAction, setPendingAction] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [applyingId, setApplyingId] = useState("");
+  const [inviting, setInviting] = useState(false);
+  const [interestPending, setInterestPending] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -137,7 +140,8 @@ export function OpportunityDetail({ opportunityId, mode }: { opportunityId: stri
   }
 
   async function deleteTeam(recruitmentId: string) {
-    setPendingAction("delete");
+    if (deleting) return;
+    setDeleting(true);
     setNotice("");
     try {
       const response = await fetch(`/api/recruitments/${recruitmentId}`, { method: "DELETE" });
@@ -151,13 +155,13 @@ export function OpportunityDetail({ opportunityId, mode }: { opportunityId: stri
       setNotice(message);
       notify(message, "error");
     } finally {
-      setPendingAction("");
+      setDeleting(false);
     }
   }
 
   async function apply(recruitmentId: string) {
-    if (pendingAction) return;
-    setPendingAction(recruitmentId);
+    if (applyingId === recruitmentId) return;
+    setApplyingId(recruitmentId);
     setNotice("");
     try {
       const response = await fetch(`/api/recruitments/${recruitmentId}/apply`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: "我的画像与队伍需求匹配，希望和队长进一步沟通。" }) });
@@ -171,7 +175,7 @@ export function OpportunityDetail({ opportunityId, mode }: { opportunityId: stri
       setNotice(message);
       notify(message, "error");
     } finally {
-      setPendingAction("");
+      setApplyingId("");
     }
   }
 
@@ -198,8 +202,8 @@ export function OpportunityDetail({ opportunityId, mode }: { opportunityId: stri
   }
 
   async function invite(person: PersonProfile) {
-    if (!data || pendingAction) return;
-    setPendingAction("invite");
+    if (!data || inviting) return;
+    setInviting(true);
     setInviteNotice("");
     try {
       const response = await fetch("/api/invitations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recipientId: person.id, opportunityId: data.opportunity.id }) });
@@ -219,13 +223,13 @@ export function OpportunityDetail({ opportunityId, mode }: { opportunityId: stri
       setInviteNotice(message);
       notify(message, "error");
     } finally {
-      setPendingAction("");
+      setInviting(false);
     }
   }
 
   async function toggleInterest() {
-    if (pendingAction) return;
-    setPendingAction("interest");
+    if (interestPending) return;
+    setInterestPending(true);
     setNotice("");
     const next = !intended;
     try {
@@ -246,7 +250,7 @@ export function OpportunityDetail({ opportunityId, mode }: { opportunityId: stri
       setNotice(message);
       notify(message, "error");
     } finally {
-      setPendingAction("");
+      setInterestPending(false);
     }
   }
 
@@ -320,11 +324,11 @@ export function OpportunityDetail({ opportunityId, mode }: { opportunityId: stri
           opportunity={opportunity}
           recruitments={recruitments}
           intended={intended}
-          intentPending={pendingAction === "interest"}
+          intentPending={interestPending}
           onToggleInterest={toggleInterest}
         />
       )}
-      {mode === "teams" && <TeamsView recruitments={recruitments} opportunity={opportunity} applyingId={pendingAction} onApply={apply} />}
+      {mode === "teams" && <TeamsView recruitments={recruitments} opportunity={opportunity} applyingId={applyingId} onApply={apply} />}
       {mode === "recruit" && (
         <RecruitView
           key={formVersion}
@@ -332,7 +336,7 @@ export function OpportunityDetail({ opportunityId, mode }: { opportunityId: stri
           recommendations={recommendations}
           ownedRecruitment={ownedRecruitment}
           publishing={publishing}
-          deleting={pendingAction === "delete"}
+          deleting={deleting}
           profileLoading={profileLoading}
           onPublish={publish}
           onDelete={deleteTeam}
@@ -343,7 +347,7 @@ export function OpportunityDetail({ opportunityId, mode }: { opportunityId: stri
         <PersonDialog
           person={selectedPerson}
           inviteNotice={inviteNotice}
-          inviting={pendingAction === "invite"}
+          inviting={inviting}
           onClose={() => setSelectedPerson(null)}
           onInvite={() => invite(selectedPerson)}
         />
@@ -631,11 +635,9 @@ function RecruitView({ opportunity, recommendations, ownedRecruitment, publishin
     <div className="mt-8 grid gap-9 xl:grid-cols-[minmax(0,1fr)_320px] xl:gap-10">
       <div className="min-w-0 space-y-3">
         <div className="flex flex-wrap items-center gap-1.5 text-[11.5px]">
-          <Link href={`/opportunities/${opportunity.id}`} className="inline-flex items-center gap-1 rounded px-1.5 py-1 text-muted transition hover:bg-raise hover:text-ink">
-            <ArrowLeft className="size-3" /> 比赛文档
+          <Link href={`/opportunities/${opportunity.id}`} className="link-quiet inline-flex items-center gap-1">
+            <ArrowLeft className="size-3" /> 返回比赛文档
           </Link>
-          <span className="text-line-strong">/</span>
-          <span className="px-1.5 py-1 text-faint">队长工作台</span>
         </div>
 
         {ownedRecruitment ? (
@@ -809,13 +811,58 @@ function Field({ name, label, placeholder, type = "text", required = false, min,
 /* ---------------- 用户主页 ---------------- */
 
 function PersonDialog({ person, inviteNotice, inviting, onClose, onInvite }: { person: PersonProfile; inviteNotice: string; inviting: boolean; onClose: () => void; onInvite: () => void }) {
+  const dialogRef = useRef<HTMLElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  // 真正的模态：Esc 关闭、锁住背景滚动、Tab 不跑出弹层、关闭后焦点归位
+  useEffect(() => {
+    const previousActive = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeRef.current?.focus();
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+      if (event.key !== "Tab" || !dialogRef.current) return;
+      const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+      previousActive?.focus?.();
+    };
+  }, []);
+
   return (
     <div
       className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-ink/30 p-4 sm:p-6"
       role="presentation"
       onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}
     >
-      <section role="dialog" aria-modal="true" aria-label={`${person.name}的用户主页`} className="card e3 pop w-full max-w-lg p-5 sm:p-6">
+      <section ref={dialogRef} role="dialog" aria-modal="true" aria-label={`${person.name}的用户主页`} className="card e3 pop w-full max-w-lg p-5 sm:p-6">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
             <span className="grid size-11 shrink-0 place-items-center rounded-full bg-brand-soft text-[13px] font-semibold text-brand">{person.avatar}</span>
@@ -825,7 +872,7 @@ function PersonDialog({ person, inviteNotice, inviting, onClose, onInvite }: { p
               <p className="mt-0.5 text-[11.5px] text-muted">{person.major} · {person.grade}</p>
             </div>
           </div>
-          <button onClick={onClose} aria-label="关闭用户主页" className="grid size-8 shrink-0 place-items-center rounded-[8px] text-faint transition hover:bg-raise hover:text-ink">
+          <button ref={closeRef} onClick={onClose} aria-label="关闭用户主页" className="grid size-8 shrink-0 place-items-center rounded-[8px] text-faint transition hover:bg-raise hover:text-ink">
             <X className="size-4" />
           </button>
         </div>
@@ -852,7 +899,7 @@ function PersonDialog({ person, inviteNotice, inviting, onClose, onInvite }: { p
         )}
 
         <div className="mt-5 grid grid-cols-2 gap-2">
-          <Link href={`/people/${person.id}`} className="btn btn-secondary">打开完整主页</Link>
+          <Link href={`/people/${person.id}`} onClick={onClose} className="btn btn-secondary">打开完整主页</Link>
           <button type="button" onClick={onInvite} disabled={inviting} aria-busy={inviting} className="btn btn-primary">
             {inviting ? <LoaderCircle className="size-3.5 animate-spin" /> : <MailPlus className="size-3.5" />} {inviting ? "发送中…" : "发送邀请"}
           </button>

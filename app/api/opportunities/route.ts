@@ -1,18 +1,24 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { rankOpportunities, sortOpportunitiesByRegistration } from "@/lib/opportunity-ranking";
+import { getAbilityProfile } from "@/lib/repositories/account-repository";
 import type { Opportunity } from "@/lib/types";
 import { createOpportunity, listActiveRecruitments, listOpportunities, listOpportunityInterests } from "@/lib/repositories/opportunity-repository";
 
 export async function GET() {
   const user = await getCurrentUser();
-  const [opportunities, activeRecruitments, intendedOpportunityIds] = await Promise.all([listOpportunities(), listActiveRecruitments(), user ? listOpportunityInterests(user.id) : Promise.resolve([])]);
+  const [opportunities, activeRecruitments, intendedOpportunityIds, abilityProfile] = await Promise.all([
+    listOpportunities(),
+    listActiveRecruitments(),
+    user ? listOpportunityInterests(user.id) : Promise.resolve([]),
+    user ? getAbilityProfile(user.id) : Promise.resolve(null),
+  ]);
   const counts = Object.fromEntries(opportunities.map((item) => [item.id, activeRecruitments.filter((post) => post.opportunityId === item.id).length]));
   return NextResponse.json({
     overview: sortOpportunitiesByRegistration(opportunities),
-    recommended: rankOpportunities(undefined, opportunities),
+    recommended: rankOpportunities(abilityProfile ?? undefined, opportunities),
     recruitmentCounts: counts,
-    rankedBy: "evidence-based-profile",
+    rankedBy: abilityProfile ? "user-profile" : "demo-profile",
     intendedOpportunityIds,
   });
 }

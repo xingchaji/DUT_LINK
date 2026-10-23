@@ -46,10 +46,7 @@ export function Toaster() {
 
   const push = useCallback(
     (item: ToastItem) => {
-      setItems((current) => {
-        if (current.some((existing) => existing.text === item.text && existing.tone === item.tone)) return current;
-        return [...current.slice(-2), item];
-      });
+      setItems((current) => [...current.slice(-2), item]);
       const timer = window.setTimeout(() => dismiss(item.id), item.tone === "error" ? 5200 : 3600);
       timers.current.set(item.id, timer);
     },

@@ -12,7 +12,7 @@ const baseNav = [
   { href: "/", label: "首页", icon: Home },
   { href: "/opportunities", label: "组队中心", icon: Trophy },
   { href: "/applications", label: "申请管理", icon: Inbox },
-  { href: "/explore", label: "探索盲盒", icon: Compass },
+  { href: "/explore", label: "探索", icon: Compass },
   { href: "/account", label: "个人主页", icon: UserRound },
 ];
 
@@ -20,6 +20,7 @@ export function Navigation() {
   const pathname = usePathname();
   const [user, setUser] = useState<SessionUser | null>(null);
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
+  const [abilityCompleteness, setAbilityCompleteness] = useState<number | null>(null);
   const workspaceRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -45,10 +46,36 @@ export function Navigation() {
       .catch(() => setUser(null));
   }, []);
 
+  // 侧栏画像完成度：与首页同一公式，来自服务端真实画像，不再写死数字
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    fetch("/api/account", { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (cancelled) return;
+        const profile = data?.abilityProfile as { evidenceCount?: number; skills?: { evidence?: string[] }[] } | null | undefined;
+        if (!profile) {
+          setAbilityCompleteness(0);
+          return;
+        }
+        const evidenceCount = profile.evidenceCount ?? (profile.skills ?? []).reduce((total, skill) => total + (skill.evidence?.length ?? 0), 0);
+        setAbilityCompleteness(Math.min(96, 64 + evidenceCount * 4));
+      })
+      .catch(() => {
+        if (!cancelled) setAbilityCompleteness(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
   const nav = useMemo(() => {
     if (user?.role === "admin") return [...baseNav, { href: "/admin", label: "内容审核", icon: ShieldCheck }];
     return baseNav;
   }, [user]);
+
+  const completeness = user ? abilityCompleteness : null;
 
   return (
     <>
@@ -135,20 +162,29 @@ export function Navigation() {
 
         <div className="mt-auto space-y-3 px-2.5 pb-3">
           <div className="card relative overflow-hidden p-2.5">
-            <div className="pointer-events-none absolute -right-6 -top-8 size-16 rounded-full bg-marker/60 blur-xl" />
             <div className="relative flex items-center gap-1.5">
               <span className="grid size-5 place-items-center rounded-[6px] bg-ochre-soft text-ochre shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
                 <Sparkles className="size-3" strokeWidth={2.2} />
               </span>
               <span className="text-[11.5px] font-semibold text-ink-soft">能力画像</span>
-              <span className="num ml-auto text-[10px] text-faint">68%</span>
+              <span className="num ml-auto text-[10px] text-faint">
+                {completeness === null ? "—" : completeness > 0 ? `${completeness}%` : "未测评"}
+              </span>
             </div>
-            <p className="relative mt-1.5 text-[11px] leading-[1.65] text-muted">再补充一段项目证据，AI 推荐会更稳。</p>
+            <p className="relative mt-1.5 text-[11px] leading-[1.65] text-muted">
+              {completeness === null
+                ? "登录并完成测评后，这里会显示真实完成度。"
+                : completeness === 0
+                  ? "你还没有竞赛能力画像，测评后推荐会基于真实经历。"
+                  : completeness < 96
+                    ? "再补充一段项目证据，推荐结果会更稳。"
+                    : "画像证据已较完整，保持更新即可。"}
+            </p>
             <Link
               href="/onboarding"
               className="relative mt-2.5 flex items-center justify-between rounded-lg border border-[rgba(60,48,30,0.11)] bg-[#fffefc] px-2.5 py-1.5 text-[11.5px] font-semibold text-ink-soft shadow-[0_1px_1px_rgba(60,48,30,0.04),0_2px_4px_-2px_rgba(60,48,30,0.1),inset_0_1px_0_#fff] transition duration-300 [transition-timing-function:var(--spring)] hover:-translate-y-px hover:border-[rgba(60,48,30,0.18)] hover:shadow-[0_4px_9px_-4px_rgba(60,48,30,0.16),inset_0_1px_0_#fff]"
             >
-              更新能力画像 <ArrowUpRight className="size-3" />
+               {completeness === 0 ? "开始能力测评" : "更新能力画像"} <ArrowUpRight className="size-3" />
             </Link>
           </div>
           <div className="mx-1 h-px bg-line shadow-[0_1px_0_rgba(255,255,255,0.8)]" />

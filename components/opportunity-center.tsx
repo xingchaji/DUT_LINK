@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -22,7 +22,6 @@ import { notify } from "@/components/feedback/toast";
 import { Magnetic } from "@/components/motion/magnetic";
 import { Reveal } from "@/components/motion/reveal";
 import { TiltCard } from "@/components/motion/tilt-card";
-import { opportunities as seedOpportunities } from "@/lib/mock-data";
 import type { Opportunity } from "@/lib/types";
 
 type View = "overview" | "recommended";
@@ -35,17 +34,40 @@ const ACCENTS: Record<string, { icon: string; bar: string }> = {
   coral: { icon: "bg-clay-soft text-clay", bar: "bg-clay" },
 };
 
-export function OpportunityCenter() {
-  const [view, setView] = useState<View>("overview");
-  const [overview, setOverview] = useState<Opportunity[]>(seedOpportunities);
-  const [recommended, setRecommended] = useState<Opportunity[]>(seedOpportunities);
+export function OpportunityCenter({ initialView = "overview", initialQuery = "", focusSearch = false }: { initialView?: View; initialQuery?: string; focusSearch?: boolean }) {
+  const [view, setView] = useState<View>(initialView);
+  const [overview, setOverview] = useState<Opportunity[]>([]);
+  const [recommended, setRecommended] = useState<Opportunity[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialQuery);
   const [showPublish, setShowPublish] = useState(false);
   const [notice, setNotice] = useState<Notice>(null);
   const [loading, setLoading] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState("");
+  const [rankedBy, setRankedBy] = useState<"user-profile" | "demo-profile">("demo-profile");
   const [intendedIds, setIntendedIds] = useState<string[]>([]);
   const [pendingIntentIds, setPendingIntentIds] = useState<string[]>([]);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  // 视图与搜索词写回 URL：刷新、分享和再次进入都能复原（replaceState 不触发路由请求）
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (view === "recommended") params.set("view", "recommended");
+    else params.delete("view");
+    const needle = query.trim();
+    if (needle) params.set("q", needle);
+    else params.delete("q");
+    params.delete("focus");
+    const search = params.toString();
+    window.history.replaceState(null, "", `${window.location.pathname}${search ? `?${search}` : ""}`);
+  }, [view, query]);
+
+  useEffect(() => {
+    if (!focusSearch) return;
+    const frame = window.requestAnimationFrame(() => searchRef.current?.focus({ preventScroll: true }));
+    return () => window.cancelAnimationFrame(frame);
+  }, [focusSearch]);
 
   const load = useCallback(async () => {
     try {
@@ -56,20 +78,14 @@ export function OpportunityCenter() {
       setRecommended(data.recommended ?? []);
       setCounts(data.recruitmentCounts ?? {});
       setIntendedIds(data.intendedOpportunityIds ?? []);
-
-      const stored = localStorage.getItem("dut-link-profile");
-      if (stored) {
-        const ranked = await fetch("/api/opportunities/recommend", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ profile: JSON.parse(stored) }),
-        });
-        const rankedData = await ranked.json();
-        if (rankedData.opportunities) setRecommended(rankedData.opportunities);
-      }
+      setRankedBy(data.rankedBy === "user-profile" ? "user-profile" : "demo-profile");
+      setLoadError("");
     } catch (error) {
       const message = error instanceof Error ? error.message : "无法加载比赛列表";
+      setLoadError(message);
       setNotice({ type: "error", text: message });
+    } finally {
+      setLoaded(true);
     }
   }, []);
 
@@ -164,9 +180,9 @@ export function OpportunityCenter() {
   return (
     <div className="space-y-6">
       <dl className="e1 grid grid-cols-3 divide-x divide-line overflow-hidden rounded-[14px] border border-line bg-surface">
-        <Stat value={overview.length} label="比赛机会" hint="含校内发布" />
-        <Stat value={verifiedCount} label="来源已核验" hint="可追溯到主办方" />
-        <Stat value={recruitingTeamCount} label="队伍招募中" hint="正在寻找队友" />
+        <Stat value={overview.length} label="比赛机会" hint="含校内发布" loading={!loaded} />
+        <Stat value={verifiedCount} label="来源已核验" hint="可追溯到主办方" loading={!loaded} />
+        <Stat value={recruitingTeamCount} label="队伍招募中" hint="正在寻找队友" loading={!loaded} />
       </dl>
 
       <div>
@@ -180,12 +196,23 @@ export function OpportunityCenter() {
             <div className="relative">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-faint" strokeWidth={1.9} />
               <input
+                ref={searchRef}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="搜索比赛、主办方或技能"
                 aria-label="搜索比赛"
-                className="field h-9 w-full py-0 pl-8 text-[12.5px] sm:w-60"
+                className="field h-9 w-full py-0 pl-8 pr-8 text-[12.5px] sm:w-60"
               />
+              {query && (
+                <button
+                  type="button"
+                  onClick={() => setQuery("")}
+                  aria-label="清空搜索"
+                  className="absolute right-1.5 top-1/2 grid size-6 -translate-y-1/2 place-items-center rounded-[6px] text-faint transition hover:bg-raise hover:text-ink"
+                >
+                  <X className="size-3" strokeWidth={2.2} />
+                </button>
+              )}
             </div>
             <Magnetic strength={4} className="w-full sm:w-auto">
               <button type="button" onClick={() => setShowPublish((current) => !current)} className="btn btn-primary w-full">
@@ -198,9 +225,13 @@ export function OpportunityCenter() {
 
         <p className="mt-2.5 flex items-center gap-1.5 text-[11px] text-faint">
           <SlidersHorizontal className="size-3" strokeWidth={1.9} />
-          {query ? `找到 ${visible.length} 项结果` : `当前展示 ${visible.length} 项机会`}
+          {!loaded ? "正在读取机会目录…" : query ? `找到 ${visible.length} 项结果` : `当前展示 ${visible.length} 项机会`}
           <span className="text-line-strong">·</span>
-          {view === "overview" ? "未知报名时间的比赛排在后面，平台不会猜测日期" : "推荐分只用于排序，赛事事实仍来自官方来源"}
+          {view === "overview"
+            ? "未知报名时间的比赛排在后面，平台不会猜测日期"
+            : rankedBy === "user-profile"
+              ? "推荐分按你的能力画像排序，赛事事实仍来自官方来源"
+              : "你还没有能力画像，当前推荐基于演示画像；完成测评后会重新排序"}
         </p>
       </div>
 
@@ -278,7 +309,19 @@ export function OpportunityCenter() {
           </span>
         </div>
 
-        {visible.length ? (
+        {!loaded ? (
+          <div className="mt-3.5 grid gap-4 md:grid-cols-2 2xl:grid-cols-3" aria-hidden>
+            {[0, 1, 2, 3].map((index) => (
+              <div key={index} className="card h-[324px] animate-pulse p-4">
+                <div className="h-3 w-24 rounded bg-raise" />
+                <div className="mt-4 h-4 w-4/5 rounded bg-raise" />
+                <div className="mt-2 h-3 w-1/2 rounded bg-raise" />
+                <div className="mt-5 h-14 rounded bg-raise" />
+                <div className="mt-4 h-8 rounded bg-raise" />
+              </div>
+            ))}
+          </div>
+        ) : visible.length ? (
           <div className="mt-3.5 grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
             {visible.map((item, index) => (
               <Reveal key={item.id} delay={Math.min(index, 5) * 60} className="h-full">
@@ -297,11 +340,23 @@ export function OpportunityCenter() {
           <div className="mt-3.5 grid min-h-56 place-items-center rounded-[14px] border border-dashed border-line-strong bg-surface/60 p-8 text-center">
             <div>
               <Search className="mx-auto size-5 text-faint" strokeWidth={1.8} />
-              <h3 className="mt-3 text-[14px] font-semibold">没有找到对应比赛</h3>
-              <p className="mt-1 text-[12px] text-muted">换一个比赛名称、主办方或技能关键词试试。</p>
-              <button type="button" onClick={() => setQuery("")} className="btn btn-secondary btn-sm mt-3">
-                清除搜索
-              </button>
+              {loadError ? (
+                <>
+                  <h3 className="mt-3 text-[14px] font-semibold">没能加载机会目录</h3>
+                  <p className="mt-1 text-[12px] text-muted">{loadError}</p>
+                  <button type="button" onClick={() => { setLoaded(false); setLoadError(""); void load(); }} className="btn btn-secondary btn-sm mt-3">
+                    重新加载
+                  </button>
+                </>
+              ) : (
+                <>
+                  <h3 className="mt-3 text-[14px] font-semibold">没有找到对应比赛</h3>
+                  <p className="mt-1 text-[12px] text-muted">换一个比赛名称、主办方或技能关键词试试。</p>
+                  <button type="button" onClick={() => setQuery("")} className="btn btn-secondary btn-sm mt-3">
+                    清除搜索
+                  </button>
+                </>
+              )}
             </div>
           </div>
         )}
@@ -328,12 +383,12 @@ function OpportunityCard({
   const accent = ACCENTS[item.accent] ?? ACCENTS.violet;
 
   return (
-    <TiltCard max={5} lift={4} spotlight className="group h-full rounded-[16px]">
+    <TiltCard max={5} lift={4} spotlight className="group h-full rounded-[14px]">
       <article className="card relative flex h-full flex-col overflow-hidden transition-shadow duration-500 [transition-timing-function:var(--spring)] group-hover:shadow-[0_2px_6px_-2px_rgba(60,48,30,0.08),0_18px_38px_-18px_rgba(60,48,30,0.26)]">
         {/* 脊：有厚度的强调色棱，内高光 + 底部投影，像压在纸面上的凸条 */}
         <div
           aria-hidden
-          className={`h-1 w-full rounded-t-[15px] ${accent.bar} shadow-[inset_0_1px_0_rgba(255,255,255,0.5),0_1px_2px_rgba(60,48,30,0.22)]`}
+          className={`h-1 w-full rounded-t-[13px] ${accent.bar} shadow-[inset_0_1px_0_rgba(255,255,255,0.5),0_1px_2px_rgba(60,48,30,0.22)]`}
         />
         <div className="flex flex-1 flex-col p-4">
           <div className="flex items-start justify-between gap-2">
@@ -443,12 +498,16 @@ function OpportunityCard({
   );
 }
 
-function Stat({ value, label, hint }: { value: number; label: string; hint: string }) {
+function Stat({ value, label, hint, loading = false }: { value: number; label: string; hint: string; loading?: boolean }) {
   return (
     <div className="px-4 py-3.5 sm:px-5">
       <dt className="text-[10.5px] text-faint">{label}</dt>
       <dd className="mt-1 flex items-baseline gap-2">
-        <CountUp value={value} className="num text-[22px] font-semibold leading-none text-ink" />
+        {loading ? (
+          <span className="num text-[22px] font-semibold leading-none text-faint">—</span>
+        ) : (
+          <CountUp value={value} className="num text-[22px] font-semibold leading-none text-ink" />
+        )}
         <span className="hidden truncate text-[10.5px] text-faint sm:block">{hint}</span>
       </dd>
     </div>

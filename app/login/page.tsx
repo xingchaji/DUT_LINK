@@ -131,7 +131,7 @@ export default function LoginPage() {
   return (
     <div className="page-shell flex min-h-[calc(100vh-9rem)] items-center justify-center lg:min-h-[calc(100vh-4.5rem)]">
       {/* 表单卡：纸张堆叠只留一层 + e3 浮起，光源仍在左上 */}
-      <Reveal delay={80} className="stack w-full max-w-[880px] rounded-[16px] after:hidden">
+      <Reveal delay={80} className="stack w-full max-w-[880px] rounded-[14px] after:hidden">
         <section className="card e3 grid overflow-hidden md:grid-cols-[0.86fr_1fr]">
           <aside className="flex flex-col border-b border-line bg-raise p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),inset_1px_0_0_rgba(255,255,255,0.7)] sm:p-8 md:border-b-0 md:border-r lg:p-9">
             <Logo />

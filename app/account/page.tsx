@@ -5,7 +5,7 @@ import Link from "next/link";
 import { BrainCircuit, KeyRound, Layers3, LoaderCircle, Mail, Monitor, Pencil, PencilLine, Save, ShieldCheck, UserRound } from "lucide-react";
 import { notify } from "@/components/feedback/toast";
 import { Reveal } from "@/components/motion/reveal";
-import { TiltCard } from "@/components/motion/tilt-card";
+import { Spot } from "@/components/motion/tilt-card";
 import { PageHeader } from "@/components/page-header";
 import { SkillBars } from "@/components/skill-bars";
 import { TagEditor } from "@/components/tag-editor";
@@ -19,6 +19,7 @@ type SessionDevice = { id: string; createdAt: string; expiresAt: string; userAge
 
 export default function AccountPage() {
   const [profile, setProfile] = useState(emptyProfile);
+  const [savedProfile, setSavedProfile] = useState<UserAccountProfile>(emptyProfile);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState("");
@@ -45,7 +46,7 @@ export default function AccountPage() {
       const [data, aiData] = await Promise.all([response.json(), aiResponse.json()]);
       if (!response.ok) { setNotice(data.message ?? "无法读取个人资料"); return; }
       if (aiResponse.ok) setAISettings(aiData.settings);
-      setProfile(data.profile); setServerAbilityProfile(data.abilityProfile ?? null);
+      setProfile(data.profile); setSavedProfile(data.profile); setServerAbilityProfile(data.abilityProfile ?? null);
     } catch {
       setNotice("无法连接服务器，请刷新页面重试");
     } finally {
@@ -67,6 +68,19 @@ export default function AccountPage() {
   }
   useEffect(() => { void Promise.resolve().then(loadSessions); }, []);
 
+  const profileDirty = useMemo(() => JSON.stringify(profile) !== JSON.stringify(savedProfile), [profile, savedProfile]);
+
+  // 刷新或关闭页面时提醒未保存的资料修改；站内导航由顶部提示条承担
+  useEffect(() => {
+    if (!profileDirty) return;
+    const handler = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [profileDirty]);
+
   async function revokeSession(id: string) {
     try {
       const response = await fetch(`/api/auth/sessions/${id}`, { method: "DELETE" });
@@ -84,6 +98,10 @@ export default function AccountPage() {
 
   async function save(event: FormEvent) {
     event.preventDefault();
+    await persistProfile();
+  }
+
+  async function persistProfile() {
     setSaving(true);
     setNotice("");
     try {
@@ -96,6 +114,7 @@ export default function AccountPage() {
         return;
       }
       setProfile(data.profile);
+      setSavedProfile(data.profile);
       window.dispatchEvent(new Event("dut-link-account-updated"));
       const message = "个人主页已更新，队伍成员资料也已同步";
       setNotice(message);
@@ -134,6 +153,37 @@ export default function AccountPage() {
       const message = "网络异常，AI 设置未保存";
       setAINotice(message);
       notify(message, "error");
+    } finally {
+      setAISaving(false);
+    }
+  }
+
+  async function toggleAIEnabled(enabled: boolean) {
+    if (aiSaving) return;
+    const previous = aiSettings;
+    setAISettings((current) => ({ ...current, enabled }));
+    setAISaving(true);
+    setAINotice("");
+    try {
+      const response = await fetch("/api/account/ai-settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled, baseUrl: previous.baseUrl, model: previous.model }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setAISettings(previous);
+        const message = data.message ?? "AI 开关未保存";
+        setAINotice(message);
+        notify(message, "error");
+        return;
+      }
+      setAISettings(data.settings);
+      notify(enabled ? "AI 功能已开启" : "AI 功能已关闭");
+    } catch {
+      setAISettings(previous);
+      setAINotice("网络异常，AI 开关未保存");
+      notify("网络异常，AI 开关未保存", "error");
     } finally {
       setAISaving(false);
     }
@@ -196,17 +246,25 @@ export default function AccountPage() {
         icon={<UserRound className="size-5" strokeWidth={1.8} />}
       />
 
-      {notice && (
-        <p role="status" className="callout mt-6 px-4 py-3 text-[12.5px] text-ink-soft">
-          {notice}
-        </p>
+      {profileDirty && (
+        <div role="status" className="callout callout-marker mt-4 flex-wrap items-center">
+          <Pencil className="size-3.5 shrink-0 text-ochre" strokeWidth={2} />
+          <span className="min-w-0">资料有未保存的修改，离开本页会丢失。</span>
+          <span className="ml-auto flex shrink-0 items-center gap-2">
+            <button type="button" onClick={() => void persistProfile()} disabled={saving} className="btn btn-primary btn-sm">
+              {saving ? "保存中…" : "立即保存"}
+            </button>
+            <button type="button" onClick={() => setProfile(savedProfile)} disabled={saving} className="btn btn-ghost btn-sm">
+              放弃修改
+            </button>
+          </span>
+        </div>
       )}
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,300px)_minmax(0,1fr)] lg:items-start lg:gap-8">
-        {/* 左侧资料卡：指针 3D 倾斜 + 光照高光 */}
+        {/* 左侧资料卡：长文用指针柔光而非倾斜（契约：长文不用 TiltCard） */}
         <Reveal as="aside" className="lg:sticky lg:top-6">
-          <TiltCard max={4} lift={3}>
-            <div className="card overflow-hidden">
+          <Spot className="card interactive-card overflow-hidden">
               <div className="flex items-center gap-3 px-5 py-5">
                 <span className="glyph size-12 shrink-0 rounded-full text-[17px] font-semibold text-ink-soft shadow-[0_1px_1px_rgba(60,48,30,0.06),0_6px_14px_-6px_rgba(60,48,30,0.32),inset_0_1px_0_#fff,inset_0_-3px_6px_rgba(60,48,30,0.05)]">
                   {profile.nickname.slice(0, 1) || "同"}
@@ -251,8 +309,7 @@ export default function AccountPage() {
                   )}
                 </div>
               </div>
-            </div>
-          </TiltCard>
+          </Spot>
         </Reveal>
 
         {/* 右侧编辑表单 */}
@@ -266,6 +323,12 @@ export default function AccountPage() {
               <p className="section-desc mt-1">邮箱由登录账户确定，暂不支持修改。</p>
             </div>
           </div>
+
+          {notice && (
+            <p role="status" className="mx-5 mt-4 rounded-[10px] bg-raise px-3 py-2.5 text-[12px] leading-6 text-ink-soft sm:mx-6">
+              {notice}
+            </p>
+          )}
 
           <div className="grid gap-4 px-5 py-5 sm:grid-cols-2 sm:px-6">
             <Field label="昵称 *" value={profile.nickname} onChange={(value) => setProfile((current) => ({ ...current, nickname: value }))} />
@@ -295,7 +358,7 @@ export default function AccountPage() {
             <p className="text-[11.5px] text-faint">保存后会同步队伍成员资料。</p>
             <button type="submit" disabled={saving} className="btn btn-primary pressable">
               {saving ? <LoaderCircle className="size-4 animate-spin" /> : <Save className="size-4" />}
-              {saving ? "保存中…" : "保存个人资料"}
+              {saving ? "保存中…" : profileDirty ? "保存个人资料（有修改）" : "保存个人资料"}
             </button>
           </div>
         </Reveal>
@@ -309,7 +372,7 @@ export default function AccountPage() {
               <KeyRound className="size-3" strokeWidth={2} /> AI settings
             </p>
             <h2 className="section-title mt-1.5">AI 功能设置</h2>
-            <p className="section-desc mt-1">个人密钥仅在服务端加密保存。开启后，问卷能力画像、队长智能推荐和探索盲盒会使用这里配置的兼容 Chat Completions 服务；关闭后全部回退到本地规则和人工策展内容。</p>
+            <p className="section-desc mt-1">个人密钥仅在服务端加密保存。开启后，问卷能力画像、队长智能推荐和探索内容会使用这里配置的兼容 Chat Completions 服务；关闭后全部回退到本地规则和人工策展内容。</p>
           </div>
           <label className="pressable flex h-8 cursor-pointer items-center gap-2.5 rounded-[8px] border border-line bg-surface px-3 shadow-[0_1px_1px_rgba(60,48,30,0.05),0_3px_8px_-4px_rgba(60,48,30,0.14),inset_0_1px_0_#fff] hover:border-line-strong">
             <input
@@ -317,7 +380,8 @@ export default function AccountPage() {
               role="switch"
               aria-checked={aiSettings.enabled}
               checked={aiSettings.enabled}
-              onChange={(event) => setAISettings((current) => ({ ...current, enabled: event.target.checked }))}
+              onChange={(event) => void toggleAIEnabled(event.target.checked)}
+              disabled={aiSaving}
               className="peer sr-only"
             />
             <span className="relative h-[18px] w-[32px] shrink-0 rounded-full bg-line-strong shadow-[inset_0_1px_2px_rgba(60,48,30,0.2)] transition-colors peer-checked:bg-ink peer-focus-visible:ring-2 peer-focus-visible:ring-brand/40 peer-focus-visible:ring-offset-1 after:absolute after:left-[2px] after:top-[2px] after:size-[14px] after:rounded-full after:bg-surface after:shadow-[0_1px_1px_rgba(60,48,30,0.22),0_1px_3px_rgba(60,48,30,0.24),inset_0_1px_0_#fff] after:transition-transform peer-checked:after:translate-x-[14px]" />
@@ -459,7 +523,7 @@ export default function AccountPage() {
                       {session.isCurrent && <span className="status status-ok shrink-0">当前设备</span>}
                     </p>
                     <p className="mt-1 text-[11.5px] text-faint">
-                      登录于 <span className="num">{new Date(session.createdAt).toLocaleString()}</span>
+                      登录于 <span className="num">{formatDateTime(session.createdAt)}</span>
                     </p>
                   </div>
                   {!session.isCurrent && (
@@ -493,3 +557,11 @@ function Field({ label, value, onChange, placeholder = "", disabled = false }: {
 }
 function subscribeToAbilityProfile(callback: () => void) { window.addEventListener("storage", callback); return () => window.removeEventListener("storage", callback); }
 function readStoredAbilityProfile() { return localStorage.getItem("dut-link-profile"); }
+
+/** 登录设备时间固定格式，避免 toLocaleString 随系统语言变化 */
+function formatDateTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  const pad = (input: number) => String(input).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}

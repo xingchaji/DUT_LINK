@@ -20,11 +20,14 @@ import { CountUp, Meter, Ring } from "@/components/motion/metric";
 import { Magnetic } from "@/components/motion/magnetic";
 import { Reveal } from "@/components/motion/reveal";
 import { TiltCard } from "@/components/motion/tilt-card";
-import { demoProfile, matches } from "@/lib/mock-data";
+import { demoProfile } from "@/lib/mock-data";
+import { rankPeople } from "@/lib/matching";
 import { rankOpportunities } from "@/lib/opportunity-ranking";
 import { getCurrentUser } from "@/lib/auth";
+import { getDataBackendStatus } from "@/lib/db";
 import { getAbilityProfile, getAccountProfile } from "@/lib/repositories/account-repository";
 import { listOpportunities } from "@/lib/repositories/opportunity-repository";
+import { listApplications, listInvitations } from "@/lib/repositories/team-repository";
 
 const OPPORTUNITY_VISUALS = [
   { icon: Orbit, className: "bg-brand-soft text-brand" },
@@ -48,27 +51,41 @@ function formatToday(date: Date) {
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();
-  const [profile, abilityProfile, opportunityCatalog] = await Promise.all([
+  const [profile, abilityProfile, opportunityCatalog, collaboration] = await Promise.all([
     user ? getAccountProfile(user) : Promise.resolve(null),
     user ? getAbilityProfile(user.id) : Promise.resolve(null),
     listOpportunities(),
+    user
+      ? Promise.all([listApplications(user.id), listInvitations(user.id)]).then(([applications, invitations]) => ({ applications, invitations }))
+      : Promise.resolve(null),
   ]);
+  const dataMode = getDataBackendStatus();
   const displayName = profile?.nickname ?? user?.name ?? "同学";
+  const hasAbilityProfile = Boolean(abilityProfile);
   const activeProfile = abilityProfile ?? demoProfile;
   const opportunities = rankOpportunities(activeProfile, opportunityCatalog).slice(0, 4);
+  const people = rankPeople(activeProfile).slice(0, 3);
   const strongestSkill = [...activeProfile.skills].sort((a, b) => b.score - a.score)[0];
   const evidenceCount = activeProfile.evidenceCount ?? activeProfile.skills.reduce((total, skill) => total + (skill.evidence?.length ?? 0), 0);
-  const profileCompleteness = Math.min(96, 64 + evidenceCount * 4);
+  const profileCompleteness = hasAbilityProfile ? Math.min(96, 64 + evidenceCount * 4) : 0;
   const direction = activeProfile.potentialDirections[0] ?? "跨学科实践";
+  const pendingApplications = (collaboration?.applications.received ?? []).filter((item) => item.status === "pending").length;
+  const pendingInvitations = (collaboration?.invitations.received ?? []).filter((item) => item.status === "pending").length;
+  const pendingTotal = pendingApplications + pendingInvitations;
 
   const now = new Date();
+  const profileUpdatedAt = profile?.updatedAt ? new Date(profile.updatedAt) : null;
 
   return (
     <div className="page-shell">
       <PageHeader
         eyebrow="首页"
         title={`${getGreeting(now.getHours())}，${displayName}`}
-        lede="这里集中了你的能力证据、正在关注的机会和值得认识的同学。先从一件具体的事开始。"
+        lede={
+          hasAbilityProfile
+            ? "这里集中了你的能力证据、正在关注的机会和值得认识的同学。先从一件具体的事开始。"
+            : "先从一件具体的事开始：完成一次竞赛能力测评，或者直接翻一翻正在招募的比赛。"
+        }
         icon={<Sparkles className="size-5" strokeWidth={1.8} />}
       >
         <dl className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-[12px]">
@@ -101,21 +118,26 @@ export default async function DashboardPage() {
                 }}
               >
                 <div className="pointer-events-none absolute inset-0 opacity-70 bg-[radial-gradient(520px_circle_at_var(--mx,78%)_var(--my,0%),rgba(255,255,255,0.9),rgba(255,255,255,0)_62%)]" />
-                <div className="pointer-events-none absolute -right-10 -top-14 size-40 rounded-full bg-marker/50 blur-2xl" />
 
                 <div className="relative p-5 sm:p-6">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="chip bg-surface text-ochre">
-                      <Sparkles className="size-3" strokeWidth={2.2} /> AI 今日洞察
+                      <Sparkles className="size-3" strokeWidth={2.2} /> 今日洞察
                     </span>
-                    <span className="text-[11px] text-faint">基于你的能力画像与 {opportunityCatalog.length} 个可信机会</span>
+                    <span className="text-[11px] text-faint">
+                      {hasAbilityProfile
+                        ? `基于你的能力画像与 ${opportunityCatalog.length} 个可信机会`
+                        : "尚未生成画像，下方使用演示数据"}
+                    </span>
                   </div>
 
                   <h2 className="mt-4 max-w-2xl text-[22px] font-semibold leading-[1.42] tracking-[-0.03em] text-ink sm:text-[26px]">
                     <span className="block sm:inline">把你的技术能力，</span><span className="block sm:inline">连接到更大的问题上。</span>
                   </h2>
                   <p className="mt-3 max-w-2xl text-[13.5px] leading-7 text-muted">
-                    {activeProfile.summary} 现在可以从「{direction}」切入，寻找一次真正能落地的合作。
+                    {hasAbilityProfile
+                      ? `${activeProfile.summary} 现在可以从「${direction}」切入，寻找一次真正能落地的合作。`
+                      : "你还没有生成竞赛能力画像。完成 16 题测评后，这里的比赛排序、推荐理由和同学匹配都会基于你的真实经历重算。"}
                   </p>
 
                   <div className="mt-5 flex flex-wrap items-center gap-2">
@@ -126,7 +148,7 @@ export default async function DashboardPage() {
                     </Magnetic>
                     <Magnetic strength={3}>
                       <Link href="/onboarding" className="btn btn-secondary">
-                        更新我的经历
+                        {hasAbilityProfile ? "更新我的经历" : "开始能力测评"}
                       </Link>
                     </Magnetic>
                     <span className="ml-1 hidden items-center gap-1.5 text-[11px] text-faint sm:inline-flex">
@@ -240,7 +262,13 @@ export default async function DashboardPage() {
                 </Ring>
                 <div className="min-w-0">
                   <p className="text-[11.5px] font-medium text-ink-soft">画像完成度</p>
-                  <p className="mt-0.5 text-[10.5px] leading-relaxed text-faint">再补充一段团队协作经历，推荐结果会更稳定。</p>
+                  <p className="mt-0.5 text-[10.5px] leading-relaxed text-faint">
+                    {!hasAbilityProfile
+                      ? "完成 16 题测评后，这里会显示你的真实完成度。"
+                      : profileCompleteness < 96
+                        ? "补充项目证据可以进一步提高推荐稳定性。"
+                        : "画像证据已较完整，保持更新即可。"}
+                  </p>
                 </div>
               </div>
             </Reveal>
@@ -258,7 +286,7 @@ export default async function DashboardPage() {
               <p className="mt-1.5 text-[11.5px] leading-6 text-muted">不是「和你一样」，而是「与你互补」。</p>
 
               <div className="mt-2 divide-y divide-line/70">
-                {matches.slice(0, 3).map((person, index) => (
+                {people.map((person, index) => (
                   <Link key={person.id} href={`/people/${person.id}`} className="row-hover group -mx-2 flex items-center gap-3 rounded-[10px] px-2 py-3">
                     <span className={`grid size-8 shrink-0 place-items-center rounded-full text-[11.5px] font-semibold shadow-[0_1px_1px_rgba(60,48,30,0.08),0_3px_8px_-4px_rgba(60,48,30,0.3),inset_0_1px_0_rgba(255,255,255,0.9)] transition duration-500 [transition-timing-function:var(--spring)] group-hover:-translate-y-0.5 group-hover:shadow-[0_6px_14px_-6px_rgba(60,48,30,0.35),inset_0_1px_0_rgba(255,255,255,0.9)] ${AVATAR_TINTS[index % 3]}`}>
                       {person.avatar}
@@ -292,9 +320,9 @@ export default async function DashboardPage() {
               <p className="section-label">继续处理</p>
               <ul className="mt-2.5 divide-y divide-line/70">
                 {[
-                  { href: "/onboarding", text: "补充一段团队协作证据", tag: "画像" },
-                  { href: "/opportunities", text: "查看 3 个匹配的机会", tag: "机会" },
-                  { href: "/applications", text: "处理待回复的申请", tag: "协作" },
+                  { href: "/onboarding", text: hasAbilityProfile ? "补充一段团队协作证据" : "完成 16 题竞赛能力测评", tag: "画像" },
+                  { href: "/opportunities", text: `查看 ${opportunities.length} 个优先关注的比赛`, tag: "机会" },
+                  { href: "/applications", text: pendingTotal ? `处理 ${pendingTotal} 条待回复的申请与邀请` : "查看申请与邀请状态", tag: "协作" },
                 ].map((task, index) => (
                   <li key={task.text}>
                     <Link href={task.href} className="row-hover group -mx-2 flex items-center gap-2.5 rounded-[8px] px-2 py-2.5 text-[12px] leading-5 text-ink-soft">
@@ -313,7 +341,7 @@ export default async function DashboardPage() {
                 <p className="font-editorial text-[20px] leading-tight text-ink">Make the right connection.</p>
                 <p className="mt-2 text-[11.5px] leading-6 text-muted">组队不是找最厉害的人，而是找能力互补、目标一致的人。</p>
                 <div className="mt-3 flex items-center gap-2 border-t border-line/70 pt-3 text-[11px] text-faint">
-                  <Compass className="size-3.5" strokeWidth={1.8} /> 探索盲盒 · 每日一条跨域灵感
+                  <Compass className="size-3.5" strokeWidth={1.8} /> 探索 · 每日一条跨域灵感
                 </div>
               </div>
             </Reveal>
@@ -323,15 +351,15 @@ export default async function DashboardPage() {
               <dl className="mt-3 space-y-2 text-[11.5px]">
                 <div className="flex items-center justify-between gap-2">
                   <dt className="text-faint">数据模式</dt>
-                  <dd className="chip">内存演示</dd>
+                  <dd className="chip">{dataMode.persistent ? "PostgreSQL" : "内存演示"}</dd>
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <dt className="text-faint">机会来源</dt>
                   <dd className="text-muted">官方核验</dd>
                 </div>
                 <div className="flex items-center justify-between gap-2">
-                  <dt className="text-faint">最后更新</dt>
-                  <dd className="num text-muted">{new Date().toISOString().slice(0, 10).replaceAll("-", ".")}</dd>
+                  <dt className="text-faint">资料更新</dt>
+                  <dd className="num text-muted">{profileUpdatedAt ? profileUpdatedAt.toISOString().slice(0, 10).replaceAll("-", ".") : "—"}</dd>
                 </div>
               </dl>
             </Reveal>

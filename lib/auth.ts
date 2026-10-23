@@ -17,6 +17,20 @@ type SessionPayload = SessionUser & { expiresAt: number };
 const demoUsers = [
   { id: "demo-user", name: "陆同学", email: "student@dlut.edu.cn", password: "demo1234", major: "软件工程", role: "student" as const },
   { id: "zhou-yu", name: "周宇", email: "zhouyu@dlut.edu.cn", password: "demo1234", major: "建筑学", role: "student" as const },
+  { id: "lin-yi", name: "林一", email: "linyi@dlut.edu.cn", password: "demo1234", major: "视觉传达", role: "student" as const },
+  { id: "chen-xi", name: "陈曦", email: "chenxi@dlut.edu.cn", password: "demo1234", major: "数字媒体", role: "student" as const },
+  { id: "liu-shuran", name: "刘姝然", email: "liushuran@dlut.edu.cn", password: "demo1234", major: "化学工程与工艺", role: "student" as const },
+  { id: "han-zhuo", name: "韩卓", email: "hanzhuo@dlut.edu.cn", password: "demo1234", major: "机械设计制造及其自动化", role: "student" as const },
+  { id: "sun-ke", name: "孙可", email: "sunke@dlut.edu.cn", password: "demo1234", major: "能源与动力工程", role: "student" as const },
+  { id: "xu-jiahang", name: "徐嘉航", email: "xujiahang@dlut.edu.cn", password: "demo1234", major: "电子信息工程", role: "student" as const },
+  { id: "gao-wenqi", name: "高文琪", email: "gaowenqi@dlut.edu.cn", password: "demo1234", major: "环境工程", role: "student" as const },
+  { id: "tang-yuxin", name: "唐雨欣", email: "tangyuxin@dlut.edu.cn", password: "demo1234", major: "数学与应用数学", role: "student" as const },
+  { id: "wei-ziqi", name: "魏子琪", email: "weiziqi@dlut.edu.cn", password: "demo1234", major: "计算机科学与技术", role: "student" as const },
+  { id: "ding-ruoxi", name: "丁若曦", email: "dingruoxi@dlut.edu.cn", password: "demo1234", major: "工业设计", role: "student" as const },
+  { id: "shen-yifan", name: "沈一帆", email: "shenyifan@dlut.edu.cn", password: "demo1234", major: "工商管理", role: "student" as const },
+  { id: "weng-jia", name: "翁佳", email: "wengjia@dlut.edu.cn", password: "demo1234", major: "英语（翻译）", role: "student" as const },
+  { id: "bai-mingyuan", name: "白明远", email: "baimingyuan@dlut.edu.cn", password: "demo1234", major: "材料科学与工程", role: "student" as const },
+  { id: "qiu-yanan", name: "邱雅楠", email: "qiuyanan@dlut.edu.cn", password: "demo1234", major: "生物工程", role: "student" as const },
   { id: "admin-user", name: "平台管理员", email: "admin@dlut.edu.cn", password: "demo1234", major: "平台运营", role: "admin" as const },
 ];
 

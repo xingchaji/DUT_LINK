@@ -20,6 +20,13 @@ const TYPE_LABELS: Record<Notification["type"], string> = {
   article_rejected: "文章未通过",
 };
 
+/** 通知点击去向：不同消息类型对应不同页面，不再一律跳到申请管理 */
+function notificationHref(n: Notification) {
+  if (n.type === "opportunity_approved" || n.type === "opportunity_rejected") return "/opportunities";
+  if (n.type === "article_approved" || n.type === "article_rejected") return "/explore";
+  return "/applications";
+}
+
 
 
 export function HeaderActions() {
@@ -28,6 +35,7 @@ export function HeaderActions() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
+  const [markingAll, setMarkingAll] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -80,6 +88,8 @@ export function HeaderActions() {
   }
 
   async function markAllRead() {
+    if (markingAll) return;
+    setMarkingAll(true);
     try {
       const response = await fetch("/api/notifications", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ all: true }) });
       if (!response.ok) {
@@ -92,27 +102,28 @@ export function HeaderActions() {
       notify("所有通知已标为已读");
     } catch {
       notify("网络异常，通知状态未更新", "error");
+    } finally {
+      setMarkingAll(false);
     }
   }
 
   function handleNotificationClick(n: Notification) {
     if (!n.read) void markRead(n.id);
     setOpen(false);
-    router.push("/applications");
+    router.push(notificationHref(n));
   }
 
-  // 已经在组队中心时，搜索图标不再“点了没反应”，而是聚焦搜索框
+  // 已经在组队中心时，搜索图标聚焦搜索框；其他页面带上 focus 参数过去，落地即聚焦
   function handleSearch() {
     const input = document.querySelector<HTMLInputElement>('input[aria-label="搜索比赛"]');
     if (!input) {
-      router.push("/opportunities");
+      router.push("/opportunities?focus=search");
       return;
     }
     input.scrollIntoView({ block: "center", behavior: "smooth" });
     window.setTimeout(() => input.focus({ preventScroll: true }), 220);
   }
 
-  const initial = user?.name?.charAt(0) ?? "?";
 
   return (
     <div className="flex shrink-0 items-center gap-1.5">
@@ -146,8 +157,8 @@ export function HeaderActions() {
             <div className="flex items-center justify-between border-b border-line/80 bg-raise/60 px-3 py-2.5">
               <span className="text-[12.5px] font-semibold text-ink">通知</span>
               {unreadCount > 0 && (
-                <button type="button" onClick={markAllRead} className="inline-flex items-center gap-1 text-[11px] font-medium text-brand transition hover:opacity-70">
-                  <Check className="size-3" /> 全部已读
+                <button type="button" onClick={markAllRead} disabled={markingAll} aria-busy={markingAll} className="inline-flex items-center gap-1 text-[11px] font-medium text-brand transition hover:opacity-70 disabled:opacity-50">
+                  <Check className="size-3" /> {markingAll ? "处理中…" : "全部已读"}
                 </button>
               )}
             </div>
@@ -181,15 +192,7 @@ export function HeaderActions() {
 
       {user === undefined ? (
         <div className="size-7 animate-pulse rounded-full bg-raise" />
-      ) : user ? (
-        <Link
-          href="/account"
-          aria-label="打开个人主页"
-          className="avatar-btn grid size-7 place-items-center rounded-full text-[11px] font-semibold text-canvas"
-        >
-          {initial}
-        </Link>
-      ) : (
+      ) : user ? null : (
         <Link href="/login" className="btn btn-secondary btn-sm">
           登录
         </Link>

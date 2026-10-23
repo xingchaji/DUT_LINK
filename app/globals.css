@@ -283,17 +283,17 @@ button:disabled {
     }
   }
 
-  /* 卡片：浮在纸面上，带接触影 + 环境影 + 顶部受光 */
+  /* 卡片：浮在纸面上，带接触影 + 环境影 + 顶部受光。圆角与契约一致为 14px */
   .card {
     border: 1px solid rgba(60, 48, 30, 0.08);
-    border-radius: 16px;
+    border-radius: 14px;
     background: linear-gradient(180deg, #fffefa 0%, var(--color-surface) 42%);
     box-shadow: var(--sh-1), var(--hi);
   }
 
   .card-flat {
     border: 1px solid rgba(60, 48, 30, 0.07);
-    border-radius: 16px;
+    border-radius: 14px;
     background: var(--color-surface);
   }
 

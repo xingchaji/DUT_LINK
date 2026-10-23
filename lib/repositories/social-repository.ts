@@ -7,7 +7,7 @@ import type { CommunityArticle, SessionUser } from "@/lib/types";
 
 export async function listArticles(status: "approved" | "pending" | "rejected" = "approved") {
   const prisma = getPrisma();
-  if (!prisma) return store.articles.filter((item) => item.status === status);
+  if (!prisma) return store.articles.filter((item) => item.status === status).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   return (await prisma.article.findMany({ where: { status }, include: { author: true }, orderBy: { createdAt: "desc" } })).map(toArticle);
 }
 

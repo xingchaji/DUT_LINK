@@ -247,7 +247,7 @@ async function fetchOfficialExcerpt(url: string) {
 }
 
 export async function generateWinningWorkInsight(
-  previousId: string | null,
+  excludeIds: string[],
   profile?: UserAccountProfile,
   config: AIRequestConfig | null = null,
   abilityProfile?: GeneratedProfile | null,
@@ -259,10 +259,9 @@ export async function generateWinningWorkInsight(
     interests: abilityProfile?.interests,
     potentialDirections: abilityProfile?.potentialDirections,
   };
-  const candidates = rankWinningWorkEvidence(
-    winningWorkEvidenceCatalog.filter((item) => item.id !== previousId),
-    reader,
-  );
+  // 未看过的优先；全部看完后重置回全量，由前端提示“已看完一轮”
+  const unseen = winningWorkEvidenceCatalog.filter((item) => !excludeIds.includes(item.id));
+  const candidates = rankWinningWorkEvidence(unseen.length ? unseen : winningWorkEvidenceCatalog, reader);
   const fallbackEvidence = candidates[0] ?? rankWinningWorkEvidence(winningWorkEvidenceCatalog, reader)[0];
   const recommendedFor = profile?.major?.trim() || "跨专业学习者";
   const fallback = toCuratedWinningWork(fallbackEvidence, reader);

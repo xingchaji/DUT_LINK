@@ -3,7 +3,12 @@ import { PageHeader } from "@/components/page-header";
 import { OpportunityCenter } from "@/components/opportunity-center";
 import { Reveal } from "@/components/motion/reveal";
 
-export default function OpportunitiesPage() {
+export default async function OpportunitiesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string; q?: string; focus?: string }>;
+}) {
+  const params = await searchParams;
   return (
     <div className="page-shell">
       <PageHeader
@@ -13,7 +18,11 @@ export default function OpportunitiesPage() {
         icon={<Trophy className="size-5" strokeWidth={1.8} />}
       />
       <Reveal delay={60} className="mt-8">
-        <OpportunityCenter />
+        <OpportunityCenter
+          initialView={params.view === "recommended" ? "recommended" : "overview"}
+          initialQuery={params.q ?? ""}
+          focusSearch={params.focus === "search"}
+        />
       </Reveal>
     </div>
   );

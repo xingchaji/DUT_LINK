@@ -26,7 +26,7 @@ export default function ApplicationsPage() {
   const [receivedInvitations, setReceivedInvitations] = useState<InvitationView[]>([]);
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState("");
-  const [busyId, setBusyId] = useState("");
+  const [busyIds, setBusyIds] = useState<string[]>([]);
 
   const load = useCallback(async () => {
     try {
@@ -44,8 +44,8 @@ export default function ApplicationsPage() {
   useEffect(() => { void Promise.resolve().then(load); }, [load]);
 
   async function decideApplication(id: string, status: Decision) {
-    if (busyId) return;
-    setBusyId(id);
+    if (busyIds.includes(id)) return;
+    setBusyIds((current) => [...current, id]);
     try {
       const response = await fetch(`/api/applications/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
       const data = await response.json().catch(() => ({}));
@@ -58,13 +58,13 @@ export default function ApplicationsPage() {
       setNotice(message);
       notify(message, "error");
     } finally {
-      setBusyId("");
+      setBusyIds((current) => current.filter((value) => value !== id));
     }
   }
 
   async function decideInvitation(id: string, status: Decision) {
-    if (busyId) return;
-    setBusyId(id);
+    if (busyIds.includes(id)) return;
+    setBusyIds((current) => [...current, id]);
     try {
       const response = await fetch(`/api/invitations/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
       const data = await response.json().catch(() => ({}));
@@ -77,7 +77,7 @@ export default function ApplicationsPage() {
       setNotice(message);
       notify(message, "error");
     } finally {
-      setBusyId("");
+      setBusyIds((current) => current.filter((value) => value !== id));
     }
   }
 
@@ -146,7 +146,7 @@ export default function ApplicationsPage() {
             items={received}
             empty="还没有收到申请，发布招募后申请会出现在这里。"
             action={{ href: "/opportunities", label: "去组队中心" }}
-            render={(item) => <ApplicationRow key={item.id} item={item} received busy={busyId === item.id} onDecide={decideApplication} />}
+            render={(item) => <ApplicationRow key={item.id} item={item} received busy={busyIds.includes(item.id)} onDecide={decideApplication} />}
           />
           <ListSection
             index={1}
@@ -169,7 +169,7 @@ export default function ApplicationsPage() {
             icon={<MailOpen className="size-3.5" strokeWidth={1.9} />}
             items={receivedInvitations}
             empty="你还没有收到组队邀请。"
-            render={(item) => <InvitationRow key={item.id} item={item} received busy={busyId === item.id} onDecide={decideInvitation} />}
+            render={(item) => <InvitationRow key={item.id} item={item} received busy={busyIds.includes(item.id)} onDecide={decideInvitation} />}
           />
           <ListSection
             index={3}
@@ -257,14 +257,25 @@ function ApplicationRow({
   const panelId = `application-message-${item.id}`;
   const title = received ? item.applicantName : item.teamName;
   const canDecide = received && item.status === "pending" && Boolean(onDecide);
+  const toggleOpen = () => setOpen((current) => !current);
 
   return (
     <li className="border-b border-line last:border-b-0">
       <div
+        role="button"
+        tabIndex={0}
+        aria-expanded={open}
+        aria-controls={panelId}
         className={`${ROW_SURFACE} cursor-pointer`}
         onClick={(event) => {
           if ((event.target as HTMLElement).closest("button, a, [data-row-static]")) return;
-          setOpen((current) => !current);
+          toggleOpen();
+        }}
+        onKeyDown={(event) => {
+          if (event.key !== "Enter" && event.key !== " ") return;
+          if ((event.target as HTMLElement).closest("button, a, [data-row-static]")) return;
+          event.preventDefault();
+          toggleOpen();
         }}
       >
         <span aria-hidden="true" className={ROW_HIGHLIGHT} />
@@ -323,14 +334,25 @@ function InvitationRow({
   const panelId = `invitation-message-${item.id}`;
   const title = received ? `${item.senderName} 邀请你` : `邀请 ${item.recipientName}`;
   const canDecide = received && item.status === "pending" && Boolean(onDecide);
+  const toggleOpen = () => setOpen((current) => !current);
 
   return (
     <li className="border-b border-line last:border-b-0">
       <div
+        role="button"
+        tabIndex={0}
+        aria-expanded={open}
+        aria-controls={panelId}
         className={`${ROW_SURFACE} cursor-pointer`}
         onClick={(event) => {
           if ((event.target as HTMLElement).closest("button, a, [data-row-static]")) return;
-          setOpen((current) => !current);
+          toggleOpen();
+        }}
+        onKeyDown={(event) => {
+          if (event.key !== "Enter" && event.key !== " ") return;
+          if ((event.target as HTMLElement).closest("button, a, [data-row-static]")) return;
+          event.preventDefault();
+          toggleOpen();
         }}
       >
         <span aria-hidden="true" className={ROW_HIGHLIGHT} />

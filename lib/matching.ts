@@ -5,6 +5,18 @@ const candidateSignals: Record<string, { skills: string[]; interests: string[]; 
   "lin-yi": { skills: ["UI 设计", "视觉表达", "用户研究"], interests: ["校园创新", "人工智能", "视觉叙事"], majorFamily: "设计" },
   "zhou-yu": { skills: ["空间设计", "3D 建模", "项目实践"], interests: ["独立游戏", "数字建筑", "人工智能"], majorFamily: "建筑" },
   "chen-xi": { skills: ["游戏开发", "视觉表达", "交互设计"], interests: ["独立游戏", "人工智能", "交互装置"], majorFamily: "数字媒体" },
+  "liu-shuran": { skills: ["催化实验", "流程模拟", "数据分析"], interests: ["绿色化工", "能源", "人工智能"], majorFamily: "化工" },
+  "han-zhuo": { skills: ["三维建模", "机构设计", "数控加工"], interests: ["机器人", "智能装备", "大学生竞赛"], majorFamily: "机械" },
+  "sun-ke": { skills: ["热流仿真", "CFD", "实验测试"], interests: ["储能", "双碳", "数据可视化"], majorFamily: "能源" },
+  "xu-jiahang": { skills: ["单片机", "模拟电路", "信号处理"], interests: ["嵌入式", "智能硬件", "电子设计"], majorFamily: "电子" },
+  "gao-wenqi": { skills: ["水质检测", "GIS", "环境评价"], interests: ["环境监测", "公共政策", "数据"], majorFamily: "环境" },
+  "tang-yuxin": { skills: ["数学建模", "优化算法", "Python"], interests: ["运筹优化", "算法", "竞赛"], majorFamily: "数学" },
+  "wei-ziqi": { skills: ["后端开发", "数据库", "系统设计"], interests: ["人工智能", "校园产品", "开源"], majorFamily: "软件" },
+  "ding-ruoxi": { skills: ["产品造型", "手绘", "CMF"], interests: ["产品创新", "可持续设计", "交互"], majorFamily: "设计" },
+  "shen-yifan": { skills: ["商业分析", "财务测算", "路演"], interests: ["创新创业", "公益", "数据分析"], majorFamily: "经管" },
+  "weng-jia": { skills: ["双语写作", "跨文化沟通", "内容编辑"], interests: ["国际传播", "教育", "播客"], majorFamily: "人文" },
+  "bai-mingyuan": { skills: ["材料表征", "实验设计", "SEM"], interests: ["新能源材料", "仿生材料", "竞赛"], majorFamily: "材料" },
+  "qiu-yanan": { skills: ["细胞实验", "生物信息入门", "实验记录"], interests: ["医学影像", "合成生物", "数据"], majorFamily: "生物" },
 };
 
 function overlap(a: string[], b: string[]) {
@@ -14,10 +26,14 @@ function overlap(a: string[], b: string[]) {
 
 const relatedTerms = [
   ["用户调研", "用户研究", "用户访谈", "问卷", "调研"],
-  ["视觉设计", "视觉表达", "UI 设计", "品牌视觉", "排版"],
-  ["前端", "React", "TypeScript", "页面", "交互开发"],
-  ["三维", "3D 建模", "数字建筑", "空间设计", "建模"],
+  ["视觉设计", "视觉表达", "UI 设计", "品牌视觉", "排版", "手绘", "产品造型"],
+  ["前端", "React", "TypeScript", "页面", "交互开发", "后端开发", "系统设计"],
+  ["三维", "3D 建模", "数字建筑", "空间设计", "建模", "机构设计"],
   ["交互设计", "交互装置", "Unity", "游戏开发"],
+  ["仿真", "热流仿真", "CFD", "流程模拟", "有限元"],
+  ["硬件", "单片机", "模拟电路", "嵌入式", "传感器"],
+  ["实验", "实验设计", "实验测试", "催化实验", "细胞实验", "材料表征"],
+  ["数据", "数据分析", "GIS", "统计", "数据可视化"],
 ];
 
 function isRelated(left: string, right: string) {
