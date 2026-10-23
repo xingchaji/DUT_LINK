@@ -1,6 +1,15 @@
-# 验证记录 · 纸感工作台重设计
+# 验证记录 · 立体版（纸感工作台 v2）
 
-记录的是「实际做过什么」与「没做什么」，不代替人工审美判断。
+记录实际做过什么、没做什么。不代替人工审美判断。
+
+## 版本
+
+| 版本 | 分支 | 标签 |
+| --- | --- | --- |
+| v1 扁平纸感 | `design/paper-flat` | `paper-flat-v1` |
+| v2 立体纸感 | `feat/depth-ui` | `depth-v1` |
+
+回退：`git checkout design/paper-flat`（或 `git reset --hard paper-flat-v1`）。
 
 ## 自动化
 
@@ -9,21 +18,31 @@
 | 类型 | `npx tsc --noEmit` | 通过 |
 | 规范 | `npx eslint .` | No issues found |
 | 测试 | `npx vitest run` | 8 文件 / 37 用例通过 |
-| 构建 | `npm run build` | 通过，静态页与动态路由正常 |
+| 构建 | `npm run build` | 通过 |
 
-数据请求、事件处理、接口路径、表单字段名、`aria-*` 与事实文案均未改动（仅压缩冗长中文说明）。
+## 动效实测（Chrome headless + 真实 dev server）
 
-## 视觉实测（Chrome headless，真实运行 dev server）
+- **数字计数**：进入视区后 `CountUp` 从 0 增长到目标值，SSR 首帧输出最终值（无 JS 可读）。
+- **进度条 / 环形**：`Meter` 宽度、`Ring` 的 `stroke-dashoffset` 逐帧变化（实测序列 70.78 → 40.43 → 28.36 → 25.77px，约 500ms 收敛），不是一次性跳变。
+- **3D 倾斜**：`/opportunities` 悬停单卡时 `perspective + rotateX/rotateY` 生效，指针高光跟随；同尺寸网格下同一时刻只有一张处于倾斜态。
+- **页面切换**：路由跳转后 `main > *` 在 ~120ms 处可见淡入 + 8px 上移，~800ms 后稳定。
+- **浮层**：通知 Popover 从右上角 `pop` 展开；表单展开、折叠块展开同样使用 `pop`。
+- **按压**：按钮 / 选项 / 卡片 `active` 状态有 0.97–0.99 缩放与阴影塌陷。
+- **减少动态**：`prefers-reduced-motion: reduce` 下 `html` 不挂 `js-motion`，`reveal-on-scroll` 全部可见（实测 hidden=0），tilt 不触发，计数与进度直接呈现最终值。
+- **无 JS**：内联脚本不执行，内容与进度全部以最终状态可见。
+
+## 视觉实测
 
 - 宽度：1600 / 1280 / 1024 / 430
-- 页面：首页、组队中心（含发布表单展开）、探索盲盒（跨域灵感 + 获奖作品解读两个入口）、申请管理（留言展开）、个人主页、能力测评（选项选中 + 进度 4/16 = 25%）、登录、比赛文档、队长工作台、寻找队伍、人物页、内容审核（管理员账号）、404
-- 交互：通知 Popover 打开、搜索/分段切换、选填表单聚焦态、标签增删、移动端底部导航 `aria-current`
-- 控制台：无 pageerror / console error（仅登录态下预期的 404 favicon 与 403 审核接口）
+- 页面：首页、组队中心（含发布表单）、探索盲盒（两个入口）、申请管理、个人主页、能力测评、登录、比赛文档、寻找队伍、队长工作台、人物页、内容审核、404
+- 控制台：无 pageerror / console error（登录态下的 403 审核接口、初次 favicon 404 为预期）
+- 全页截图前会渐进滚动触发所有 `Reveal`，避免把「未进入视区」误判为「内容缺失」
 
-## 已知未验证 / 局限
+## 已知局限
 
-- 未做真机（iOS / Android）触摸与滚动性能实测；`backdrop-blur` 仅用于移动端固定顶栏与底部导航。
-- 未做屏幕阅读器走查；键盘可达性仅通过 DOM 结构与 `aria-*` 检查，未逐页 Tab 实测。
-- 未在 Firefox / Safari 实测；字体为本地 woff2，中文回退系统字体（PingFang SC / 微软雅黑）。
-- 视觉判断来自截图读图，hover / 焦点 / 动效只按代码与单帧状态核对，未录制连续动效。
-- 内容审核页的「已处理」只存在于当前会话（接口只返回待审项），刷新后清空，这是既有行为。
+- 触屏与真机未实测：tilt / magnetic 在触屏上按 `pointerType` 关闭，但仍未在 iOS/Android 真机验证滚动性能。
+- `backdrop-blur` 仅保留在移动端固定顶栏与底部导航。
+- 未做屏幕阅读器走查；`aria-current` / `aria-pressed` / `aria-expanded` 通过 DOM 与属性检查，未逐页 Tab 实测。
+- 未在 Firefox / Safari 实测；`mask-composite`、`mix-blend-mode` 在旧版本浏览器上会退化为无描边光斑，不影响可读性。
+- hover / 焦点 / 动效以单帧与逐帧采样核对，未录制视频。
+- `js-motion` 由内联脚本在首帧前写入；若 JS 完全失败，内容仍可见，但滚动揭示与计数不会播放。

@@ -16,6 +16,10 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { SkillBars } from "@/components/skill-bars";
+import { CountUp, Meter, Ring } from "@/components/motion/metric";
+import { Magnetic } from "@/components/motion/magnetic";
+import { Reveal } from "@/components/motion/reveal";
+import { TiltCard } from "@/components/motion/tilt-card";
 import { demoProfile, matches } from "@/lib/mock-data";
 import { rankOpportunities } from "@/lib/opportunity-ranking";
 import { getCurrentUser } from "@/lib/auth";
@@ -27,6 +31,8 @@ const OPPORTUNITY_VISUALS = [
   { icon: CircleUserRound, className: "bg-tea-soft text-tea" },
   { icon: BookOpen, className: "bg-ochre-soft text-ochre" },
 ] as const;
+
+const AVATAR_TINTS = ["bg-brand-soft text-brand", "bg-tea-soft text-tea", "bg-ochre-soft text-ochre"];
 
 function getGreeting(hour: number) {
   if (hour < 6) return "深夜好";
@@ -71,77 +77,93 @@ export default async function DashboardPage() {
             <dt className="text-faint">专业</dt>
             <dd className="font-medium text-ink-soft">{profile?.major ?? user?.major ?? "软件工程"} · {profile?.grade ?? "大一"}</dd>
           </div>
-          <span className="h-3 w-px bg-line" />
+          <span className="h-3 w-px bg-line shadow-[1px_0_0_rgba(255,255,255,0.8)]" />
           <div className="flex items-center gap-1.5">
             <Target className="size-3.5 text-faint" strokeWidth={1.8} />
             <dt className="text-faint">方向</dt>
             <dd className="font-medium text-ink-soft">{activeProfile.potentialDirections.slice(0, 2).join(" · ")}</dd>
           </div>
-          <span className="h-3 w-px bg-line" />
+          <span className="h-3 w-px bg-line shadow-[1px_0_0_rgba(255,255,255,0.8)]" />
           <span className="font-mono text-[11px] text-faint">{formatToday(now)}</span>
         </dl>
       </PageHeader>
 
-      <div className="mt-9 grid gap-9 xl:grid-cols-[minmax(0,1fr)_272px] xl:gap-10">
-        <div className="min-w-0 space-y-9">
-          {/* 今日洞察 */}
-          <section className="reveal overflow-hidden rounded-[14px] border border-note-line bg-note" style={{ ["--i" as string]: 0 }}>
-            <div className="p-5 sm:p-6">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="chip bg-surface text-ochre">
-                  <Sparkles className="size-3" strokeWidth={2.2} /> AI 今日洞察
-                </span>
-                <span className="text-[11px] text-faint">基于你的能力画像与 {opportunityCatalog.length} 个可信机会</span>
-              </div>
+      <div className="mt-9 grid gap-10 xl:grid-cols-[minmax(0,1fr)_272px] xl:gap-10">
+        <div className="min-w-0 space-y-10">
+          {/* 今日洞察：纸张堆叠 + 指针光影 */}
+          <TiltCard max={2.6} lift={3}>
+            <section className="stack">
+              <div
+                className="relative overflow-hidden rounded-[18px] border border-note-line bg-note"
+                style={{
+                  boxShadow:
+                    "0 1px 0 rgba(255,255,255,0.95) inset, 0 2px 4px rgba(60,48,30,0.06), 0 22px 44px -26px rgba(120,92,32,0.42)",
+                }}
+              >
+                <div className="pointer-events-none absolute inset-0 opacity-70 bg-[radial-gradient(520px_circle_at_var(--mx,78%)_var(--my,0%),rgba(255,255,255,0.9),rgba(255,255,255,0)_62%)]" />
+                <div className="pointer-events-none absolute -right-10 -top-14 size-40 rounded-full bg-marker/50 blur-2xl" />
 
-              <h2 className="mt-4 max-w-2xl text-[22px] font-semibold leading-[1.42] tracking-[-0.03em] text-ink sm:text-[26px]">
-                <span className="block sm:inline">把你的技术能力，</span>
-                <span className="block sm:inline">连接到更大的问题上。</span>
-              </h2>
-              <p className="mt-3 max-w-2xl text-[13.5px] leading-7 text-muted">
-                {activeProfile.summary} 现在可以从「{direction}」切入，寻找一次真正能落地的合作。
-              </p>
+                <div className="relative p-5 sm:p-6">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="chip bg-surface text-ochre">
+                      <Sparkles className="size-3" strokeWidth={2.2} /> AI 今日洞察
+                    </span>
+                    <span className="text-[11px] text-faint">基于你的能力画像与 {opportunityCatalog.length} 个可信机会</span>
+                  </div>
 
-              <div className="mt-5 flex flex-wrap items-center gap-2">
-                <Link href="/explore" className="btn btn-primary">
-                  拆开今日盲盒 <ArrowRight className="size-3.5" />
-                </Link>
-                <Link href="/onboarding" className="btn btn-secondary">
-                  更新我的经历
-                </Link>
-                <span className="ml-1 hidden items-center gap-1.5 text-[11px] text-faint sm:inline-flex">
-                  <span className="size-1.5 rounded-full bg-moss" /> 规则可解释，AI 只做解释
-                </span>
-              </div>
-            </div>
+                  <h2 className="mt-4 max-w-2xl text-[22px] font-semibold leading-[1.42] tracking-[-0.03em] text-ink sm:text-[26px]">
+                    <span className="block sm:inline">把你的技术能力，</span><span className="block sm:inline">连接到更大的问题上。</span>
+                  </h2>
+                  <p className="mt-3 max-w-2xl text-[13.5px] leading-7 text-muted">
+                    {activeProfile.summary} 现在可以从「{direction}」切入，寻找一次真正能落地的合作。
+                  </p>
 
-            <dl className="grid grid-cols-3 divide-x divide-note-line border-t border-note-line">
-              <div className="px-4 py-3.5 sm:px-5">
-                <dt className="text-[10.5px] text-faint">最高能力分</dt>
-                <dd className="mt-1 flex items-baseline gap-1.5">
-                  <span className="num text-[22px] font-semibold leading-none text-ink">{strongestSkill?.score ?? 0}</span>
-                  <span className="truncate text-[11px] text-muted">{strongestSkill?.name ?? "等待分析"}</span>
-                </dd>
+                  <div className="mt-5 flex flex-wrap items-center gap-2">
+                    <Magnetic>
+                      <Link href="/explore" className="btn btn-primary">
+                        拆开今日盲盒 <ArrowRight className="size-3.5" />
+                      </Link>
+                    </Magnetic>
+                    <Magnetic strength={3}>
+                      <Link href="/onboarding" className="btn btn-secondary">
+                        更新我的经历
+                      </Link>
+                    </Magnetic>
+                    <span className="ml-1 hidden items-center gap-1.5 text-[11px] text-faint sm:inline-flex">
+                      <span className="size-1.5 rounded-full bg-moss shadow-[0_0_0_3px_rgba(38,114,79,0.12)]" /> 规则可解释，AI 只做解释
+                    </span>
+                  </div>
+                </div>
+
+                <dl className="relative grid grid-cols-3 divide-x divide-note-line/80 border-t border-note-line/80 bg-white/35">
+                  <div className="px-4 py-3.5 transition-colors duration-300 hover:bg-white/55 sm:px-5">
+                    <dt className="text-[10.5px] text-faint">最高能力分</dt>
+                    <dd className="mt-1 flex items-baseline gap-1.5">
+                      <CountUp value={strongestSkill?.score ?? 0} className="num text-[22px] font-semibold leading-none text-ink" />
+                      <span className="truncate text-[11px] text-muted">{strongestSkill?.name ?? "等待分析"}</span>
+                    </dd>
+                  </div>
+                  <div className="px-4 py-3.5 transition-colors duration-300 hover:bg-white/55 sm:px-5">
+                    <dt className="text-[10.5px] text-faint">画像证据</dt>
+                    <dd className="mt-1 flex items-baseline gap-1.5">
+                      <CountUp value={evidenceCount} className="num text-[22px] font-semibold leading-none text-ink" />
+                      <span className="text-[11px] text-muted">项</span>
+                    </dd>
+                  </div>
+                  <div className="px-4 py-3.5 transition-colors duration-300 hover:bg-white/55 sm:px-5">
+                    <dt className="text-[10.5px] text-faint">可信机会</dt>
+                    <dd className="mt-1 flex items-baseline gap-1.5">
+                      <CountUp value={opportunityCatalog.length} className="num text-[22px] font-semibold leading-none text-ink" />
+                      <span className="text-[11px] text-muted">个</span>
+                    </dd>
+                  </div>
+                </dl>
               </div>
-              <div className="px-4 py-3.5 sm:px-5">
-                <dt className="text-[10.5px] text-faint">画像证据</dt>
-                <dd className="mt-1 flex items-baseline gap-1.5">
-                  <span className="num text-[22px] font-semibold leading-none text-ink">{evidenceCount}</span>
-                  <span className="text-[11px] text-muted">项</span>
-                </dd>
-              </div>
-              <div className="px-4 py-3.5 sm:px-5">
-                <dt className="text-[10.5px] text-faint">可信机会</dt>
-                <dd className="mt-1 flex items-baseline gap-1.5">
-                  <span className="num text-[22px] font-semibold leading-none text-ink">{opportunityCatalog.length}</span>
-                  <span className="text-[11px] text-muted">个</span>
-                </dd>
-              </div>
-            </dl>
-          </section>
+            </section>
+          </TiltCard>
 
           {/* 优先关注的机会 */}
-          <section className="reveal" style={{ ["--i" as string]: 1 }}>
+          <Reveal as="section" delay={60}>
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
                 <p className="section-label">Focus now</p>
@@ -153,7 +175,7 @@ export default async function DashboardPage() {
               </Link>
             </div>
 
-            <div className="mt-3.5 overflow-hidden rounded-[14px] border border-line bg-surface">
+            <div className="card mt-3.5 overflow-hidden p-0">
               {opportunities.map((item, index) => {
                 const visual = OPPORTUNITY_VISUALS[index % OPPORTUNITY_VISUALS.length] ?? OPPORTUNITY_VISUALS[0];
                 const Icon = visual.icon;
@@ -161,9 +183,9 @@ export default async function DashboardPage() {
                   <Link
                     key={item.id}
                     href={`/opportunities/${item.id}`}
-                    className="row-hover group grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 border-b border-line px-3 py-3.5 last:border-b-0 sm:px-4"
+                    className="row-hover group grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 border-b border-line/70 px-3 py-3.5 last:border-b-0 sm:px-4"
                   >
-                    <span className={`grid size-8 shrink-0 place-items-center rounded-[8px] ${visual.className}`}>
+                    <span className={`glyph size-8 shrink-0 border-0 ${visual.className}`}>
                       <Icon className="size-4" strokeWidth={1.9} />
                     </span>
                     <span className="min-w-0">
@@ -180,21 +202,21 @@ export default async function DashboardPage() {
                       </span>
                     </span>
                     <span className="flex shrink-0 items-center gap-2.5">
-                      <span className="hidden h-1 w-16 overflow-hidden rounded-full bg-raise md:block">
-                        <span className="block h-full rounded-full bg-brand/70" style={{ width: `${item.fit}%` }} />
+                      <span className="hidden w-16 md:block">
+                        <Meter value={item.fit} height={5} color="var(--color-brand)" delay={index * 80} />
                       </span>
                       <span className="chip chip-brand num">{item.fit}%</span>
-                      <ArrowUpRight className="hidden size-3.5 text-faint transition group-hover:text-ink sm:block" />
+                      <ArrowUpRight className="hidden size-3.5 text-faint transition duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-ink sm:block" />
                     </span>
                   </Link>
                 );
               })}
             </div>
-          </section>
+          </Reveal>
 
           {/* 能力画像 + 值得认识的人 */}
           <div className="grid gap-4 sm:grid-cols-2">
-            <section className="reveal card p-5" style={{ ["--i" as string]: 2 }}>
+            <Reveal as="section" delay={80} className="card p-5 transition-shadow duration-500 hover:shadow-[0_2px_6px_-2px_rgba(60,48,30,0.08),0_20px_40px_-20px_rgba(60,48,30,0.28)]">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="section-label flex items-center gap-1.5">
@@ -212,19 +234,18 @@ export default async function DashboardPage() {
                 <SkillBars skills={activeProfile.skills.slice(0, 4)} />
               </div>
 
-              <div className="mt-4 rounded-[10px] border border-line bg-raise px-3 py-2.5">
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="font-medium text-ink-soft">画像完成度</span>
-                  <span className="num text-muted">{profileCompleteness}%</span>
+              <div className="mt-4 flex items-center gap-3 rounded-[12px] border border-line/70 bg-raise px-3 py-2.5 shadow-[inset_0_1px_2px_rgba(60,48,30,0.06)]">
+                <Ring value={profileCompleteness} size={46} stroke={5} color="var(--color-ink)">
+                  <span className="num text-[10.5px] font-semibold text-ink">{profileCompleteness}%</span>
+                </Ring>
+                <div className="min-w-0">
+                  <p className="text-[11.5px] font-medium text-ink-soft">画像完成度</p>
+                  <p className="mt-0.5 text-[10.5px] leading-relaxed text-faint">再补充一段团队协作经历，推荐结果会更稳定。</p>
                 </div>
-                <div className="mt-2 h-1 overflow-hidden rounded-full bg-sink">
-                  <div className="h-full rounded-full bg-ink" style={{ width: `${profileCompleteness}%` }} />
-                </div>
-                <p className="mt-2 text-[10.5px] leading-relaxed text-faint">再补充一段团队协作经历，推荐结果会更稳定。</p>
               </div>
-            </section>
+            </Reveal>
 
-            <section className="reveal card p-5" style={{ ["--i" as string]: 3 }}>
+            <Reveal as="section" delay={140} className="card p-5 transition-shadow duration-500 hover:shadow-[0_2px_6px_-2px_rgba(60,48,30,0.08),0_20px_40px_-20px_rgba(60,48,30,0.28)]">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="section-label flex items-center gap-1.5">
@@ -236,10 +257,10 @@ export default async function DashboardPage() {
               </div>
               <p className="mt-1.5 text-[11.5px] leading-6 text-muted">不是「和你一样」，而是「与你互补」。</p>
 
-              <div className="mt-2 divide-y divide-line">
+              <div className="mt-2 divide-y divide-line/70">
                 {matches.slice(0, 3).map((person, index) => (
-                  <Link key={person.id} href={`/people/${person.id}`} className="row-hover group -mx-2 flex items-center gap-3 rounded-md px-2 py-3">
-                    <span className={`grid size-8 shrink-0 place-items-center rounded-full text-[11.5px] font-semibold ${index === 0 ? "bg-brand-soft text-brand" : index === 1 ? "bg-tea-soft text-tea" : "bg-ochre-soft text-ochre"}`}>
+                  <Link key={person.id} href={`/people/${person.id}`} className="row-hover group -mx-2 flex items-center gap-3 rounded-[10px] px-2 py-3">
+                    <span className={`grid size-8 shrink-0 place-items-center rounded-full text-[11.5px] font-semibold shadow-[0_1px_1px_rgba(60,48,30,0.08),0_3px_8px_-4px_rgba(60,48,30,0.3),inset_0_1px_0_rgba(255,255,255,0.9)] transition duration-500 [transition-timing-function:var(--spring)] group-hover:-translate-y-0.5 group-hover:shadow-[0_6px_14px_-6px_rgba(60,48,30,0.35),inset_0_1px_0_rgba(255,255,255,0.9)] ${AVATAR_TINTS[index % 3]}`}>
                       {person.avatar}
                     </span>
                     <span className="min-w-0 flex-1">
@@ -254,26 +275,29 @@ export default async function DashboardPage() {
                 ))}
               </div>
 
-              <Link href="/explore" className="mt-2 flex items-center justify-between rounded-[10px] border border-line bg-surface px-3 py-2.5 text-[11.5px] font-medium text-muted transition hover:border-line-strong hover:text-ink">
+              <Link
+                href="/explore"
+                className="mt-2 flex items-center justify-between rounded-[11px] border border-line/70 bg-gradient-to-b from-white to-raise px-3 py-2.5 text-[11.5px] font-medium text-muted shadow-[0_1px_1px_rgba(60,48,30,0.04)] transition duration-300 [transition-timing-function:var(--spring)] hover:-translate-y-px hover:text-ink hover:shadow-[0_6px_14px_-8px_rgba(60,48,30,0.3)]"
+              >
                 从跨域案例认识更多人 <ArrowRight className="size-3.5" />
               </Link>
-            </section>
+            </Reveal>
           </div>
         </div>
 
         {/* 右侧栏 */}
-        <aside className="reveal hidden xl:block" style={{ ["--i" as string]: 1 }}>
+        <aside className="hidden xl:block">
           <div className="sticky top-6 space-y-4">
-            <div className="card p-4">
+            <Reveal delay={80} className="card p-4">
               <p className="section-label">继续处理</p>
-              <ul className="mt-2.5 divide-y divide-line">
+              <ul className="mt-2.5 divide-y divide-line/70">
                 {[
                   { href: "/onboarding", text: "补充一段团队协作证据", tag: "画像" },
                   { href: "/opportunities", text: "查看 3 个匹配的机会", tag: "机会" },
                   { href: "/applications", text: "处理待回复的申请", tag: "协作" },
                 ].map((task, index) => (
                   <li key={task.text}>
-                    <Link href={task.href} className="row-hover group -mx-2 flex items-center gap-2.5 rounded-md px-2 py-2.5 text-[12px] leading-5 text-ink-soft">
+                    <Link href={task.href} className="row-hover group -mx-2 flex items-center gap-2.5 rounded-[8px] px-2 py-2.5 text-[12px] leading-5 text-ink-soft">
                       <span className="num shrink-0 text-[10px] text-faint">{String(index + 1).padStart(2, "0")}</span>
                       <span className="flex-1 group-hover:text-ink">{task.text}</span>
                       <span className="shrink-0 text-[10px] text-faint">{task.tag}</span>
@@ -281,17 +305,20 @@ export default async function DashboardPage() {
                   </li>
                 ))}
               </ul>
-            </div>
+            </Reveal>
 
-            <div className="card p-4">
-              <p className="font-editorial text-[20px] leading-tight text-ink">Make the right connection.</p>
-              <p className="mt-2 text-[11.5px] leading-6 text-muted">组队不是找最厉害的人，而是找能力互补、目标一致的人。</p>
-              <div className="mt-3 flex items-center gap-2 border-t border-line pt-3 text-[11px] text-faint">
-                <Compass className="size-3.5" strokeWidth={1.8} /> 探索盲盒 · 每日一条跨域灵感
+            <Reveal delay={140}>
+              <div className="card relative overflow-hidden p-4 transition duration-500 [transition-timing-function:var(--spring)] hover:-translate-y-1 hover:rotate-[-0.5deg] hover:shadow-[0_2px_6px_-2px_rgba(60,48,30,0.08),0_24px_44px_-24px_rgba(60,48,30,0.32)]">
+                <span className="absolute right-3 top-3 h-5 w-8 rotate-[-6deg] rounded-[2px] bg-marker/70 shadow-[0_1px_2px_rgba(120,92,32,0.18)]" />
+                <p className="font-editorial text-[20px] leading-tight text-ink">Make the right connection.</p>
+                <p className="mt-2 text-[11.5px] leading-6 text-muted">组队不是找最厉害的人，而是找能力互补、目标一致的人。</p>
+                <div className="mt-3 flex items-center gap-2 border-t border-line/70 pt-3 text-[11px] text-faint">
+                  <Compass className="size-3.5" strokeWidth={1.8} /> 探索盲盒 · 每日一条跨域灵感
+                </div>
               </div>
-            </div>
+            </Reveal>
 
-            <div className="card p-4">
+            <Reveal delay={200} className="card p-4">
               <p className="section-label">页面信息</p>
               <dl className="mt-3 space-y-2 text-[11.5px]">
                 <div className="flex items-center justify-between gap-2">
@@ -307,7 +334,7 @@ export default async function DashboardPage() {
                   <dd className="num text-muted">{new Date().toISOString().slice(0, 10).replaceAll("-", ".")}</dd>
                 </div>
               </dl>
-            </div>
+            </Reveal>
           </div>
         </aside>
       </div>

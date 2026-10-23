@@ -17,6 +17,10 @@ import {
   UsersRound,
   X,
 } from "lucide-react";
+import { CountUp } from "@/components/motion/metric";
+import { Magnetic } from "@/components/motion/magnetic";
+import { Reveal } from "@/components/motion/reveal";
+import { TiltCard } from "@/components/motion/tilt-card";
 import { opportunities as seedOpportunities } from "@/lib/mock-data";
 import type { Opportunity } from "@/lib/types";
 
@@ -126,7 +130,7 @@ export function OpportunityCenter() {
 
   return (
     <div className="space-y-6">
-      <dl className="grid grid-cols-3 divide-x divide-line overflow-hidden rounded-[14px] border border-line bg-surface">
+      <dl className="e1 grid grid-cols-3 divide-x divide-line overflow-hidden rounded-[14px] border border-line bg-surface">
         <Stat value={overview.length} label="比赛机会" hint="含校内发布" />
         <Stat value={verifiedCount} label="来源已核验" hint="可追溯到主办方" />
         <Stat value={recruitingTeamCount} label="队伍招募中" hint="正在寻找队友" />
@@ -134,7 +138,7 @@ export function OpportunityCenter() {
 
       <div>
         <div className="flex flex-col gap-3 border-b border-line pb-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-1">
+          <div className="seg">
             <SegTab active={view === "overview"} onClick={() => setView("overview")} icon={<CalendarDays className="size-3.5" strokeWidth={1.9} />} title="比赛总览" />
             <SegTab active={view === "recommended"} onClick={() => setView("recommended")} icon={<Sparkles className="size-3.5" strokeWidth={1.9} />} title="智能推荐" />
           </div>
@@ -150,10 +154,12 @@ export function OpportunityCenter() {
                 className="field h-9 w-full py-0 pl-8 text-[12.5px] sm:w-60"
               />
             </div>
-            <button type="button" onClick={() => setShowPublish((current) => !current)} className="btn btn-primary">
-              {showPublish ? <X className="size-3.5" /> : <Plus className="size-3.5" />}
-              {showPublish ? "收起表单" : "发布校内比赛"}
-            </button>
+            <Magnetic strength={4} className="w-full sm:w-auto">
+              <button type="button" onClick={() => setShowPublish((current) => !current)} className="btn btn-primary w-full">
+                {showPublish ? <X className="size-3.5" /> : <Plus className="size-3.5" />}
+                {showPublish ? "收起表单" : "发布校内比赛"}
+              </button>
+            </Magnetic>
           </div>
         </div>
 
@@ -180,7 +186,7 @@ export function OpportunityCenter() {
       )}
 
       {showPublish && (
-        <form onSubmit={publishOpportunity} className="card grid gap-4 p-5 sm:grid-cols-2 sm:p-6">
+        <form onSubmit={publishOpportunity} className="card pop grid gap-4 p-5 sm:grid-cols-2 sm:p-6">
           <div className="flex items-start justify-between gap-4 sm:col-span-2">
             <div>
               <p className="section-label">Campus opportunity</p>
@@ -234,25 +240,27 @@ export function OpportunityCenter() {
             <p className="section-label">{view === "overview" ? "Opportunity library" : "For your profile"}</p>
             <h2 className="section-title mt-1.5 text-[17px]">{view === "overview" ? "全部比赛" : "为你推荐"}</h2>
           </div>
-          <span className="text-[11px] text-faint">共 {visible.length} 场</span>
+          <span className="text-[11px] text-faint">
+            共 <span className="num">{visible.length}</span> 场
+          </span>
         </div>
 
         {visible.length ? (
           <div className="mt-3.5 grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
             {visible.map((item, index) => (
-              <OpportunityCard
-                key={item.id}
-                item={item}
-                index={index}
-                recommended={view === "recommended"}
-                teamCount={counts[item.id] ?? 0}
-                intended={intendedIds.includes(item.id)}
-                onToggleInterest={() => toggleInterest(item.id)}
-              />
+              <Reveal key={item.id} delay={Math.min(index, 5) * 60} className="h-full">
+                <OpportunityCard
+                  item={item}
+                  recommended={view === "recommended"}
+                  teamCount={counts[item.id] ?? 0}
+                  intended={intendedIds.includes(item.id)}
+                  onToggleInterest={() => toggleInterest(item.id)}
+                />
+              </Reveal>
             ))}
           </div>
         ) : (
-          <div className="mt-3.5 grid min-h-56 place-items-center rounded-[14px] border border-dashed border-line-strong p-8 text-center">
+          <div className="mt-3.5 grid min-h-56 place-items-center rounded-[14px] border border-dashed border-line-strong bg-surface/60 p-8 text-center">
             <div>
               <Search className="mx-auto size-5 text-faint" strokeWidth={1.8} />
               <h3 className="mt-3 text-[14px] font-semibold">没有找到对应比赛</h3>
@@ -270,14 +278,12 @@ export function OpportunityCenter() {
 
 function OpportunityCard({
   item,
-  index,
   recommended,
   teamCount,
   intended,
   onToggleInterest,
 }: {
   item: Opportunity;
-  index: number;
   recommended: boolean;
   teamCount: number;
   intended: boolean;
@@ -286,100 +292,105 @@ function OpportunityCard({
   const accent = ACCENTS[item.accent] ?? ACCENTS.violet;
 
   return (
-    <article className="card interactive-card reveal group flex flex-col overflow-hidden" style={{ ["--i" as string]: Math.min(index, 6) }}>
-      <div className={`h-[3px] w-full ${accent.bar} opacity-80`} />
-      <div className="flex flex-1 flex-col p-4">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className={`grid size-7 place-items-center rounded-[7px] ${accent.icon}`}>
-              <CalendarDays className="size-3.5" strokeWidth={1.9} />
-            </span>
-            <span className="chip chip-outline">{item.type}</span>
-            <span className={`status ${item.verification === "pending" ? "status-warn" : "status-ok"}`}>
-              <ShieldCheck className="size-2.5" strokeWidth={2.2} />
-              {item.verification === "pending" ? "待核验" : "来源已核验"}
-            </span>
+    <TiltCard max={5} lift={4} spotlight className="group h-full rounded-[16px]">
+      <article className="card flex h-full flex-col overflow-hidden transition-shadow duration-500 [transition-timing-function:var(--spring)] group-hover:shadow-[0_2px_6px_-2px_rgba(60,48,30,0.08),0_18px_38px_-18px_rgba(60,48,30,0.26)]">
+        {/* 脊：有厚度的强调色棱，内高光 + 底部投影，像压在纸面上的凸条 */}
+        <div
+          aria-hidden
+          className={`h-1 w-full rounded-t-[15px] ${accent.bar} shadow-[inset_0_1px_0_rgba(255,255,255,0.5),0_1px_2px_rgba(60,48,30,0.22)]`}
+        />
+        <div className="flex flex-1 flex-col p-4">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className={`glyph size-7 shrink-0 rounded-[9px] border-0 ${accent.icon}`}>
+                <CalendarDays className="size-3.5" strokeWidth={1.9} />
+              </span>
+              <span className="chip chip-outline">{item.type}</span>
+              <span className={`status ${item.verification === "pending" ? "status-warn" : "status-ok"}`}>
+                <ShieldCheck className="size-2.5" strokeWidth={2.2} />
+                {item.verification === "pending" ? "待核验" : "来源已核验"}
+              </span>
+            </div>
+            {recommended && <span className="num shrink-0 pt-0.5 text-[13px] font-semibold text-brand">{item.fit}%</span>}
           </div>
-          {recommended && <span className="num shrink-0 pt-0.5 text-[13px] font-semibold text-brand">{item.fit}%</span>}
-        </div>
 
-        <h3 className="mt-3 text-[15px] font-semibold leading-snug tracking-[-0.015em] text-ink">
-          <Link href={`/opportunities/${item.id}`} className="decoration-line-strong underline-offset-2 group-hover:underline">
-            {item.title}
-          </Link>
-        </h3>
-        <p className="mt-1 text-[11.5px] text-muted">
-          {item.organizer} · {item.scope ?? "全国"}
-        </p>
-
-        <p className="mt-2.5 line-clamp-3 text-[12.5px] leading-6 text-muted">{item.description}</p>
-
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {item.tags.slice(0, 4).map((tag) => (
-            <span key={tag} className="chip">
-              {tag}
-            </span>
-          ))}
-        </div>
-
-        {recommended && item.matchReasons?.length ? (
-          <p className="callout callout-brand mt-3 px-2.5 py-2 text-[11.5px] leading-5">
-            <strong className="font-semibold">推荐理由：</strong>
-            {item.matchReasons[0]}
+          <h3 className="mt-3 text-[15px] font-semibold leading-snug tracking-[-0.015em] text-ink">
+            <Link href={`/opportunities/${item.id}`} className="decoration-line-strong underline-offset-2 group-hover:underline">
+              {item.title}
+            </Link>
+          </h3>
+          <p className="mt-1 text-[11.5px] text-muted">
+            {item.organizer} · {item.scope ?? "全国"}
           </p>
-        ) : null}
 
-        <dl className="mt-3.5 grid grid-cols-[1fr_auto] items-center gap-3 border-t border-line pt-3 text-[11px]">
-          <div className="min-w-0 space-y-1">
-            <div className="grid grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-2">
-              <dt className="text-faint">开始报名</dt>
-              <dd className="num truncate text-ink-soft">{item.registrationStart ?? "待补充"}</dd>
+          <p className="mt-2.5 line-clamp-3 text-[12.5px] leading-6 text-muted">{item.description}</p>
+
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {item.tags.slice(0, 4).map((tag) => (
+              <span key={tag} className="chip">
+                {tag}
+              </span>
+            ))}
+          </div>
+
+          {recommended && item.matchReasons?.length ? (
+            <p className="callout callout-brand mt-3 px-2.5 py-2 text-[11.5px] leading-5">
+              <strong className="font-semibold">推荐理由：</strong>
+              {item.matchReasons[0]}
+            </p>
+          ) : null}
+
+          <dl className="mt-3.5 grid grid-cols-[1fr_auto] items-center gap-3 border-t border-line pt-3 text-[11px]">
+            <div className="min-w-0 space-y-1">
+              <div className="grid grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-2">
+                <dt className="text-faint">开始报名</dt>
+                <dd className="num truncate text-ink-soft">{item.registrationStart ?? "待补充"}</dd>
+              </div>
+              <div className="grid grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-2">
+                <dt className="text-faint">截止报名</dt>
+                <dd className="num truncate text-ink-soft">{item.registrationEnd ?? "待补充"}</dd>
+              </div>
             </div>
-            <div className="grid grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-2">
-              <dt className="text-faint">截止报名</dt>
-              <dd className="num truncate text-ink-soft">{item.registrationEnd ?? "待补充"}</dd>
+            <div className="panel flex items-center gap-1.5 rounded-[9px] px-2.5 py-1.5">
+              <UsersRound className="size-3.5 text-tea" strokeWidth={1.9} />
+              <span className="num text-[12px] font-semibold text-ink-soft">{teamCount}</span>
+              <span className="text-[10px] text-faint">队招募中</span>
             </div>
-          </div>
-          <div className="flex items-center gap-1.5 rounded-[8px] bg-raise px-2.5 py-1.5">
-            <UsersRound className="size-3.5 text-tea" strokeWidth={1.9} />
-            <span className="num text-[12px] font-semibold text-ink-soft">{teamCount}</span>
-            <span className="text-[10px] text-faint">队招募中</span>
-          </div>
-        </dl>
+          </dl>
 
-        <div className="mt-auto pt-3.5">
-          <button
-            type="button"
-            onClick={onToggleInterest}
-            aria-pressed={intended}
-            className={`flex w-full items-center justify-center gap-1.5 rounded-[8px] border px-3 py-2 text-[11.5px] font-medium transition ${
-              intended ? "border-transparent bg-brand-soft text-brand" : "border-line-strong bg-surface text-muted hover:bg-raise hover:text-ink"
-            }`}
-          >
-            <Heart className={`size-3.5 ${intended ? "fill-current" : ""}`} strokeWidth={1.9} />
-            {intended ? "已标记参赛意向" : "标记参赛意向"}
-          </button>
+          <div className="mt-auto pt-3.5">
+            <button
+              type="button"
+              onClick={onToggleInterest}
+              aria-pressed={intended}
+              className={`btn btn-secondary btn-sm btn-block gap-1.5 ${intended ? "border-transparent bg-brand-soft text-brand shadow-[inset_0_1px_2px_rgba(60,48,30,0.1)]" : ""}`}
+            >
+              <Heart className={`size-3.5 ${intended ? "fill-current" : ""}`} strokeWidth={1.9} />
+              {intended ? "已标记参赛意向" : "标记参赛意向"}
+            </button>
 
-          <div className="mt-2 grid grid-cols-2 gap-2">
-            <Link href={`/opportunities/${item.id}/recruit`} className="btn btn-primary btn-sm">
-              我是队长 <ArrowRight className="size-3" />
-            </Link>
-            <Link href={`/opportunities/${item.id}/teams`} className="btn btn-secondary btn-sm">
-              寻找队伍 <UsersRound className="size-3" />
-            </Link>
-          </div>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <Link href={`/opportunities/${item.id}/recruit`} className="btn btn-primary btn-sm group/cta">
+                我是队长
+                <ArrowRight className="size-3 transition-transform duration-300 group-hover/cta:translate-x-0.5" />
+              </Link>
+              <Link href={`/opportunities/${item.id}/teams`} className="btn btn-secondary btn-sm">
+                寻找队伍 <UsersRound className="size-3" />
+              </Link>
+            </div>
 
-          <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-line pt-2.5 text-[10.5px] text-faint">
-            <span className="min-w-0 truncate">{item.sourceName}</span>
-            {item.sourceUrl !== "#" && (
-              <a href={item.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex shrink-0 items-center gap-1 transition hover:text-brand">
-                官方来源 <ExternalLink className="size-2.5" />
-              </a>
-            )}
+            <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-line pt-2.5 text-[10.5px] text-faint">
+              <span className="min-w-0 truncate">{item.sourceName}</span>
+              {item.sourceUrl !== "#" && (
+                <a href={item.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex shrink-0 items-center gap-1 transition hover:text-brand">
+                  官方来源 <ExternalLink className="size-2.5" />
+                </a>
+              )}
+            </div>
           </div>
         </div>
-      </div>
-    </article>
+      </article>
+    </TiltCard>
   );
 }
 
@@ -388,7 +399,7 @@ function Stat({ value, label, hint }: { value: number; label: string; hint: stri
     <div className="px-4 py-3.5 sm:px-5">
       <dt className="text-[10.5px] text-faint">{label}</dt>
       <dd className="mt-1 flex items-baseline gap-2">
-        <span className="num text-[22px] font-semibold leading-none text-ink">{value}</span>
+        <CountUp value={value} className="num text-[22px] font-semibold leading-none text-ink" />
         <span className="hidden truncate text-[10.5px] text-faint sm:block">{hint}</span>
       </dd>
     </div>
@@ -397,14 +408,7 @@ function Stat({ value, label, hint }: { value: number; label: string; hint: stri
 
 function SegTab({ active, onClick, icon, title }: { active: boolean; onClick: () => void; icon: React.ReactNode; title: string }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={`relative flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12.5px] font-medium transition ${
-        active ? "bg-raise text-ink" : "text-muted hover:bg-raise/60 hover:text-ink"
-      }`}
-    >
+    <button type="button" onClick={onClick} aria-pressed={active} data-active={active} className="seg-item py-2">
       {icon}
       {title}
     </button>

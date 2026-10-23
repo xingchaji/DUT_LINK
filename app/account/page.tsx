@@ -3,6 +3,8 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { BrainCircuit, KeyRound, Layers3, LoaderCircle, Mail, Monitor, Pencil, PencilLine, Save, ShieldCheck, UserRound } from "lucide-react";
+import { Reveal } from "@/components/motion/reveal";
+import { TiltCard } from "@/components/motion/tilt-card";
 import { PageHeader } from "@/components/page-header";
 import { SkillBars } from "@/components/skill-bars";
 import { TagEditor } from "@/components/tag-editor";
@@ -124,58 +126,60 @@ export default function AccountPage() {
       )}
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,300px)_minmax(0,1fr)] lg:items-start lg:gap-8">
-        {/* 左侧资料卡 */}
-        <aside className="reveal lg:sticky lg:top-6" style={{ ["--i" as string]: 0 }}>
-          <div className="card overflow-hidden">
-            <div className="flex items-center gap-3 px-5 py-5">
-              <span className="grid size-12 shrink-0 place-items-center rounded-full border border-line bg-raise text-[17px] font-semibold text-ink-soft">
-                {profile.nickname.slice(0, 1) || "同"}
-              </span>
-              <div className="min-w-0">
-                <h2 className="truncate text-[15px] font-semibold tracking-[-0.01em] text-ink">{profile.nickname || "未设置昵称"}</h2>
-                <p className="mt-0.5 truncate text-[12px] text-muted">
-                  {[profile.major, profile.grade].filter(Boolean).join(" · ") || "专业与年级未填写"}
-                </p>
+        {/* 左侧资料卡：指针 3D 倾斜 + 光照高光 */}
+        <Reveal as="aside" className="lg:sticky lg:top-6">
+          <TiltCard max={4} lift={3}>
+            <div className="card overflow-hidden">
+              <div className="flex items-center gap-3 px-5 py-5">
+                <span className="glyph size-12 shrink-0 rounded-full text-[17px] font-semibold text-ink-soft shadow-[0_1px_1px_rgba(60,48,30,0.06),0_6px_14px_-6px_rgba(60,48,30,0.32),inset_0_1px_0_#fff,inset_0_-3px_6px_rgba(60,48,30,0.05)]">
+                  {profile.nickname.slice(0, 1) || "同"}
+                </span>
+                <div className="min-w-0">
+                  <h2 className="truncate text-[15px] font-semibold tracking-[-0.01em] text-ink">{profile.nickname || "未设置昵称"}</h2>
+                  <p className="mt-0.5 truncate text-[12px] text-muted">
+                    {[profile.major, profile.grade].filter(Boolean).join(" · ") || "专业与年级未填写"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="border-t border-line px-5 py-4">
+                <p className="section-label">About</p>
+                <p className="mt-2 text-[12.5px] leading-6 text-muted">{profile.bio || "还没有个人介绍"}</p>
+              </div>
+
+              <dl className="divide-y divide-line border-t border-line">
+                <div className="flex items-center justify-between gap-3 px-5 py-2.5">
+                  <dt className="flex shrink-0 items-center gap-1.5 text-[11.5px] text-faint">
+                    <Mail className="size-3" strokeWidth={1.9} /> 校园邮箱
+                  </dt>
+                  <dd className="min-w-0 truncate text-[12px] text-ink-soft" title={profile.email || undefined}>{profile.email || "未填写"}</dd>
+                </div>
+                <div className="flex items-center justify-between gap-3 px-5 py-2.5">
+                  <dt className="flex shrink-0 items-center gap-1.5 text-[11.5px] text-faint">
+                    <UserRound className="size-3" strokeWidth={1.9} /> 联系方式
+                  </dt>
+                  <dd className="min-w-0 truncate text-[12px] text-ink-soft">{profile.contact || "未公开"}</dd>
+                </div>
+              </dl>
+
+              <div className="border-t border-line px-5 py-4">
+                <p className="section-label">Skills</p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {profile.skills.length ? (
+                    profile.skills.map((skill) => (
+                      <span key={skill} className="chip">{skill}</span>
+                    ))
+                  ) : (
+                    <span className="text-[11.5px] text-faint">还没有技能标签</span>
+                  )}
+                </div>
               </div>
             </div>
-
-            <div className="border-t border-line px-5 py-4">
-              <p className="section-label">About</p>
-              <p className="mt-2 text-[12.5px] leading-6 text-muted">{profile.bio || "还没有个人介绍"}</p>
-            </div>
-
-            <dl className="divide-y divide-line border-t border-line">
-              <div className="flex items-center justify-between gap-3 px-5 py-2.5">
-                <dt className="flex shrink-0 items-center gap-1.5 text-[11.5px] text-faint">
-                  <Mail className="size-3" strokeWidth={1.9} /> 校园邮箱
-                </dt>
-                <dd className="min-w-0 truncate text-[12px] text-ink-soft" title={profile.email || undefined}>{profile.email || "未填写"}</dd>
-              </div>
-              <div className="flex items-center justify-between gap-3 px-5 py-2.5">
-                <dt className="flex shrink-0 items-center gap-1.5 text-[11.5px] text-faint">
-                  <UserRound className="size-3" strokeWidth={1.9} /> 联系方式
-                </dt>
-                <dd className="min-w-0 truncate text-[12px] text-ink-soft">{profile.contact || "未公开"}</dd>
-              </div>
-            </dl>
-
-            <div className="border-t border-line px-5 py-4">
-              <p className="section-label">Skills</p>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {profile.skills.length ? (
-                  profile.skills.map((skill) => (
-                    <span key={skill} className="chip">{skill}</span>
-                  ))
-                ) : (
-                  <span className="text-[11.5px] text-faint">还没有技能标签</span>
-                )}
-              </div>
-            </div>
-          </div>
-        </aside>
+          </TiltCard>
+        </Reveal>
 
         {/* 右侧编辑表单 */}
-        <form onSubmit={save} className="reveal card min-w-0" style={{ ["--i" as string]: 0 }}>
+        <Reveal as="form" onSubmit={save} delay={60} className="card min-w-0">
           <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4 sm:px-6">
             <div>
               <p className="section-label flex items-center gap-1.5">
@@ -212,16 +216,16 @@ export default function AccountPage() {
 
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-5 py-4 sm:px-6">
             <p className="text-[11.5px] text-faint">保存后会同步队伍成员资料。</p>
-            <button type="submit" disabled={saving} className="btn btn-primary">
+            <button type="submit" disabled={saving} className="btn btn-primary pressable">
               {saving ? <LoaderCircle className="size-4 animate-spin" /> : <Save className="size-4" />}
               {saving ? "保存中…" : "保存个人资料"}
             </button>
           </div>
-        </form>
+        </Reveal>
       </div>
 
       {/* AI 功能设置 */}
-      <section className="reveal mt-8" style={{ ["--i" as string]: 1 }}>
+      <Reveal as="section" delay={120} className="mt-8">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="max-w-3xl">
             <p className="section-label flex items-center gap-1.5">
@@ -230,7 +234,7 @@ export default function AccountPage() {
             <h2 className="section-title mt-1.5">AI 功能设置</h2>
             <p className="section-desc mt-1">个人密钥仅在服务端加密保存。开启后，问卷能力画像、队长智能推荐和探索盲盒会使用这里配置的兼容 Chat Completions 服务；关闭后全部回退到本地规则和人工策展内容。</p>
           </div>
-          <label className="flex h-8 cursor-pointer items-center gap-2.5 rounded-[8px] border border-line bg-surface px-3 transition hover:border-line-strong">
+          <label className="pressable flex h-8 cursor-pointer items-center gap-2.5 rounded-[8px] border border-line bg-surface px-3 shadow-[0_1px_1px_rgba(60,48,30,0.05),0_3px_8px_-4px_rgba(60,48,30,0.14),inset_0_1px_0_#fff] hover:border-line-strong">
             <input
               type="checkbox"
               role="switch"
@@ -239,7 +243,7 @@ export default function AccountPage() {
               onChange={(event) => setAISettings((current) => ({ ...current, enabled: event.target.checked }))}
               className="peer sr-only"
             />
-            <span className="relative h-[18px] w-[32px] shrink-0 rounded-full bg-line-strong transition-colors peer-checked:bg-ink peer-focus-visible:ring-2 peer-focus-visible:ring-brand/40 peer-focus-visible:ring-offset-1 after:absolute after:left-[2px] after:top-[2px] after:size-[14px] after:rounded-full after:bg-surface after:shadow-sm after:transition-transform peer-checked:after:translate-x-[14px]" />
+            <span className="relative h-[18px] w-[32px] shrink-0 rounded-full bg-line-strong shadow-[inset_0_1px_2px_rgba(60,48,30,0.2)] transition-colors peer-checked:bg-ink peer-focus-visible:ring-2 peer-focus-visible:ring-brand/40 peer-focus-visible:ring-offset-1 after:absolute after:left-[2px] after:top-[2px] after:size-[14px] after:rounded-full after:bg-surface after:shadow-[0_1px_1px_rgba(60,48,30,0.22),0_1px_3px_rgba(60,48,30,0.24),inset_0_1px_0_#fff] after:transition-transform peer-checked:after:translate-x-[14px]" />
             <span className="text-[12px] font-medium text-ink-soft">{aiSettings.enabled ? "已开启" : "已关闭"}</span>
           </label>
         </div>
@@ -263,7 +267,7 @@ export default function AccountPage() {
           <Field label="模型名称" value={aiSettings.model} placeholder="模型 ID" onChange={(model) => setAISettings((current) => ({ ...current, model }))} />
           {aiNotice && <p className="callout sm:col-span-2 px-4 py-2.5 text-[12px]">{aiNotice}</p>}
           <div className="flex flex-wrap items-center gap-2 sm:col-span-2">
-            <button type="submit" disabled={aiSaving} className="btn btn-primary">
+            <button type="submit" disabled={aiSaving} className="btn btn-primary pressable">
               {aiSaving ? <LoaderCircle className="size-4 animate-spin" /> : <ShieldCheck className="size-4" />}
               {aiSaving ? "保存中…" : "保存 AI 设置"}
             </button>
@@ -274,10 +278,10 @@ export default function AccountPage() {
             )}
           </div>
         </form>
-      </section>
+      </Reveal>
 
       {/* 竞赛能力画像 */}
-      <section className="reveal mt-8" style={{ ["--i" as string]: 2 }}>
+      <Reveal as="section" delay={180} className="mt-8">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="section-label flex items-center gap-1.5">
@@ -308,10 +312,10 @@ export default function AccountPage() {
             </div>
           </div>
         </div>
-      </section>
+      </Reveal>
 
       {/* 兴趣与潜在方向 */}
-      <section className="reveal mt-8" style={{ ["--i" as string]: 3 }}>
+      <Reveal as="section" delay={240} className="mt-8">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="section-label flex items-center gap-1.5">
@@ -347,10 +351,10 @@ export default function AccountPage() {
             </ol>
           </div>
         </div>
-      </section>
+      </Reveal>
 
       {/* 登录设备 */}
-      <section className="reveal mt-8" style={{ ["--i" as string]: 4 }}>
+      <Reveal as="section" delay={300} className="mt-8">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="section-label flex items-center gap-1.5">
@@ -391,7 +395,7 @@ export default function AccountPage() {
             </ul>
           )}
         </div>
-      </section>
+      </Reveal>
     </div>
   );
 }

@@ -71,7 +71,8 @@ export function WinningWorkStory({ insight }: { insight: WinningWorkInsight }) {
         <span className="chip num shrink-0">{activeIndex + 1} / {sections.length}</span>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-1.5">
+      {/* 章节切换：凹槽内滑动的凸起分段 */}
+      <div className="seg mt-4 flex-wrap">
         {sections.map((section, index) => {
           const selected = index === activeIndex;
           return (
@@ -80,11 +81,8 @@ export function WinningWorkStory({ insight }: { insight: WinningWorkInsight }) {
               type="button"
               onClick={() => setActiveIndex(index)}
               aria-pressed={selected}
-              className={`inline-flex h-8 items-center gap-2 rounded-[6px] border px-2.5 text-[11.5px] transition-colors ${
-                selected
-                  ? "border-line-strong bg-raise font-semibold text-ink"
-                  : "border-transparent text-muted hover:bg-raise hover:text-ink"
-              }`}
+              data-active={selected}
+              className="seg-item h-8 px-2.5 text-[11.5px] active:scale-[0.98]"
             >
               <span className={`num text-[10px] ${selected ? "text-ink" : "text-faint"}`}>{String(index + 1).padStart(2, "0")}</span>
               <span>{stripSectionNumber(section.heading)}</span>
@@ -93,7 +91,7 @@ export function WinningWorkStory({ insight }: { insight: WinningWorkInsight }) {
         })}
       </div>
 
-      <article className="reveal mt-4 overflow-hidden rounded-[14px] border border-line bg-surface" style={{ ["--i" as string]: 0 }}>
+      <article className="reveal card mt-4 overflow-hidden" style={{ ["--i" as string]: 0 }}>
         <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3.5 sm:px-5">
           <div className="min-w-0">
             <p className="text-[10.5px] text-faint">
@@ -114,7 +112,7 @@ export function WinningWorkStory({ insight }: { insight: WinningWorkInsight }) {
         <div className="divide-y divide-line">
           <ExpandablePart icon={<Lightbulb className="size-3.5" />} title="作品在这一部分的设计思路" subtitle={stage.question} defaultOpen>
             <p className="text-[13.5px] leading-7 text-ink-soft">{active.body}</p>
-            <div className="mt-4 rounded-[10px] border border-line bg-raise px-3.5 py-3">
+            <div className="panel mt-4 px-3.5 py-3">
               <p className="text-[11px] font-semibold text-muted">设计逻辑提炼</p>
               <p className="mt-1.5 text-[12.5px] leading-6 text-ink-soft">{stage.method}</p>
             </div>
@@ -123,7 +121,7 @@ export function WinningWorkStory({ insight }: { insight: WinningWorkInsight }) {
           <ExpandablePart icon={<Link2 className="size-3.5" />} title="其他领域的知识具体用在了哪里" subtitle={`围绕“${stripSectionNumber(active.heading)}”分析各专业的实际落点`} defaultOpen>
             <div className="grid gap-3 lg:grid-cols-3">
               {domains.map((domain, index) => (
-                <section key={domain.name} className="rounded-[10px] border border-line bg-canvas px-3.5 py-3">
+                <section key={domain.name} className="panel px-3.5 py-3">
                   <div className="flex items-center gap-2">
                     <span className="num grid size-5 shrink-0 place-items-center rounded-full border border-line bg-surface text-[10px] font-semibold text-muted">{index + 1}</span>
                     <h6 className="truncate text-[12.5px] font-semibold text-ink">{domain.name}</h6>
@@ -144,7 +142,7 @@ export function WinningWorkStory({ insight }: { insight: WinningWorkInsight }) {
             <div className="grid gap-4 lg:grid-cols-[1fr_0.9fr]">
               <div>
                 <p className="text-[11px] font-semibold text-muted">本阶段行动清单</p>
-                <ul className="mt-2.5 divide-y divide-line overflow-hidden rounded-[10px] border border-line">
+                <ul className="panel mt-2.5 divide-y divide-line/70 overflow-hidden">
                   {stage.checklist.map((item) => (
                     <li key={item} className="flex items-start gap-2.5 px-3 py-2.5">
                       <CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-moss" strokeWidth={1.9} />
@@ -174,9 +172,14 @@ export function WinningWorkStory({ insight }: { insight: WinningWorkInsight }) {
 
           <ExpandablePart icon={<ShieldCheck className="size-3.5" />} title="事实边界与原作品资料" subtitle="区分官方确认信息与本文的专业分析">
             <p className="text-[13px] leading-7 text-ink-soft">本文对设计流程和跨学科接口的讨论，是基于作品题目、官方简介和工程方法形成的分析。官方未公开的算法、设备型号、实验数字或实施细节，不作为原团队事实陈述。</p>
-            <a href={insight.source.url} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-2 rounded-[8px] border border-line-strong bg-surface px-3 py-2 text-[11.5px] font-medium text-ink-soft transition-colors hover:bg-raise hover:text-ink">
-              查看原作品与官方来源：{insight.source.title}
-              <ExternalLink className="size-3" strokeWidth={1.9} />
+            <a
+              href={insight.source.url}
+              target="_blank"
+              rel="noreferrer"
+              className="group mt-4 inline-flex max-w-full items-center gap-2 rounded-[9px] border border-line-strong bg-surface px-3 py-2 text-[11.5px] font-medium text-ink-soft shadow-[0_1px_1px_rgba(60,48,30,0.05),0_3px_8px_-4px_rgba(60,48,30,0.2),inset_0_1px_0_rgba(255,255,255,0.9)] transition duration-300 [transition-timing-function:var(--spring)] hover:-translate-y-px hover:text-ink hover:shadow-[0_2px_4px_rgba(60,48,30,0.06),0_10px_20px_-10px_rgba(60,48,30,0.28)] active:translate-y-0.5"
+            >
+              <span className="truncate">查看原作品与官方来源：{insight.source.title}</span>
+              <ExternalLink className="size-3 shrink-0 transition duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" strokeWidth={1.9} />
             </a>
           </ExpandablePart>
         </div>
@@ -189,14 +192,14 @@ function ExpandablePart({ icon, title, subtitle, defaultOpen = false, children }
   return (
     <details open={defaultOpen || undefined} className="group">
       <summary className="flex cursor-pointer list-none items-start gap-3 px-4 py-3.5 transition-colors hover:bg-raise/60 sm:px-5">
-        <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-[7px] border border-line bg-raise text-muted">{icon}</span>
+        <span className="glyph mt-0.5 size-7 shrink-0 text-muted">{icon}</span>
         <span className="min-w-0 flex-1">
           <strong className="block text-[13px] font-semibold text-ink">{title}</strong>
           <span className="mt-0.5 block text-[11.5px] leading-5 text-muted">{subtitle}</span>
         </span>
         <Plus className="mt-1 size-3.5 shrink-0 text-faint transition-transform group-open:rotate-45" strokeWidth={2} />
       </summary>
-      <div className="px-4 pb-5 sm:px-5">{children}</div>
+      <div className="px-4 pb-5 sm:px-5 group-open:animate-[pop-in_220ms_var(--spring)_both]">{children}</div>
     </details>
   );
 }
@@ -209,7 +212,7 @@ function NavButton({ label, disabled, onClick, children }: { label: string; disa
       title={label}
       disabled={disabled}
       onClick={onClick}
-      className="grid size-8 place-items-center rounded-[7px] border border-line text-muted transition-colors hover:bg-raise hover:text-ink disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted"
+      className="btn btn-secondary btn-sm w-8 px-0"
     >
       {children}
     </button>

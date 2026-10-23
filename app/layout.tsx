@@ -9,10 +9,16 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="zh-CN" data-scroll-behavior="smooth">
+    <html lang="zh-CN" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body>
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{if(window.matchMedia&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches){document.documentElement.classList.add('js-motion')}}catch(e){}",
+          }}
+        />
         <Navigation />
-        <main className="relative z-10 min-h-screen pb-28 lg:ml-[264px] lg:pb-0">{children}</main>
+        <main className="relative z-10 min-h-screen pb-28 lg:ml-[276px] lg:pb-0">{children}</main>
       </body>
     </html>
   );

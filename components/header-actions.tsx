@@ -19,6 +19,8 @@ const TYPE_LABELS: Record<Notification["type"], string> = {
   article_rejected: "文章未通过",
 };
 
+const RAISED = "border border-white/70 bg-gradient-to-b from-white to-raise shadow-[0_1px_1px_rgba(60,48,30,0.06),0_4px_10px_-6px_rgba(60,48,30,0.28),inset_0_1px_0_#fff]";
+
 export function HeaderActions() {
   const router = useRouter();
   const [user, setUser] = useState<SessionUser | null | undefined>(undefined);
@@ -87,12 +89,12 @@ export function HeaderActions() {
   const initial = user?.name?.charAt(0) ?? "?";
 
   return (
-    <div className="flex shrink-0 items-center gap-0.5">
+    <div className="flex shrink-0 items-center gap-1.5">
       <button
         type="button"
         aria-label="搜索比赛与队伍"
         onClick={() => router.push("/opportunities")}
-        className="grid size-8 place-items-center rounded-md text-muted transition-colors hover:bg-raise hover:text-ink"
+        className={`grid size-8 place-items-center rounded-[9px] text-muted transition duration-300 [transition-timing-function:var(--spring)] hover:-translate-y-0.5 hover:text-ink ${RAISED}`}
       >
         <Search className="size-[15px]" strokeWidth={1.9} />
       </button>
@@ -103,19 +105,19 @@ export function HeaderActions() {
           aria-label="通知"
           aria-expanded={open}
           onClick={() => setOpen((v) => !v)}
-          className={`relative grid size-8 place-items-center rounded-md transition-colors hover:bg-raise hover:text-ink ${open ? "bg-raise text-ink" : "text-muted"}`}
+          className={`relative grid size-8 place-items-center rounded-[9px] transition duration-300 [transition-timing-function:var(--spring)] hover:-translate-y-0.5 hover:text-ink ${RAISED} ${open ? "text-ink" : "text-muted"}`}
         >
           <Bell className="size-[15px]" strokeWidth={1.9} />
           {unreadCount > 0 && (
-            <span className="absolute right-1 top-1 grid min-w-[13px] place-items-center rounded-full bg-clay px-[3px] text-[9px] font-semibold leading-[13px] text-white">
+            <span className="absolute -right-0.5 -top-0.5 grid min-w-[14px] place-items-center rounded-full bg-clay px-[3px] text-[9px] font-semibold leading-[14px] text-white shadow-[0_1px_2px_rgba(120,40,20,0.4),inset_0_1px_0_rgba(255,255,255,0.25)]">
               {unreadCount > 9 ? "9+" : unreadCount}
             </span>
           )}
         </button>
 
         {open && (
-          <div className="absolute right-0 top-10 z-50 w-[308px] overflow-hidden rounded-xl border border-line bg-surface shadow-[0_16px_44px_-16px_rgba(30,29,26,0.3)]">
-            <div className="flex items-center justify-between border-b border-line px-3 py-2.5">
+          <div className="pop absolute right-0 top-10 z-50 w-[308px] overflow-hidden rounded-[14px] border border-white/70 bg-surface shadow-[0_1px_0_rgba(255,255,255,0.9)_inset,0_18px_40px_-18px_rgba(60,48,30,0.4),0_40px_70px_-40px_rgba(60,48,30,0.4)]">
+            <div className="flex items-center justify-between border-b border-line/80 bg-raise/60 px-3 py-2.5">
               <span className="text-[12.5px] font-semibold text-ink">通知</span>
               {unreadCount > 0 && (
                 <button type="button" onClick={markAllRead} className="inline-flex items-center gap-1 text-[11px] font-medium text-brand transition hover:opacity-70">
@@ -127,7 +129,7 @@ export function HeaderActions() {
             {notifications.length === 0 ? (
               <p className="px-4 py-9 text-center text-[12.5px] text-muted">暂无通知</p>
             ) : (
-              <ul className="max-h-[320px] divide-y divide-line overflow-y-auto">
+              <ul className="max-h-[320px] divide-y divide-line/70 overflow-y-auto">
                 {notifications.map((n) => (
                   <li key={n.id}>
                     <button
@@ -149,7 +151,7 @@ export function HeaderActions() {
         )}
       </div>
 
-      <span className="mx-1.5 hidden h-4 w-px bg-line sm:block" />
+      <span className="mx-1 hidden h-4 w-px bg-line shadow-[1px_0_0_rgba(255,255,255,0.8)] sm:block" />
 
       {user === undefined ? (
         <div className="size-7 animate-pulse rounded-full bg-raise" />
@@ -157,7 +159,7 @@ export function HeaderActions() {
         <Link
           href="/account"
           aria-label="打开个人主页"
-          className="grid size-7 place-items-center rounded-full border border-ink bg-ink text-[11px] font-semibold text-canvas transition hover:opacity-85"
+          className="grid size-7 place-items-center rounded-full border border-ink/80 bg-gradient-to-b from-[#33312a] to-[#16150f] text-[11px] font-semibold text-canvas shadow-[0_1px_1px_rgba(20,16,8,0.2),0_4px_10px_-4px_rgba(20,16,8,0.5),inset_0_1px_0_rgba(255,255,255,0.16)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_6px_14px_-6px_rgba(20,16,8,0.55),inset_0_1px_0_rgba(255,255,255,0.2)]"
         >
           {initial}
         </Link>

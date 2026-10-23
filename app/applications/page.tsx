@@ -4,11 +4,19 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ArrowUpRight, Check, CheckCircle2, ChevronDown, Inbox, LoaderCircle, MailOpen, MailPlus, Send, X } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { CountUp } from "@/components/motion/metric";
+import { Reveal } from "@/components/motion/reveal";
 import type { RecruitmentApplication, TeamInvitation } from "@/lib/types";
 
 type ApplicationView = RecruitmentApplication & { teamName: string; opportunityTitle: string };
 type InvitationView = TeamInvitation & { teamName: string; opportunityTitle: string };
 type Decision = "accepted" | "rejected";
+
+/* 行悬停：背景/阴影交给 .row-hover，缓动统一为页面里的 spring 写法 */
+const ROW_SURFACE =
+  "group relative row-hover px-3 py-3.5 transition duration-300 [transition-timing-function:var(--spring)] hover:-translate-y-px sm:px-4";
+const ROW_HIGHLIGHT =
+  "pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(255,255,255,0)_58%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100";
 
 export default function ApplicationsPage() {
   const [sent, setSent] = useState<ApplicationView[]>([]);
@@ -55,18 +63,24 @@ export default function ApplicationsPage() {
         icon={<Inbox className="size-5" strokeWidth={1.8} />}
       />
 
-      <dl className="mt-8 grid grid-cols-3 divide-x divide-line overflow-hidden rounded-[14px] border border-line bg-surface">
+      <dl className="e1 mt-8 grid grid-cols-3 divide-x divide-line overflow-hidden rounded-[14px] border border-line bg-surface">
         <div className="px-4 py-3.5">
           <dt className="text-[10.5px] text-faint">等待你处理</dt>
-          <dd className="num mt-1 text-[22px] font-semibold leading-none text-ink">{pendingTotal}</dd>
+          <dd className="mt-1">
+            <CountUp value={pendingTotal} className="num text-[22px] font-semibold leading-none text-ink" />
+          </dd>
         </div>
         <div className="px-4 py-3.5">
           <dt className="text-[10.5px] text-faint">收到的意向</dt>
-          <dd className="num mt-1 text-[22px] font-semibold leading-none text-ink">{received.length + receivedInvitations.length}</dd>
+          <dd className="mt-1">
+            <CountUp value={received.length + receivedInvitations.length} className="num text-[22px] font-semibold leading-none text-ink" />
+          </dd>
         </div>
         <div className="px-4 py-3.5">
           <dt className="text-[10.5px] text-faint">全部协作记录</dt>
-          <dd className="num mt-1 text-[22px] font-semibold leading-none text-ink">{activityTotal}</dd>
+          <dd className="mt-1">
+            <CountUp value={activityTotal} className="num text-[22px] font-semibold leading-none text-ink" />
+          </dd>
         </div>
       </dl>
 
@@ -167,7 +181,7 @@ function ListSection<T extends { id: string }>({
   render: (item: T) => ReactNode;
 }) {
   return (
-    <section className="reveal min-w-0" style={{ ["--i" as string]: index }}>
+    <Reveal as="section" delay={60 + index * 50} className="min-w-0">
       <div className="flex items-end justify-between gap-3">
         <div className="min-w-0">
           <p className="section-label flex items-center gap-1.5">
@@ -181,7 +195,7 @@ function ListSection<T extends { id: string }>({
       </div>
 
       {items.length === 0 ? (
-        <div className="mt-3.5 rounded-[14px] border border-dashed border-line-strong px-4 py-7 text-center">
+        <div className="sunk mt-3.5 rounded-[14px] border border-dashed border-line-strong bg-raise/45 px-4 py-7 text-center">
           <p className="text-[12.5px] leading-6 text-muted">{empty}</p>
           {action && (
             <Link href={action.href} className="mt-2 inline-flex items-center gap-1 text-[11.5px] font-medium text-brand hover:underline">
@@ -190,9 +204,9 @@ function ListSection<T extends { id: string }>({
           )}
         </div>
       ) : (
-        <ul className="mt-3.5 overflow-hidden rounded-[14px] border border-line bg-surface">{items.map((item) => render(item))}</ul>
+        <ul className="e1 mt-3.5 overflow-hidden rounded-[14px] border border-line bg-surface">{items.map((item) => render(item))}</ul>
       )}
-    </section>
+    </Reveal>
   );
 }
 
@@ -212,9 +226,10 @@ function ApplicationRow({
 
   return (
     <li className="border-b border-line last:border-b-0">
-      <div className="row-hover px-3 py-3.5 sm:px-4">
-        <div className="flex items-start gap-3">
-          <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-raise text-[11px] font-semibold text-ink-soft">
+      <div className={ROW_SURFACE}>
+        <span aria-hidden="true" className={ROW_HIGHLIGHT} />
+        <div className="relative flex items-start gap-3">
+          <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-raise text-[11px] font-semibold text-ink-soft shadow-[0_1px_1px_rgba(60,48,30,0.06),0_3px_7px_-4px_rgba(60,48,30,0.28),inset_0_1px_0_rgba(255,255,255,0.9)]">
             {title.slice(0, 1)}
           </span>
           <div className="min-w-0 flex-1">
@@ -269,9 +284,10 @@ function InvitationRow({
 
   return (
     <li className="border-b border-line last:border-b-0">
-      <div className="row-hover px-3 py-3.5 sm:px-4">
-        <div className="flex items-start gap-3">
-          <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-raise text-[11px] font-semibold text-ink-soft">
+      <div className={ROW_SURFACE}>
+        <span aria-hidden="true" className={ROW_HIGHLIGHT} />
+        <div className="relative flex items-start gap-3">
+          <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-raise text-[11px] font-semibold text-ink-soft shadow-[0_1px_1px_rgba(60,48,30,0.06),0_3px_7px_-4px_rgba(60,48,30,0.28),inset_0_1px_0_rgba(255,255,255,0.9)]">
             {(received ? item.senderName : item.recipientName).slice(0, 1)}
           </span>
           <div className="min-w-0 flex-1">
@@ -311,7 +327,7 @@ function MessageBlock({ id, open, message }: { id: string; open: boolean; messag
       <p hidden={open} className="mt-1.5 truncate text-[11.5px] leading-5 text-faint">
         {message}
       </p>
-      <div id={id} hidden={!open} className="panel mt-2.5 px-3 py-2.5 text-[12.5px] leading-6 text-ink-soft">
+      <div id={id} hidden={!open} className="pop panel mt-2.5 px-3 py-2.5 text-[12.5px] leading-6 text-ink-soft">
         {message}
       </div>
     </>
@@ -336,10 +352,10 @@ function MessageToggle({ open, onToggle, controls }: { open: boolean; onToggle: 
 function DecisionButtons({ onAccept, onReject }: { onAccept: () => void; onReject: () => void }) {
   return (
     <>
-      <button type="button" onClick={onAccept} className="btn btn-primary btn-sm min-h-8">
+      <button type="button" onClick={onAccept} className="btn btn-primary btn-sm min-h-8 active:brightness-[0.96]">
         <Check className="size-3" strokeWidth={2.4} /> 接受
       </button>
-      <button type="button" onClick={onReject} className="btn btn-secondary btn-sm min-h-8">
+      <button type="button" onClick={onReject} className="btn btn-secondary btn-sm min-h-8 active:brightness-[0.97]">
         <X className="size-3" strokeWidth={2.4} /> 拒绝
       </button>
     </>

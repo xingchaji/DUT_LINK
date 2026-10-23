@@ -19,17 +19,17 @@ export function TagEditor({ label, tags, onChange, inputName, placeholder = "输
         {label}
       </label>
       {inputName && <input type="hidden" name={inputName} value={tags.join("、")} />}
-      <div className="field flex min-h-11 flex-wrap items-center gap-1.5 px-2 py-1.5 focus-within:border-brand">
+      <div className="field flex min-h-11 flex-wrap items-center gap-1.5 px-2 py-1.5 focus-within:border-brand focus-within:shadow-[var(--sh-in-1),0_0_0_3px_rgba(59,95,217,0.14)]">
         {tags.map((tag) => (
           <button
             key={tag}
             type="button"
             onClick={() => onChange(tags.filter((item) => item !== tag))}
             aria-label={`删除技能标签 ${tag}`}
-            className="chip chip-outline group h-8 gap-1 pr-1.5 transition hover:border-clay hover:text-clay"
+            className="chip chip-outline group pressable h-8 gap-1 pr-1.5 hover:border-clay hover:bg-clay-soft hover:text-clay hover:shadow-[0_1px_1px_rgba(60,48,30,0.06),0_2px_5px_-2px_rgba(60,48,30,0.18),inset_0_1px_0_#fff]"
           >
             {tag}
-            <X className="size-3 opacity-50 transition group-hover:opacity-100" strokeWidth={2.5} />
+            <X className="size-3 opacity-50 transition-opacity group-hover:opacity-100" strokeWidth={2.5} />
           </button>
         ))}
         <input

@@ -4,6 +4,8 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, BrainCircuit, Check, CheckCircle2, ChevronLeft, ClipboardCheck, LoaderCircle, Sparkles, Target } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { CountUp, Meter } from "@/components/motion/metric";
+import { Reveal } from "@/components/motion/reveal";
 import { SkillBars } from "@/components/skill-bars";
 import { profileInterestOptions, profileQuestions } from "@/lib/questionnaire";
 import type { GeneratedProfile, UserAccountProfile } from "@/lib/types";
@@ -79,19 +81,19 @@ export default function OnboardingPage() {
       </PageHeader>
 
       {/* 进度统计条 */}
-      <div className="reveal mt-7 overflow-hidden rounded-[14px] border border-line bg-surface" style={{ ["--i" as string]: 0 }}>
+      <Reveal delay={0} className="e1 mt-7 overflow-hidden rounded-[14px] border border-line bg-surface">
         <dl className="grid grid-cols-3 divide-x divide-line">
           <div className="px-4 py-3.5">
             <dt className="text-[10.5px] text-faint">已回答</dt>
             <dd className="mt-1 flex items-baseline gap-1">
-              <span className="num text-[22px] font-semibold leading-none text-ink">{answered}</span>
+              <CountUp value={answered} duration={480} className="num text-[22px] font-semibold leading-none text-ink" />
               <span className="num text-[11px] text-muted">/ {profileQuestions.length}</span>
             </dd>
           </div>
           <div className="px-4 py-3.5">
             <dt className="text-[10.5px] text-faint">画像进度</dt>
             <dd className="mt-1 flex items-baseline gap-1">
-              <span className="num text-[22px] font-semibold leading-none text-ink">{progress}</span>
+              <CountUp value={progress} duration={480} className="num text-[22px] font-semibold leading-none text-ink" />
               <span className="text-[11px] text-muted">%</span>
             </dd>
           </div>
@@ -103,10 +105,12 @@ export default function OnboardingPage() {
             </dd>
           </div>
         </dl>
-        <div role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100} aria-label="问卷完成度" className="h-1 w-full bg-raise">
-          <div className="h-full bg-ink transition-[width] duration-300" style={{ width: `${progress}%` }} />
+        <div className="px-4 pb-3.5">
+          <div role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100} aria-label="问卷完成度">
+            <Meter value={progress} height={6} color="var(--color-ink)" />
+          </div>
         </div>
-      </div>
+      </Reveal>
 
       <div className="mt-7 grid gap-6 xl:grid-cols-[minmax(0,1fr)_300px] xl:gap-8">
         <form onSubmit={submit} className="min-w-0 space-y-4">
@@ -136,7 +140,7 @@ export default function OnboardingPage() {
               <p className="section-desc mt-1">请选择最接近你当前真实经历的一项。</p>
             </header>
 
-            <div className="space-y-7 px-5 py-6 sm:px-6">
+            <div key={step} className="pop space-y-7 px-5 py-6 sm:px-6">
               {currentQuestions.map((question, questionIndex) => {
                 const index = step * QUESTIONS_PER_STEP + questionIndex;
                 return (
@@ -152,7 +156,11 @@ export default function OnboardingPage() {
                         return (
                           <label
                             key={label}
-                            className={`relative flex min-h-11 cursor-pointer items-center justify-center gap-1 rounded-[8px] border px-2.5 py-2 text-center transition focus-within:border-brand ${selected ? "border-ink bg-raise font-medium text-ink shadow-[inset_0_0_0_1px_var(--color-ink)]" : "border-line bg-surface text-muted hover:border-line-strong hover:bg-raise hover:text-ink-soft"}`}
+                            className={`pressable relative flex min-h-11 cursor-pointer items-center justify-center gap-1 rounded-[8px] border px-2.5 py-2 text-center focus-within:border-brand ${
+                              selected
+                                ? "-translate-y-px border-ink bg-raise font-medium text-ink shadow-[0_2px_4px_rgba(60,48,30,0.1),0_10px_20px_-12px_rgba(60,48,30,0.4),inset_0_1px_0_rgba(255,255,255,0.85),inset_0_0_0_1px_var(--color-ink)]"
+                                : "border-line bg-surface text-muted shadow-[0_1px_1px_rgba(60,48,30,0.05),0_3px_6px_-3px_rgba(60,48,30,0.16),inset_0_1px_0_rgba(255,255,255,0.95)] hover:-translate-y-px hover:border-line-strong hover:text-ink-soft hover:shadow-[0_2px_4px_rgba(60,48,30,0.07),0_8px_16px_-9px_rgba(60,48,30,0.28),inset_0_1px_0_rgba(255,255,255,0.95)]"
+                            }`}
                           >
                             <input className="sr-only" type="radio" name={question.id} value={value} checked={selected} onChange={() => setAnswers((current) => ({ ...current, [question.id]: value }))} />
                             <span className="text-[11.5px] leading-4">{label}</span>
@@ -196,7 +204,7 @@ export default function OnboardingPage() {
                       type="button"
                       onClick={() => toggleInterest(item)}
                       aria-pressed={interests.includes(item)}
-                      className={`chip h-8 px-3 text-[12px] transition ${interests.includes(item) ? "chip-ink" : "chip-outline hover:border-line-strong hover:text-ink"}`}
+                      className={`chip pressable h-8 px-3 text-[12px] ${interests.includes(item) ? "chip-ink" : "chip-outline hover:border-line-strong hover:text-ink"}`}
                     >
                       {item}
                     </button>
@@ -220,7 +228,7 @@ export default function OnboardingPage() {
           )}
         </form>
 
-        <aside className="reveal min-w-0" style={{ ["--i" as string]: 1 }}>
+        <Reveal as="aside" className="min-w-0">
           {result ? (
             <div className="card sticky top-6 px-5 py-5">
               <span className="chip chip-moss">
@@ -246,20 +254,35 @@ export default function OnboardingPage() {
               <p className="section-label">Four steps</p>
               <h2 className="section-title mt-1.5">四步完成竞赛画像</h2>
               <p className="section-desc mt-1">每步只回答 4 道问题，结果仍采用统一的 16 题评分标准。</p>
-              <ol className="mt-4 divide-y divide-line border-t border-line">
-                {STEP_LABELS.map((label, index) => (
-                  <li key={label} className="flex items-center gap-2.5 py-2.5">
-                    <span className={`grid size-6 shrink-0 place-items-center rounded-full border text-[10.5px] ${index < step ? "border-ink bg-ink text-canvas" : index === step ? "border-ink text-ink" : "border-line text-faint"}`}>
-                      {index < step ? <Check className="size-3" strokeWidth={3} /> : <span className="num">{index + 1}</span>}
-                    </span>
-                    <span className={`text-[12.5px] ${index === step ? "font-medium text-ink" : "text-muted"}`}>{label}</span>
-                  </li>
-                ))}
+              <ol className="mt-4 space-y-1 border-t border-line pt-3">
+                {STEP_LABELS.map((label, index) => {
+                  const isCurrent = index === step;
+                  return (
+                    <li
+                      key={label}
+                      className={`flex items-center gap-2.5 rounded-[9px] px-2 py-2 transition-[transform,box-shadow,background-color] duration-300 [transition-timing-function:var(--spring)] ${
+                        isCurrent ? "-translate-y-px bg-surface shadow-[0_1px_1px_rgba(60,48,30,0.05),0_6px_14px_-8px_rgba(60,48,30,0.3),inset_0_1px_0_#fff]" : ""
+                      }`}
+                    >
+                      <span
+                        className={`grid size-6 shrink-0 place-items-center rounded-full border text-[10.5px] ${index < step
+                          ? "border-ink bg-ink text-canvas shadow-[0_1px_2px_rgba(60,48,30,0.24),inset_0_1px_0_rgba(255,255,255,0.22)]"
+                          : isCurrent
+                            ? "border-ink bg-surface text-ink shadow-[0_1px_2px_rgba(60,48,30,0.16),inset_0_1px_0_#fff]"
+                            : "border-line text-faint"
+                          }`}
+                      >
+                        {index < step ? <Check className="size-3" strokeWidth={3} /> : <span className="num">{index + 1}</span>}
+                      </span>
+                      <span className={`text-[12.5px] ${isCurrent ? "font-medium text-ink" : "text-muted"}`}>{label}</span>
+                    </li>
+                  );
+                })}
               </ol>
               <p className="mt-3 border-t border-line pt-3 text-[11px] leading-6 text-faint">规则负责定量，AI 只结合项目证据生成总结和方向；模型不可用时自动返回规则画像。</p>
             </div>
           )}
-        </aside>
+        </Reveal>
       </div>
     </div>
   );

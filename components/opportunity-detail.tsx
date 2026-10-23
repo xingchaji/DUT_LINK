@@ -21,6 +21,9 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { TagEditor } from "@/components/tag-editor";
+import { Magnetic } from "@/components/motion/magnetic";
+import { CountUp, Meter } from "@/components/motion/metric";
+import { Reveal } from "@/components/motion/reveal";
 import type { Opportunity, PersonMatch, PersonProfile, RecruitmentPost, TeamMemberSummary } from "@/lib/types";
 
 type DetailData = {
@@ -245,9 +248,9 @@ function OverviewView({ opportunity, recruitments, intended, onToggleInterest }:
   return (
     <div className="mt-8 grid gap-9 xl:grid-cols-[minmax(0,1fr)_264px] xl:gap-10">
       <div className="min-w-0 space-y-9">
-        <section className="reveal" style={{ ["--i" as string]: 0 }}>
+        <Reveal as="section" delay={60}>
           <p className="section-label">Facts</p>
-          <div className="mt-2.5 overflow-hidden rounded-[14px] border border-line bg-surface">
+          <div className="sunk mt-2.5 overflow-hidden rounded-[14px] border border-line bg-surface">
             <div className="grid sm:grid-cols-2 sm:divide-x sm:divide-line">
               <dl className="divide-y divide-line">
                 <Attr label="类型">{opportunity.type}</Attr>
@@ -272,9 +275,9 @@ function OverviewView({ opportunity, recruitments, intended, onToggleInterest }:
               <span className="text-[12.5px] leading-6 text-ink-soft">{opportunity.bonusPolicy}</span>
             </div>
           </div>
-        </section>
+        </Reveal>
 
-        <section className="reveal" style={{ ["--i" as string]: 1 }}>
+        <Reveal as="section" delay={120}>
           <h2 className="section-title">比赛说明</h2>
           <p className="mt-2 max-w-2xl text-[13.5px] leading-[1.9] text-ink-soft">{opportunity.description}</p>
 
@@ -300,9 +303,9 @@ function OverviewView({ opportunity, recruitments, intended, onToggleInterest }:
               </div>
             )}
           </dl>
-        </section>
+        </Reveal>
 
-        <section className="reveal" style={{ ["--i" as string]: 2 }}>
+        <Reveal as="section" delay={180}>
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="section-label">Teams</p>
@@ -315,11 +318,11 @@ function OverviewView({ opportunity, recruitments, intended, onToggleInterest }:
           </div>
 
           {recruitments.length > 0 ? (
-            <div className="mt-3.5 overflow-hidden rounded-[14px] border border-line bg-surface">
+            <div className="e1 mt-3.5 overflow-hidden rounded-[14px] border border-line bg-surface">
               {recruitments.slice(0, 4).map((post) => <TeamLinkRow key={post.id} post={post} opportunityId={opportunity.id} />)}
             </div>
           ) : (
-            <div className="mt-3.5 rounded-[14px] border border-dashed border-line-strong px-4 py-9 text-center">
+            <div className="sunk mt-3.5 rounded-[14px] border border-dashed border-line-strong bg-raise/40 px-4 py-9 text-center">
               <p className="text-[12.5px] text-muted">还没有队伍在本场发布招募。</p>
               <Link href={`/opportunities/${opportunity.id}/recruit`} className="btn btn-secondary btn-sm mt-3">我是队长，创建队伍</Link>
             </div>
@@ -328,20 +331,22 @@ function OverviewView({ opportunity, recruitments, intended, onToggleInterest }:
           {recruitments.length > 4 && (
             <p className="mt-2 text-[11px] text-faint">另有 <span className="num">{recruitments.length - 4}</span> 支队伍在招募中。</p>
           )}
-        </section>
+        </Reveal>
       </div>
 
-      <aside className="reveal min-w-0 xl:sticky xl:top-6 xl:self-start" style={{ ["--i" as string]: 1 }}>
-        <div className="card p-4">
+      <Reveal as="aside" delay={120} className="min-w-0 xl:sticky xl:top-6 xl:self-start">
+        <div className="card e2 p-4 transition-shadow duration-500 hover:shadow-[var(--sh-3),var(--hi)]">
           <p className="section-label">Actions</p>
           <div className="mt-3 space-y-2">
-            <Link href={`/opportunities/${opportunity.id}/recruit`} className="btn btn-primary btn-block">
-              我是队长 <ArrowRight className="size-3.5" />
-            </Link>
+            <Magnetic strength={4} className="w-full">
+              <Link href={`/opportunities/${opportunity.id}/recruit`} className="btn btn-primary btn-block">
+                我是队长 <ArrowRight className="size-3.5" />
+              </Link>
+            </Magnetic>
             <Link href={`/opportunities/${opportunity.id}/teams`} className="btn btn-secondary btn-block">
               寻找队伍 <UsersRound className="size-3.5" />
             </Link>
-            <button type="button" onClick={onToggleInterest} aria-pressed={intended} className={`btn btn-block ${intended ? "btn-marker" : "btn-secondary"}`}>
+            <button type="button" onClick={onToggleInterest} aria-pressed={intended} className={`btn btn-block pressable ${intended ? "btn-marker" : "btn-secondary"}`}>
               {intended ? "已标记参赛意向" : "标记参赛意向"}
             </button>
           </div>
@@ -350,7 +355,7 @@ function OverviewView({ opportunity, recruitments, intended, onToggleInterest }:
           </p>
         </div>
 
-        <div className="mt-4 rounded-[10px] border border-line bg-raise/60 px-3 py-2.5">
+        <div className="card-sunk mt-4 rounded-[10px] px-3 py-2.5">
           <p className="font-editorial text-[19px] leading-tight text-ink">Facts first, then the team.</p>
           <p className="mt-1.5 text-[11px] leading-6 text-muted">报名时间与核验状态来自来源页；队伍方向与要求由队长填写。</p>
         </div>
@@ -358,7 +363,7 @@ function OverviewView({ opportunity, recruitments, intended, onToggleInterest }:
         <Link href="/opportunities" className="link-quiet mt-4 inline-flex items-center gap-1.5 text-[11.5px]">
           <ArrowLeft className="size-3" /> 返回组队中心
         </Link>
-      </aside>
+      </Reveal>
     </div>
   );
 }
@@ -376,9 +381,9 @@ function TeamLinkRow({ post, opportunityId }: { post: RecruitmentPost; opportuni
   return (
     <Link
       href={`/opportunities/${opportunityId}/teams`}
-      className="row-hover group flex items-start gap-3 border-b border-line px-3 py-3.5 last:border-b-0 sm:px-4"
+      className="row-hover group flex items-start gap-3 border-b border-line px-3 py-3.5 transition duration-300 [transition-timing-function:var(--spring)] last:border-b-0 hover:-translate-y-px sm:px-4"
     >
-      <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-[8px] bg-tea-soft text-tea">
+      <span className="glyph mt-0.5 size-8 shrink-0 border-0 bg-tea-soft text-tea">
         <UsersRound className="size-4" strokeWidth={1.9} />
       </span>
       <span className="min-w-0 flex-1">
@@ -394,7 +399,7 @@ function TeamLinkRow({ post, opportunityId }: { post: RecruitmentPost; opportuni
           <span className="num">截止 {post.recruitmentDeadline}</span>
         </span>
       </span>
-      <ArrowUpRight className="mt-1 size-3.5 shrink-0 text-faint transition group-hover:text-ink" />
+      <ArrowUpRight className="mt-1 size-3.5 shrink-0 text-faint transition duration-300 [transition-timing-function:var(--spring)] group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-ink" />
     </Link>
   );
 }
@@ -407,7 +412,7 @@ function TeamsView({ recruitments, opportunity, onApply }: { recruitments: Recru
 
   return (
     <div className="mt-8 space-y-8">
-      <section className="reveal" style={{ ["--i" as string]: 0 }}>
+      <Reveal as="section" delay={60}>
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="section-label">Open seats</p>
@@ -422,23 +427,25 @@ function TeamsView({ recruitments, opportunity, onApply }: { recruitments: Recru
           </div>
         </div>
 
-        <dl className="mt-4 grid grid-cols-3 divide-x divide-line overflow-hidden rounded-[14px] border border-line bg-surface">
+        <dl className="card mt-4 grid grid-cols-3 divide-x divide-line overflow-hidden">
           <Stat value={recruitments.length} label="有效招募" />
           <Stat value={totalMembers} label="在队人数" />
           <Stat value={remainingSeats} label="剩余名额" />
         </dl>
 
         {recruitments.length > 0 ? (
-          <div className="mt-5 divide-y divide-line overflow-hidden rounded-[14px] border border-line bg-surface">
-            {recruitments.map((post) => <TeamRow key={post.id} post={post} onApply={() => onApply(post.id)} />)}
+          <div className="mt-5 space-y-2.5">
+            {recruitments.map((post, index) => (
+              <TeamRow key={post.id} post={post} index={index} onApply={() => onApply(post.id)} />
+            ))}
           </div>
         ) : (
-          <div className="mt-5 rounded-[14px] border border-dashed border-line-strong px-4 py-10 text-center">
+          <div className="sunk mt-5 rounded-[14px] border border-dashed border-line-strong bg-raise/40 px-4 py-10 text-center">
             <p className="text-[12.5px] text-muted">目前没有仍在有效期内的队伍招募。</p>
             <Link href={`/opportunities/${opportunity.id}/recruit`} className="btn btn-secondary btn-sm mt-3">我是队长，创建队伍</Link>
           </div>
         )}
-      </section>
+      </Reveal>
     </div>
   );
 }
@@ -447,17 +454,19 @@ function Stat({ value, label }: { value: number; label: string }) {
   return (
     <div className="px-4 py-3">
       <dt className="text-[10.5px] text-faint">{label}</dt>
-      <dd className="num mt-1 text-[19px] font-semibold leading-none text-ink">{value}</dd>
+      <dd className="mt-1">
+        <CountUp value={value} className="num text-[19px] font-semibold leading-none text-ink" />
+      </dd>
     </div>
   );
 }
 
-function TeamRow({ post, onApply }: { post: RecruitmentPost; onApply: () => void }) {
+function TeamRow({ post, index, onApply }: { post: RecruitmentPost; index: number; onApply: () => void }) {
   return (
-    <article className="row-hover grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-3 px-3 py-4 sm:px-4 lg:grid-cols-[minmax(0,1fr)_104px_92px_auto] lg:items-center">
+    <article className="card interactive-card group grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-3 p-3.5 sm:px-4 lg:grid-cols-[minmax(0,1fr)_104px_92px_auto] lg:items-center">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <h3 className="truncate text-[13.5px] font-medium text-ink">{post.teamName}</h3>
+          <h3 className="truncate text-[13.5px] font-medium text-ink decoration-line-strong underline-offset-2 group-hover:underline">{post.teamName}</h3>
           {post.projectDirection && <span className="chip">{post.projectDirection}</span>}
           <span className="text-[11.5px] text-faint">队长 {post.ownerName}</span>
         </div>
@@ -479,8 +488,8 @@ function TeamRow({ post, onApply }: { post: RecruitmentPost; onApply: () => void
         <p className="num text-[13px] font-medium text-ink">
           {post.currentSize}<span className="text-faint">/{post.capacity}</span>
         </p>
-        <div className="mt-1.5 h-1 w-16 overflow-hidden rounded-full bg-sink">
-          <div className="h-full rounded-full bg-ink" style={{ width: `${fillRatio(post.currentSize, post.capacity)}%` }} />
+        <div className="mt-1.5 w-16">
+          <Meter value={fillRatio(post.currentSize, post.capacity)} height={5} color="var(--color-ink)" delay={index * 80} />
         </div>
         <p className="mt-1.5 text-[10.5px] text-faint"><span className="num">{post.applicants}</span> 人申请</p>
       </div>
@@ -490,7 +499,7 @@ function TeamRow({ post, onApply }: { post: RecruitmentPost; onApply: () => void
         <span className="num mt-0.5 block text-[11.5px] text-muted">{post.recruitmentDeadline}</span>
       </p>
 
-      <button type="button" onClick={onApply} className="btn btn-secondary justify-self-start lg:justify-self-end">
+      <button type="button" onClick={onApply} className="btn btn-secondary pressable justify-self-start lg:justify-self-end">
         申请加入 <ArrowRight className="size-3.5" />
       </button>
     </article>
@@ -517,7 +526,7 @@ function RecruitView({ opportunity, recommendations, ownedRecruitment, publishin
         </div>
 
         {ownedRecruitment ? (
-          <section className="reveal card p-5 sm:p-6" style={{ ["--i" as string]: 0 }}>
+          <Reveal as="section" delay={60} className="card e2 p-5 sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-[11.5px] text-faint">我的本场队伍</p>
@@ -528,8 +537,8 @@ function RecruitView({ opportunity, recommendations, ownedRecruitment, publishin
                 <p className="num text-[15px] font-semibold text-ink">
                   {ownedRecruitment.currentSize}<span className="text-faint">/{ownedRecruitment.capacity}</span>
                 </p>
-                <div className="mt-1.5 h-1 w-20 overflow-hidden rounded-full bg-sink">
-                  <div className="h-full rounded-full bg-moss" style={{ width: `${fillRatio(ownedRecruitment.currentSize, ownedRecruitment.capacity)}%` }} />
+                <div className="mt-1.5 w-20">
+                  <Meter value={fillRatio(ownedRecruitment.currentSize, ownedRecruitment.capacity)} height={5} color="var(--color-moss)" />
                 </div>
                 <p className="mt-1 text-[10.5px] text-faint">队员人数</p>
               </div>
@@ -568,9 +577,9 @@ function RecruitView({ opportunity, recommendations, ownedRecruitment, publishin
                 <Trash2 className="size-3.5" /> 删除本队伍
               </button>
             )}
-          </section>
+          </Reveal>
         ) : (
-          <form onSubmit={onPublish} className="reveal max-w-[720px]" style={{ ["--i" as string]: 0 }}>
+          <Reveal as="form" onSubmit={onPublish} delay={60} className="max-w-[720px]">
             <h2 className="section-title">创建队伍</h2>
             <p className="section-desc mt-1.5">先填写技能标签和具体招募要求，创建队伍后系统才会生成定向推荐。</p>
 
@@ -603,16 +612,16 @@ function RecruitView({ opportunity, recommendations, ownedRecruitment, publishin
 
             <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
               <p className="max-w-[19rem] text-[11px] leading-6 text-faint">同一场比赛只能加入一支队伍，创建后不可与其它队伍并行。</p>
-              <button disabled={publishing || tags.length === 0} className="btn btn-primary px-4">
+              <button disabled={publishing || tags.length === 0} className="btn btn-primary pressable px-4">
                 {publishing ? <LoaderCircle className="size-3.5 animate-spin" /> : <Send className="size-3.5" />} 创建队伍并开始招募
               </button>
             </div>
-          </form>
+          </Reveal>
         )}
       </div>
 
-      <aside className="reveal min-w-0" style={{ ["--i" as string]: 1 }}>
-        <section className="card p-4 xl:sticky xl:top-6">
+      <Reveal as="aside" delay={120} className="min-w-0">
+        <section className="card e2 p-4 transition-shadow duration-500 hover:shadow-[var(--sh-3),var(--hi)] xl:sticky xl:top-6">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-1.5">
               <Sparkles className="size-3.5 text-brand" strokeWidth={2} />
@@ -625,15 +634,15 @@ function RecruitView({ opportunity, recommendations, ownedRecruitment, publishin
           </p>
 
           {!ownedRecruitment ? (
-            <p className="mt-4 rounded-[10px] border border-dashed border-line-strong px-3 py-5 text-center text-[11.5px] leading-6 text-muted">
+            <p className="sunk mt-4 rounded-[10px] border border-dashed border-line-strong bg-raise/40 px-3 py-5 text-center text-[11.5px] leading-6 text-muted">
               推荐不会提前展示。请先补全技能标签和招募要求，系统将据此匹配有参赛意向的同学。
             </p>
           ) : (
             <ul className="mt-2 divide-y divide-line">
               {people.map((person) => (
                 <li key={person.id}>
-                  <button type="button" onClick={() => onOpenPerson(person.id)} className="row-hover -mx-2 flex w-full items-start gap-2.5 rounded-[6px] px-2 py-2.5 text-left">
-                    <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-brand-soft text-[10.5px] font-semibold text-brand">{person.avatar}</span>
+                  <button type="button" onClick={() => onOpenPerson(person.id)} className="row-hover -mx-2 flex w-full items-start gap-2.5 rounded-[8px] px-2 py-2.5 text-left transition duration-300 [transition-timing-function:var(--spring)] hover:-translate-y-px">
+                    <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-brand-soft text-[10.5px] font-semibold text-brand shadow-[0_1px_1px_rgba(60,48,30,0.06),0_3px_7px_-4px_rgba(60,48,30,0.28),inset_0_1px_0_rgba(255,255,255,0.9)]">{person.avatar}</span>
                     <span className="min-w-0 flex-1">
                       <span className="flex items-baseline gap-1.5">
                         <span className="truncate text-[12.5px] font-medium text-ink">{person.name}</span>
@@ -647,7 +656,7 @@ function RecruitView({ opportunity, recommendations, ownedRecruitment, publishin
                 </li>
               ))}
               {recommendations && people.length === 0 && (
-                <li className="rounded-[10px] border border-dashed border-line-strong px-3 py-5 text-center text-[11.5px] leading-6 text-muted">
+                <li className="sunk rounded-[10px] border border-dashed border-line-strong bg-raise/40 px-3 py-5 text-center text-[11.5px] leading-6 text-muted">
                   当前暂无可推荐同学，等待意向池或能力资料更新。
                 </li>
               )}
@@ -660,7 +669,7 @@ function RecruitView({ opportunity, recommendations, ownedRecruitment, publishin
             </p>
           )}
         </section>
-      </aside>
+      </Reveal>
     </div>
   );
 }
@@ -684,7 +693,7 @@ function PersonDialog({ person, inviteNotice, onClose, onInvite }: { person: Per
       role="presentation"
       onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}
     >
-      <section role="dialog" aria-modal="true" aria-label={`${person.name}的用户主页`} className="card w-full max-w-lg p-5 sm:p-6">
+      <section role="dialog" aria-modal="true" aria-label={`${person.name}的用户主页`} className="card e3 pop w-full max-w-lg p-5 sm:p-6">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
             <span className="grid size-11 shrink-0 place-items-center rounded-full bg-brand-soft text-[13px] font-semibold text-brand">{person.avatar}</span>
@@ -739,7 +748,7 @@ function MemberLinks({ members }: { members: TeamMemberSummary[] }) {
           <Link href={`/people/${member.userId}`} className="text-[11.5px] font-medium text-brand underline decoration-brand/25 underline-offset-2 hover:decoration-brand">
             {member.name}
           </Link>
-          <span className="pointer-events-none invisible absolute bottom-full left-1/2 z-20 mb-2 w-52 -translate-x-1/2 rounded-[10px] border border-line bg-surface p-2.5 text-left opacity-0 shadow-[0_1px_2px_rgba(30,29,26,0.06),0_10px_24px_-14px_rgba(30,29,26,0.35)] transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
+          <span className="pointer-events-none invisible absolute bottom-full left-1/2 z-20 mb-2 w-52 -translate-x-1/2 rounded-[10px] border border-line bg-surface p-2.5 text-left opacity-0 e2 transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
             <span className="block text-[11.5px] font-medium text-ink">{member.name}</span>
             <span className="mt-0.5 block text-[10.5px] text-muted">{member.major} · {member.grade}</span>
             <span className="mt-1.5 flex flex-wrap gap-1">

@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowUpRight, Clock3, ExternalLink, GraduationCap, Mail, Target, UserRound } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { CountUp, Meter } from "@/components/motion/metric";
+import { Spot } from "@/components/motion/tilt-card";
 import { findPublicPersonProfile } from "@/lib/people";
 import { listOpportunities } from "@/lib/repositories/opportunity-repository";
 import type { Opportunity } from "@/lib/types";
@@ -60,22 +62,28 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
 
       <div className="mt-9 grid gap-9 xl:grid-cols-[minmax(0,1fr)_280px] xl:gap-10">
         <div className="min-w-0 space-y-8">
-          {/* 画像解读 */}
+          {/* 画像解读：人物卡用纸张层 + 指针柔光，长文不倾斜 */}
           <section className="reveal" style={{ ["--i" as string]: 0 }}>
-            <p className="section-label">Profile</p>
-            <h2 className="section-title mt-1.5">画像解读</h2>
-            <p className="mt-2.5 max-w-2xl text-[13.5px] leading-7 text-ink-soft">{person.bio}</p>
+            <Spot className="card interactive-card p-5">
+              <p className="section-label">Profile</p>
+              <h2 className="section-title mt-1.5">画像解读</h2>
 
-            <dl className="mt-4 grid gap-3 sm:grid-cols-2">
-              <div className="panel px-3.5 py-3">
-                <dt className="text-[10.5px] text-faint">当前状态</dt>
-                <dd className="mt-1 text-[12.5px] leading-6 text-ink-soft">{person.status}</dd>
+              <div className="mt-3.5 flex items-start gap-3">
+                <span className="glyph mt-0.5 size-10 shrink-0 rounded-full text-[13px] font-semibold text-ink-soft">{person.avatar}</span>
+                <p className="min-w-0 flex-1 text-[13.5px] leading-7 text-ink-soft">{person.bio}</p>
               </div>
-              <div className="panel px-3.5 py-3">
-                <dt className="text-[10.5px] text-faint">推荐理由</dt>
-                <dd className="mt-1 text-[12.5px] leading-6 text-ink-soft">{person.reason}</dd>
-              </div>
-            </dl>
+
+              <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div className="panel px-3.5 py-3">
+                  <dt className="text-[10.5px] text-faint">当前状态</dt>
+                  <dd className="mt-1 text-[12.5px] leading-6 text-ink-soft">{person.status}</dd>
+                </div>
+                <div className="panel px-3.5 py-3">
+                  <dt className="text-[10.5px] text-faint">推荐理由</dt>
+                  <dd className="mt-1 text-[12.5px] leading-6 text-ink-soft">{person.reason}</dd>
+                </div>
+              </dl>
+            </Spot>
           </section>
 
           {/* 技能与方向 */}
@@ -111,7 +119,7 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
             <p className="section-label">Contact</p>
             <h2 className="section-title mt-1.5">联系方式与时间安排</h2>
 
-            <dl className="mt-3 divide-y divide-line overflow-hidden rounded-[14px] border border-line bg-surface">
+            <dl className="e1 mt-3 divide-y divide-line overflow-hidden rounded-[14px] border border-line bg-surface">
               <div className="flex items-start gap-3 px-4 py-3.5">
                 <Mail className="mt-0.5 size-3.5 shrink-0 text-faint" strokeWidth={1.8} />
                 <dt className="w-24 shrink-0 pt-px text-[11.5px] text-faint">公开联系方式</dt>
@@ -132,17 +140,19 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
             <h2 className="mt-1.5 text-[13.5px] font-semibold tracking-[-0.01em] text-ink">互补性拆解</h2>
 
             {breakdown ? (
-              <div className="mt-3 space-y-3">
-                {BREAKDOWN.map(({ key, label }) => {
+              <div className="mt-3.5 space-y-3.5">
+                {BREAKDOWN.map(({ key, label }, index) => {
                   const value = breakdown[key];
                   return (
                     <div key={key}>
                       <div className="flex items-center justify-between gap-2 text-[11.5px]">
                         <span className="text-muted">{label}</span>
-                        <span className="num text-ink-soft">{value}</span>
+                        <span className="num text-ink-soft">
+                          <CountUp value={value} />
+                        </span>
                       </div>
-                      <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-raise">
-                        <div className="h-full rounded-full bg-ink/70" style={{ width: `${value}%` }} />
+                      <div className="mt-1.5">
+                        <Meter value={value} height={4} color="var(--color-ink)" delay={index * 80} />
                       </div>
                     </div>
                   );
@@ -169,7 +179,10 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
                           {opportunity.scope ? ` · ${opportunity.scope}` : ""}
                         </span>
                       </span>
-                      <ArrowUpRight className="mt-0.5 size-3 shrink-0 text-faint transition group-hover:text-ink" strokeWidth={1.9} />
+                      <ArrowUpRight
+                        className="mt-0.5 size-3 shrink-0 text-faint transition duration-300 [transition-timing-function:var(--spring)] group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-ink"
+                        strokeWidth={1.9}
+                      />
                     </Link>
                   </li>
                 ))}
@@ -179,7 +192,7 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
             )}
           </section>
 
-          <div className="reveal rounded-[14px] border border-line bg-raise px-4 py-3.5" style={{ ["--i" as string]: 3 }}>
+          <div className="sunk reveal rounded-[14px] border border-line bg-raise px-4 py-3.5" style={{ ["--i" as string]: 3 }}>
             <p className="font-editorial text-[17px] leading-tight text-ink-soft">Complement, not mirror.</p>
             <p className="mt-1.5 text-[11px] leading-5 text-muted">组队的价值来自差异，而不是相似。</p>
           </div>
