@@ -44,8 +44,7 @@ export function Navigation() {
 
         <button
           type="button"
-          className="relative mx-2.5 flex items-center gap-2 rounded-[10px] border border-white/70 bg-surface px-2 py-1.5 text-left transition duration-300 hover:-translate-y-px hover:shadow-[0_2px_8px_-2px_rgba(60,48,30,0.16)]"
-          style={{ boxShadow: "0 1px 1px rgba(60,48,30,0.05), inset 0 1px 0 #fff" }}
+          className="relative mx-2.5 flex items-center gap-2 rounded-[9px] border border-[rgba(60,48,30,0.09)] bg-[#f5f2ea] px-2 py-1.5 text-left shadow-[inset_0_1px_2px_rgba(60,48,30,0.07),inset_0_-1px_0_rgba(255,255,255,0.75)] transition duration-300 [transition-timing-function:var(--spring)] hover:border-[rgba(60,48,30,0.14)] hover:bg-[#f7f4ed]"
         >
           <span className="grid size-5 shrink-0 place-items-center rounded-[6px] bg-brand-soft font-mono text-[8.5px] font-semibold tracking-tight text-brand shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">DUT</span>
           <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-ink-soft">大连理工大学</span>
@@ -67,7 +66,7 @@ export function Navigation() {
                 aria-current={active ? "page" : undefined}
                 className={`group relative flex items-center gap-2.5 rounded-[10px] py-[7px] pl-2.5 pr-2 text-[13.5px] transition duration-300 [transition-timing-function:var(--spring)] ${
                   active
-                    ? "border border-white/80 bg-surface font-semibold text-ink shadow-[0_1px_1px_rgba(60,48,30,0.06),0_6px_14px_-8px_rgba(60,48,30,0.3),inset_0_1px_0_#fff]"
+                    ? "border border-[rgba(60,48,30,0.1)] bg-[#fffefc] font-semibold text-ink shadow-[0_1px_0_rgba(60,48,30,0.05),0_2px_5px_-3px_rgba(60,48,30,0.12),inset_0_1px_0_#fff]"
                     : "border border-transparent font-medium text-muted hover:-translate-y-px hover:bg-white/60 hover:text-ink"
                 }`}
               >
@@ -92,7 +91,7 @@ export function Navigation() {
             <p className="relative mt-1.5 text-[11px] leading-[1.65] text-muted">再补充一段项目证据，AI 推荐会更稳。</p>
             <Link
               href="/onboarding"
-              className="relative mt-2.5 flex items-center justify-between rounded-lg border border-line/70 bg-gradient-to-b from-white to-raise px-2.5 py-1.5 text-[11.5px] font-semibold text-ink-soft shadow-[0_1px_1px_rgba(60,48,30,0.05)] transition duration-300 hover:-translate-y-px hover:shadow-[0_4px_10px_-4px_rgba(60,48,30,0.24)]"
+              className="relative mt-2.5 flex items-center justify-between rounded-lg border border-[rgba(60,48,30,0.11)] bg-[#fffefc] px-2.5 py-1.5 text-[11.5px] font-semibold text-ink-soft shadow-[0_1px_1px_rgba(60,48,30,0.04),0_2px_4px_-2px_rgba(60,48,30,0.1),inset_0_1px_0_#fff] transition duration-300 [transition-timing-function:var(--spring)] hover:-translate-y-px hover:border-[rgba(60,48,30,0.18)] hover:shadow-[0_4px_9px_-4px_rgba(60,48,30,0.16),inset_0_1px_0_#fff]"
             >
               更新能力画像 <ArrowUpRight className="size-3" />
             </Link>
@@ -122,7 +121,7 @@ export function Navigation() {
               aria-current={active ? "page" : undefined}
               className={`flex min-w-0 flex-1 flex-col items-center gap-1 rounded-[11px] py-1.5 text-[10px] transition duration-300 [transition-timing-function:var(--spring)] ${
                 active
-                  ? "bg-gradient-to-b from-white to-raise font-semibold text-ink shadow-[0_1px_1px_rgba(60,48,30,0.06),0_4px_10px_-4px_rgba(60,48,30,0.28),inset_0_1px_0_#fff]"
+                  ? "border border-[rgba(60,48,30,0.08)] bg-[#fffefc] font-semibold text-ink shadow-[0_1px_1px_rgba(60,48,30,0.05),0_3px_7px_-3px_rgba(60,48,30,0.14),inset_0_1px_0_#fff]"
                   : "font-medium text-muted active:scale-95"
               }`}
             >

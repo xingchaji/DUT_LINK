@@ -277,7 +277,7 @@ export default async function DashboardPage() {
 
               <Link
                 href="/explore"
-                className="mt-2 flex items-center justify-between rounded-[11px] border border-line/70 bg-gradient-to-b from-white to-raise px-3 py-2.5 text-[11.5px] font-medium text-muted shadow-[0_1px_1px_rgba(60,48,30,0.04)] transition duration-300 [transition-timing-function:var(--spring)] hover:-translate-y-px hover:text-ink hover:shadow-[0_6px_14px_-8px_rgba(60,48,30,0.3)]"
+                className="mt-2 flex items-center justify-between rounded-[9px] border border-[rgba(60,48,30,0.14)] border-t-white/95 border-b-[rgba(60,48,30,0.18)] bg-[#fbf9f4] px-3 py-2.5 text-[11.5px] font-medium text-muted shadow-[0_1px_0_rgba(60,48,30,0.05),0_1px_2px_rgba(60,48,30,0.06),inset_0_1px_0_rgba(255,255,255,0.7)] transition duration-300 [transition-timing-function:var(--spring)] hover:-translate-y-px hover:bg-[#fffefc] hover:text-ink hover:shadow-[0_1px_0_rgba(60,48,30,0.05),0_3px_8px_-4px_rgba(60,48,30,0.18),inset_0_1px_0_rgba(255,255,255,0.85)]"
               >
                 从跨域案例认识更多人 <ArrowRight className="size-3.5" />
               </Link>

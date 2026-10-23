@@ -19,7 +19,7 @@ const TYPE_LABELS: Record<Notification["type"], string> = {
   article_rejected: "文章未通过",
 };
 
-const RAISED = "border border-white/70 bg-gradient-to-b from-white to-raise shadow-[0_1px_1px_rgba(60,48,30,0.06),0_4px_10px_-6px_rgba(60,48,30,0.28),inset_0_1px_0_#fff]";
+
 
 export function HeaderActions() {
   const router = useRouter();
@@ -94,7 +94,7 @@ export function HeaderActions() {
         type="button"
         aria-label="搜索比赛与队伍"
         onClick={() => router.push("/opportunities")}
-        className={`grid size-8 place-items-center rounded-[9px] text-muted transition duration-300 [transition-timing-function:var(--spring)] hover:-translate-y-0.5 hover:text-ink ${RAISED}`}
+        className="icon-btn"
       >
         <Search className="size-[15px]" strokeWidth={1.9} />
       </button>
@@ -105,7 +105,7 @@ export function HeaderActions() {
           aria-label="通知"
           aria-expanded={open}
           onClick={() => setOpen((v) => !v)}
-          className={`relative grid size-8 place-items-center rounded-[9px] transition duration-300 [transition-timing-function:var(--spring)] hover:-translate-y-0.5 hover:text-ink ${RAISED} ${open ? "text-ink" : "text-muted"}`}
+          className={`icon-btn relative ${open ? "!text-ink" : ""}`}
         >
           <Bell className="size-[15px]" strokeWidth={1.9} />
           {unreadCount > 0 && (
@@ -159,7 +159,7 @@ export function HeaderActions() {
         <Link
           href="/account"
           aria-label="打开个人主页"
-          className="grid size-7 place-items-center rounded-full border border-ink/80 bg-gradient-to-b from-[#33312a] to-[#16150f] text-[11px] font-semibold text-canvas shadow-[0_1px_1px_rgba(20,16,8,0.2),0_4px_10px_-4px_rgba(20,16,8,0.5),inset_0_1px_0_rgba(255,255,255,0.16)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_6px_14px_-6px_rgba(20,16,8,0.55),inset_0_1px_0_rgba(255,255,255,0.2)]"
+          className="avatar-btn grid size-7 place-items-center rounded-full text-[11px] font-semibold text-canvas"
         >
           {initial}
         </Link>

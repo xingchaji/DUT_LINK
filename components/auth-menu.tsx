@@ -44,7 +44,7 @@ export function AuthMenu() {
   return (
     <div className="group flex items-center gap-1 rounded-[11px] border border-transparent p-1 transition duration-300 hover:border-white/80 hover:bg-white/70 hover:shadow-[0_1px_2px_rgba(60,48,30,0.08)]">
       <Link href="/account" className="flex min-w-0 flex-1 items-center gap-2 rounded px-1 py-1">
-        <span className="grid size-6 shrink-0 place-items-center rounded-[8px] border border-ink/70 bg-gradient-to-b from-[#33312a] to-[#16150f] text-[11px] font-semibold text-canvas shadow-[0_1px_1px_rgba(20,16,8,0.2),inset_0_1px_0_rgba(255,255,255,0.16)] transition duration-300 group-hover:-translate-y-px">
+        <span className="grid size-6 shrink-0 place-items-center rounded-[8px] border border-[#121110] border-t-[#37332b] bg-[#1e1d1a] text-[11px] font-semibold text-canvas shadow-[0_1px_1px_rgba(24,20,12,0.18),0_2px_4px_-2px_rgba(24,20,12,0.28),inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-1px_0_rgba(0,0,0,0.4)] transition duration-300 group-hover:-translate-y-px">
           {user.name?.charAt(0) ?? "?"}
         </span>
         <span className="min-w-0">
