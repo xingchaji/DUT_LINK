@@ -101,6 +101,17 @@ export function HeaderActions() {
     router.push("/applications");
   }
 
+  // 已经在组队中心时，搜索图标不再“点了没反应”，而是聚焦搜索框
+  function handleSearch() {
+    const input = document.querySelector<HTMLInputElement>('input[aria-label="搜索比赛"]');
+    if (!input) {
+      router.push("/opportunities");
+      return;
+    }
+    input.scrollIntoView({ block: "center", behavior: "smooth" });
+    window.setTimeout(() => input.focus({ preventScroll: true }), 220);
+  }
+
   const initial = user?.name?.charAt(0) ?? "?";
 
   return (
@@ -108,7 +119,7 @@ export function HeaderActions() {
       <button
         type="button"
         aria-label="搜索比赛与队伍"
-        onClick={() => router.push("/opportunities")}
+        onClick={handleSearch}
         className="icon-btn"
       >
         <Search className="size-[15px]" strokeWidth={1.9} />

@@ -48,6 +48,18 @@ export default function OnboardingPage() {
     setInterests((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value].slice(0, 6));
   }
 
+  // 窄屏时步骤列表在表单下方，切完要回到题目区，否则看起来像没反应
+  function scrollToQuestions() {
+    if (typeof window === "undefined" || !window.matchMedia("(max-width: 1279px)").matches) return;
+    window.requestAnimationFrame(() => document.getElementById("questionnaire")?.scrollIntoView({ block: "start", behavior: "smooth" }));
+  }
+
+  function jumpToStep(index: number) {
+    setStep(index);
+    notify(`已切换到第 ${index + 1} 组：${STEP_LABELS[index] ?? "竞赛能力调查"}`, "info");
+    scrollToQuestions();
+  }
+
   async function submit(event: FormEvent) {
     event.preventDefault();
     setLoading(true);
@@ -157,7 +169,7 @@ export default function OnboardingPage() {
           </div>
 
           {/* 题目 */}
-          <section className="card overflow-hidden">
+          <section id="questionnaire" className="card scroll-mt-20 overflow-hidden">
             <header className="border-b border-line px-5 py-4 sm:px-6">
               <p className="section-label">
                 Step <span className="num">{String(step + 1).padStart(2, "0")}</span> / <span className="num">{String(totalSteps).padStart(2, "0")}</span>
@@ -201,7 +213,15 @@ export default function OnboardingPage() {
             </div>
 
             <footer className="flex items-center justify-between gap-3 border-t border-line bg-raise/50 px-5 py-3.5 sm:px-6">
-              <button type="button" disabled={step === 0} onClick={() => setStep((current) => Math.max(0, current - 1))} className="btn btn-ghost">
+              <button
+                type="button"
+                disabled={step === 0}
+                onClick={() => {
+                  setStep((current) => Math.max(0, current - 1));
+                  scrollToQuestions();
+                }}
+                className="btn btn-ghost"
+              >
                 <ChevronLeft className="size-4" /> 上一步
               </button>
               <div className="flex items-center gap-2.5">
@@ -215,7 +235,10 @@ export default function OnboardingPage() {
                     type="button"
                     disabled={!currentComplete}
                     title={currentComplete ? undefined : "请先完成本组 4 道题"}
-                    onClick={() => setStep((current) => Math.min(totalSteps - 1, current + 1))}
+                    onClick={() => {
+                      setStep((current) => Math.min(totalSteps - 1, current + 1));
+                      scrollToQuestions();
+                    }}
                     className="btn btn-primary"
                   >
                     继续下一组 <ArrowRight className="size-4" />
@@ -326,7 +349,7 @@ export default function OnboardingPage() {
                     <li key={label}>
                       <button
                         type="button"
-                        onClick={() => setStep(index)}
+                        onClick={() => jumpToStep(index)}
                         aria-current={isCurrent ? "step" : undefined}
                         aria-label={`跳到第 ${index + 1} 组：${label}${complete ? "（已完成）" : ""}`}
                         className={`flex w-full items-center gap-2.5 rounded-[9px] px-2 py-2 text-left transition-[transform,box-shadow,background-color] duration-300 [transition-timing-function:var(--spring)] hover:bg-surface/70 focus-visible:bg-surface/70 ${
